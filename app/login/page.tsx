@@ -1,30 +1,36 @@
+// 📁 FILE: app/login/page.tsx
+// 📋 ACTION: REPLACE existing file
+// ─────────────────────────────────
+// FIXED: Removed old Sprout+$ logo → BethrhLogo SVG
+//        Removed duplicate SiteHeader + SiteFooter
+//        (layout.tsx handles them globally now)
+//        Kept all auth logic unchanged
+// ─────────────────────────────────
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, Loader as Loader2, Sprout } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Eye, EyeOff, Mail, Lock, Loader as Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import SiteHeader from '@/components/SiteHeader';
-import SiteFooter from '@/components/SiteFooter';
+import BethrhLogo from '@/components/BethrhLogo';
 
-const PRIMARY = 'var(--green-brand)';
+const PRIMARY       = 'var(--green-brand)';
 const PRIMARY_HOVER = 'var(--green-mid)';
-const TEXT_MAIN = 'var(--text-dark)';
-const TEXT_MUTED = 'var(--gray-mid)';
-const BORDER = 'var(--gray-light)';
-const BG = 'var(--off-white)';
+const TEXT_MAIN     = 'var(--text-dark)';
+const TEXT_MUTED    = 'var(--gray-mid)';
+const BORDER        = 'var(--gray-light)';
+const BG            = 'var(--off-white)';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'Invalid login credentials': 'البريد أو كلمة المرور غير صحيحة',
-  'Email not confirmed': 'يرجى تفعيل بريدك أولاً',
-  'Too many requests': 'محاولات كثيرة. حاول بعد قليل',
+  'Email not confirmed':       'يرجى تفعيل بريدك أولاً',
+  'Too many requests':         'محاولات كثيرة. حاول بعد قليل',
 };
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
       <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
       <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
       <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
@@ -35,15 +41,15 @@ function GoogleIcon() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [remember, setRemember] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [checking, setChecking]         = useState(true);
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [showPass, setShowPass]         = useState(false);
+  const [remember, setRemember]         = useState(false);
+  const [loading, setLoading]           = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [error, setError]               = useState('');
+  const [fieldErrors, setFieldErrors]   = useState<{ email?: string; password?: string }>({});
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -94,207 +100,201 @@ export default function LoginPage() {
   const canSubmit = email.trim() && password.trim() && !loading;
 
   return (
-    <div dir="rtl" className="min-h-screen flex flex-col" style={{ background: BG }}>
-      <SiteHeader />
+    <div dir="rtl" className="min-h-screen flex items-center justify-center px-4 py-20"
+      style={{ background: BG }}>
 
-      <main className="flex-1 flex items-center justify-center px-4 py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="w-full"
-          style={{ maxWidth: 420 }}
+      <div className="w-full" style={{ maxWidth: 420 }}>
+
+        {/* ── Card ── */}
+        <div
+          className="rounded-2xl bg-white px-10 py-10"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
         >
-          {/* Card */}
-          <div
-            className="rounded-2xl bg-white px-10 py-10"
-            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
-          >
-            {/* Logo */}
-            <div className="flex flex-col items-center mb-8">
-              <div className="flex items-center gap-2.5 flex-row-reverse mb-1">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center relative shrink-0"
-                  style={{ background: 'var(--green-deep)' }}
-                >
-                  <Sprout className="w-5 h-5 absolute" style={{ color: 'var(--gold)', opacity: 0.45 }} />
-                  <span className="relative font-bold text-sm" style={{ color: 'var(--gold)', fontFamily: "'Nunito Sans', sans-serif" }}>$</span>
-                </div>
-                <span className="font-bold text-2xl" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: 'var(--green-deep)' }}>بذرة</span>
-              </div>
-            </div>
-
-            {/* Title */}
-            <h1 className="text-center font-bold text-2xl mb-2" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MAIN }}>
-              تسجيل الدخول
-            </h1>
-            <p className="text-center text-sm mb-8" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MUTED }}>
-              أهلاً بعودتك! سجّل دخولك لمتابعة رحلتك
-            </p>
-
-            {/* Global error */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mb-5 px-4 py-3 rounded-lg text-sm text-right"
-                style={{ background: 'hsl(0,80%,97%)', border: '1px solid hsl(0,60%,85%)', color: 'hsl(0,60%,40%)', fontFamily: "'Noto Kufi Arabic', sans-serif" }}
-              >
-                {error}
-              </motion.div>
-            )}
-
-            <form onSubmit={handleSubmit} noValidate className="space-y-5">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-right" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MAIN }}>
-                  البريد الإلكتروني
-                </label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: undefined })); }}
-                    dir="ltr"
-                    placeholder="example@email.com"
-                    className="w-full h-12 pr-10 pl-4 rounded-lg border text-sm transition-all outline-none focus:ring-2"
-                    style={{
-                      borderColor: fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER,
-                      fontFamily: "'Noto Sans', sans-serif",
-                      color: TEXT_MAIN,
-                    }}
-                    onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = `0 0 0 3px rgba(27,107,62,0.12)`; }}
-                    onBlur={e => { e.target.style.borderColor = fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
-                  />
-                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
-                </div>
-                {fieldErrors.email && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-1 text-xs text-right" style={{ color: 'hsl(0,60%,45%)', fontFamily: "'Noto Kufi Arabic', sans-serif" }}>
-                    {fieldErrors.email}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium mb-1.5 text-right" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MAIN }}>
-                  كلمة المرور
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: undefined })); }}
-                    placeholder="••••••••"
-                    className="w-full h-12 pr-10 pl-10 rounded-lg border text-sm transition-all outline-none"
-                    style={{
-                      borderColor: fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER,
-                      fontFamily: "'Noto Sans', sans-serif",
-                      color: TEXT_MAIN,
-                    }}
-                    onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = `0 0 0 3px rgba(27,107,62,0.12)`; }}
-                    onBlur={e => { e.target.style.borderColor = fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
-                  />
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(v => !v)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 rounded transition-colors hover:opacity-70"
-                    style={{ color: TEXT_MUTED }}
-                    tabIndex={-1}
-                  >
-                    {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {fieldErrors.password && (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-1 text-xs text-right" style={{ color: 'hsl(0,60%,45%)', fontFamily: "'Noto Kufi Arabic', sans-serif" }}>
-                    {fieldErrors.password}
-                  </motion.p>
-                )}
-              </div>
-
-              {/* Remember me */}
-              <div className="flex items-center gap-2 flex-row-reverse">
-                <input
-                  id="remember"
-                  type="checkbox"
-                  checked={remember}
-                  onChange={e => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded cursor-pointer"
-                  style={{ accentColor: PRIMARY }}
-                />
-                <label htmlFor="remember" className="text-sm cursor-pointer select-none" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MUTED }}>
-                  تذكرني
-                </label>
-              </div>
-
-              {/* Submit */}
-              <motion.button
-                type="submit"
-                disabled={!canSubmit}
-                whileTap={{ scale: 0.98 }}
-                className="w-full h-12 rounded-lg font-semibold text-base text-white flex items-center justify-center gap-2 transition-all"
-                style={{
-                  fontFamily: "'Noto Kufi Arabic', sans-serif",
-                  background: canSubmit ? PRIMARY : 'rgba(27,107,62,0.4)',
-                  boxShadow: canSubmit ? `0 2px 12px rgba(27,107,62,0.3)` : 'none',
-                  cursor: canSubmit ? 'pointer' : 'not-allowed',
-                }}
-                onMouseEnter={e => { if (canSubmit) (e.currentTarget as HTMLButtonElement).style.background = PRIMARY_HOVER; }}
-                onMouseLeave={e => { if (canSubmit) (e.currentTarget as HTMLButtonElement).style.background = PRIMARY; }}
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تسجيل الدخول'}
-              </motion.button>
-            </form>
-
-            {/* Divider */}
-            <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px" style={{ background: BORDER }} />
-              <span className="text-sm" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MUTED }}>أو</span>
-              <div className="flex-1 h-px" style={{ background: BORDER }} />
-            </div>
-
-            {/* Google */}
-            <motion.button
-              type="button"
-              onClick={handleGoogle}
-              disabled={googleLoading}
-              whileTap={{ scale: 0.98 }}
-              className="w-full h-12 rounded-lg border flex items-center justify-center gap-3 text-sm font-medium transition-all hover:bg-gray-50"
-              style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", borderColor: BORDER, color: TEXT_MAIN, background: 'white' }}
-            >
-              {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon />}
-              الدخول بـ Google
-            </motion.button>
-
-            {/* Forgot password */}
-            <div className="mt-5 text-center">
-              <Link
-                href="/forgot-password"
-                className="text-sm transition-colors hover:underline"
-                style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: PRIMARY }}
-              >
-                نسيت كلمة المرور؟
-              </Link>
-            </div>
-
-            {/* Register link */}
-            <p className="mt-4 text-center text-sm" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: TEXT_MUTED }}>
-              ليس لديك حساب؟{' '}
-              <Link href="/register" className="font-semibold hover:underline transition-colors" style={{ color: PRIMARY }}>
-                أنشئ حساب جديد
-              </Link>
-            </p>
+          {/* ── Logo — BethrhLogo SVG (green on white) ── */}
+          <div className="flex justify-center mb-8">
+            <BethrhLogo size="sm" color="#1B6B3E" />
           </div>
 
-          {/* Footer note */}
-          <p className="mt-8 text-center text-xs" style={{ fontFamily: "'Noto Kufi Arabic', sans-serif", color: 'var(--gray-mid)', fontWeight: 300 }}>
-            © ٢٠٢٦ Life Easy LLC — جميع الحقوق محفوظة
+          {/* ── Title ── */}
+          <h1
+            className="text-center font-bold text-2xl mb-2 font-arabic"
+            style={{ color: TEXT_MAIN }}
+          >
+            تسجيل الدخول
+          </h1>
+          <p
+            className="text-center text-sm mb-8 font-arabic"
+            style={{ color: TEXT_MUTED }}
+          >
+            أهلاً بعودتك! سجّل دخولك لمتابعة رحلتك
           </p>
-        </motion.div>
-      </main>
 
-      <SiteFooter />
+          {/* ── Global error ── */}
+          {error && (
+            <div
+              className="mb-5 px-4 py-3 rounded-lg text-sm text-right font-arabic"
+              style={{
+                background: 'hsl(0,80%,97%)',
+                border: '1px solid hsl(0,60%,85%)',
+                color: 'hsl(0,60%,40%)',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+
+            {/* Email */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-1.5 text-right font-arabic"
+                style={{ color: TEXT_MAIN }}
+              >
+                البريد الإلكتروني
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: undefined })); }}
+                  dir="ltr"
+                  placeholder="example@email.com"
+                  className="w-full h-12 pr-10 pl-4 rounded-lg border text-sm outline-none transition-all"
+                  style={{ borderColor: fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER, color: TEXT_MAIN }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
+                />
+                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
+              </div>
+              {fieldErrors.email && (
+                <p className="mt-1 text-xs text-right font-arabic" style={{ color: 'hsl(0,60%,45%)' }}>
+                  {fieldErrors.email}
+                </p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label
+                className="block text-sm font-medium mb-1.5 text-right font-arabic"
+                style={{ color: TEXT_MAIN }}
+              >
+                كلمة المرور
+              </label>
+              <div className="relative">
+                <input
+                  type={showPass ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: undefined })); }}
+                  placeholder="••••••••"
+                  className="w-full h-12 pr-10 pl-10 rounded-lg border text-sm outline-none transition-all"
+                  style={{ borderColor: fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER, color: TEXT_MAIN }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
+                  onBlur={e => { e.target.style.borderColor = fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
+                />
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
+                <button
+                  type="button"
+                  onClick={() => setShowPass(v => !v)}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:opacity-70"
+                  style={{ color: TEXT_MUTED }}
+                  tabIndex={-1}
+                >
+                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {fieldErrors.password && (
+                <p className="mt-1 text-xs text-right font-arabic" style={{ color: 'hsl(0,60%,45%)' }}>
+                  {fieldErrors.password}
+                </p>
+              )}
+            </div>
+
+            {/* Remember me */}
+            <div className="flex items-center gap-2 flex-row-reverse">
+              <input
+                id="remember"
+                type="checkbox"
+                checked={remember}
+                onChange={e => setRemember(e.target.checked)}
+                className="w-4 h-4 rounded cursor-pointer"
+                style={{ accentColor: PRIMARY }}
+              />
+              <label
+                htmlFor="remember"
+                className="text-sm cursor-pointer select-none font-arabic"
+                style={{ color: TEXT_MUTED }}
+              >
+                تذكرني
+              </label>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={!canSubmit}
+              className="w-full h-12 rounded-lg font-semibold text-base text-white flex items-center justify-center gap-2 transition-all font-arabic"
+              style={{
+                background: canSubmit ? PRIMARY : 'rgba(27,107,62,0.4)',
+                boxShadow: canSubmit ? '0 2px 12px rgba(27,107,62,0.3)' : 'none',
+                cursor: canSubmit ? 'pointer' : 'not-allowed',
+              }}
+              onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = PRIMARY_HOVER; }}
+              onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = PRIMARY; }}
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تسجيل الدخول'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px" style={{ background: BORDER }} />
+            <span className="text-sm font-arabic" style={{ color: TEXT_MUTED }}>أو</span>
+            <div className="flex-1 h-px" style={{ background: BORDER }} />
+          </div>
+
+          {/* Google */}
+          <button
+            type="button"
+            onClick={handleGoogle}
+            disabled={googleLoading}
+            className="w-full h-12 rounded-lg border flex items-center justify-center gap-3 text-sm font-medium transition-all hover:bg-gray-50 font-arabic"
+            style={{ borderColor: BORDER, color: TEXT_MAIN, background: 'white' }}
+          >
+            {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon />}
+            الدخول بـ Google
+          </button>
+
+          {/* Forgot password */}
+          <div className="mt-5 text-center">
+            <Link
+              href="/forgot-password"
+              className="text-sm transition-colors hover:underline font-arabic"
+              style={{ color: PRIMARY }}
+            >
+              نسيت كلمة المرور؟
+            </Link>
+          </div>
+
+          {/* Register link */}
+          <p className="mt-4 text-center text-sm font-arabic" style={{ color: TEXT_MUTED }}>
+            ليس لديك حساب؟{' '}
+            <Link
+              href="/register"
+              className="font-semibold hover:underline transition-colors"
+              style={{ color: PRIMARY }}
+            >
+              أنشئ حساب جديد
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer note */}
+        <p className="mt-8 text-center text-xs font-arabic" style={{ color: 'var(--gray-mid)', fontWeight: 300 }}>
+          © ٢٠٢٦ Life Easy LLC — جميع الحقوق محفوظة
+        </p>
+      </div>
     </div>
   );
 }
