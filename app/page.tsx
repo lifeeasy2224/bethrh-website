@@ -1,20 +1,15 @@
-// 📁 FILE: app/page.tsx
-// 📋 ACTION: REPLACE existing file (overwrite completely)
-// ─────────────────────────────────────────
-// CHANGE: Removed SiteHeader + SiteFooter imports and usage
-//         (layout.tsx now handles both globally)
-//         Removed <div className="h-16" /> spacer
-//         (layout.tsx adds pt-16 to <main> already)
-// KEPT:   All page content exactly as-is
-// ─────────────────────────────────────────
 import Link from 'next/link'
 import { ArrowLeft, Shield, Lock, FileText, Trash2, Star, Users, Lightbulb, Target, Rocket, ChartLine as LineChart, BadgeCheck, Layers, Sprout, CheckCircle } from 'lucide-react'
 import Testimonials from '@/components/Testimonials'
 import GreenhouseLink from '@/components/GreenhouseLink'
+import SiteHeader from '@/components/SiteHeader'
+import SiteFooter from '@/components/SiteFooter'
 
 export default function LandingPage() {
   return (
     <div dir="rtl" className="min-h-screen overflow-x-hidden" style={{ background: 'var(--off-white)', fontFamily: "'Noto Kufi Arabic', sans-serif" }}>
+      <SiteHeader />
+      <div className="h-16" />
 
       {/* ══════════════════════════════════════
           HERO — full-bleed dark green
@@ -36,11 +31,13 @@ export default function LandingPage() {
             )`,
           }}
         />
+
         {/* Glow accent */}
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] rounded-full pointer-events-none"
           style={{ background: 'radial-gradient(ellipse at center, rgba(27,107,62,0.45) 0%, transparent 70%)', top: '-100px' }}
         />
+
         <div className="relative max-w-5xl mx-auto px-6 text-center">
           {/* Eyebrow */}
           <div
@@ -50,6 +47,7 @@ export default function LandingPage() {
             <Sprout className="w-3.5 h-3.5" />
             منصة تطوير المشاريع الريادية
           </div>
+
           <h1
             className="font-extrabold leading-tight mb-6 text-white"
             style={{ fontSize: 'clamp(2.4rem, 6vw, 4.5rem)', letterSpacing: '-0.02em', lineHeight: 1.15 }}
@@ -58,12 +56,14 @@ export default function LandingPage() {
             <br />
             <span style={{ color: 'var(--gold)' }}>جاهز للإطلاق والتمويل</span>
           </h1>
+
           <p
             className="mx-auto mb-10 leading-relaxed"
             style={{ color: 'rgba(247,243,236,0.72)', fontSize: '1.125rem', maxWidth: '540px' }}
           >
             بذرة تأخذك من الفكرة إلى ملف جاهز للمستثمر — تحليلاً وتصميماً وتخطيطاً مالياً بخطوات واضحة.
           </p>
+
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
@@ -81,11 +81,12 @@ export default function LandingPage() {
               مستثمر؟ تفضّل للمشتل
             </GreenhouseLink>
           </div>
+
           {/* Social proof strip */}
           <div className="mt-16 flex flex-wrap items-center justify-center gap-8">
             {[
               { value: '+٢٠٠٠', label: 'مؤسس نشط' },
-              { value: '+٤٠٠',  label: 'مستثمر مسجّل' },
+              { value: '+٤٠٠', label: 'مستثمر مسجّل' },
               { value: '+٨٠٠٠', label: 'فكرة محلّلة' },
               { value: '٤ خطوات', label: 'رحلة ريادية واضحة' },
             ].map(s => (
@@ -136,6 +137,7 @@ export default function LandingPage() {
             رحلة منظّمة تحوّل فكرتك الخامة إلى ملف كامل يشمل التحليل والتصميم والأرقام.
           </p>
         </div>
+
         <div className="grid md:grid-cols-2 gap-5">
           {[
             {
@@ -207,7 +209,11 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════
           2. رحلة الريادي — 4 STEPS
       ══════════════════════════════════════ */}
-      <section className="py-24" style={{ background: 'var(--green-deep)' }} id="how-it-works">
+      <section
+        className="py-24"
+        style={{ background: 'var(--green-deep)' }}
+        id="how-it-works"
+      >
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
             <span
@@ -216,10 +222,14 @@ export default function LandingPage() {
             >
               رحلة الريادي
             </span>
-            <h2 className="font-extrabold mb-4 text-white" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+            <h2
+              className="font-extrabold mb-4 text-white"
+              style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+            >
               من البذرة إلى الإثمار في ٤ خطوات
             </h2>
           </div>
+
           <div className="grid md:grid-cols-4 gap-6">
             {[
               { n: '١', icon: Lightbulb, title: 'اكتشف الفكرة', desc: 'حلّل المشكلة، حدّد جمهورك، وصُغ قيمتك الفريدة.' },
@@ -239,6 +249,7 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+
           <div className="text-center mt-12">
             <Link
               href="/signup"
@@ -263,7 +274,10 @@ export default function LandingPage() {
           >
             لمن صُممت بذرة؟
           </span>
-          <h2 className="font-extrabold" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+          <h2
+            className="font-extrabold"
+            style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+          >
             منصة مبنية لك أنت
           </h2>
         </div>
@@ -276,7 +290,11 @@ export default function LandingPage() {
             <div
               key={i}
               className="p-7 rounded-2xl border text-center transition-all hover:-translate-y-1"
-              style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}
+              style={{
+                background: 'var(--white)',
+                borderColor: 'var(--gray-light)',
+                boxShadow: '0 2px 8px rgba(15,61,36,0.06)',
+              }}
             >
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -341,6 +359,7 @@ export default function LandingPage() {
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </div>
+
             {/* Visual table */}
             <div
               className="rounded-2xl overflow-hidden"
@@ -355,11 +374,11 @@ export default function LandingPage() {
               </div>
               <div style={{ background: 'var(--white)' }}>
                 {[
-                  { label: 'الإيرادات المتوقعة', value: '$120,000', tag: 'سنوياً',  color: 'var(--green-brand)' },
-                  { label: 'النفقات الثابتة',    value: '$24,000',  tag: 'سنوياً',  color: 'var(--text-dark)' },
-                  { label: 'النفقات التشغيلية',  value: '$18,000',  tag: 'سنوياً',  color: 'var(--text-dark)' },
-                  { label: 'نقطة التعادل',       value: 'الشهر ٤', tag: 'تقريباً', color: 'var(--gold)' },
-                  { label: 'صافي الربح (س١)',   value: '$78,000',  tag: 'تقديري',  color: 'var(--green-brand)' },
+                  { label: 'الإيرادات المتوقعة', value: '$120,000', tag: 'سنوياً',   color: 'var(--green-brand)' },
+                  { label: 'النفقات الثابتة',    value: '$24,000',  tag: 'سنوياً',   color: 'var(--text-dark)' },
+                  { label: 'النفقات التشغيلية',  value: '$18,000',  tag: 'سنوياً',   color: 'var(--text-dark)' },
+                  { label: 'نقطة التعادل',       value: 'الشهر ٤',  tag: 'تقريباً',  color: 'var(--gold)' },
+                  { label: 'صافي الربح (س١)',   value: '$78,000',  tag: 'تقديري',   color: 'var(--green-brand)' },
                 ].map(({ label, value, tag, color }, i) => (
                   <div
                     key={i}
@@ -369,13 +388,19 @@ export default function LandingPage() {
                     <span style={{ color: 'var(--gray-mid)' }}>{label}</span>
                     <div className="flex items-center gap-2 flex-row-reverse">
                       <span className="font-bold" style={{ color }}>{value}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--off-white)', color: 'var(--gray-mid)' }}>
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full"
+                        style={{ background: 'var(--off-white)', color: 'var(--gray-mid)' }}
+                      >
                         {tag}
                       </span>
                     </div>
                   </div>
                 ))}
-                <div className="px-5 py-3.5 text-xs text-right" style={{ color: 'var(--gray-mid)', background: 'var(--off-white)' }}>
+                <div
+                  className="px-5 py-3.5 text-xs text-right"
+                  style={{ color: 'var(--gray-mid)', background: 'var(--off-white)' }}
+                >
                   ⚠️ مثال توضيحي فقط — الأرقام الفعلية تختلف حسب طبيعة مشروعك.
                 </div>
               </div>
@@ -395,18 +420,36 @@ export default function LandingPage() {
           >
             مثال حقيقي
           </span>
-          <h2 className="font-extrabold mb-3" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+          <h2
+            className="font-extrabold mb-3"
+            style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+          >
             هكذا ستبدو بذرتك جاهزةً للعرض
           </h2>
-          <p className="text-sm" style={{ color: 'var(--gray-mid)' }}>فكرة متخيّلة — منصة توصيل قهوة مختصة للمكاتب</p>
+          <p className="text-sm" style={{ color: 'var(--gray-mid)' }}>
+            فكرة متخيّلة — منصة توصيل قهوة مختصة للمكاتب
+          </p>
         </div>
+
         <div className="grid md:grid-cols-3 gap-5">
-          <div className="p-6 rounded-2xl border text-right" style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}>
+          {/* Idea */}
+          <div
+            className="p-6 rounded-2xl border text-right"
+            style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}
+          >
             <div className="flex items-center gap-2 mb-4 flex-row-reverse">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,166,83,0.1)' }}>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(212,166,83,0.1)' }}
+              >
                 <Lightbulb className="w-4 h-4" style={{ color: 'var(--gold)' }} />
               </div>
-              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>الفكرة</span>
+              <span
+                className="text-xs font-bold uppercase tracking-wide"
+                style={{ color: 'var(--gold)' }}
+              >
+                الفكرة
+              </span>
             </div>
             <h3 className="font-bold mb-2" style={{ color: 'var(--text-dark)' }}>توصيل قهوة مختصة للمكاتب</h3>
             <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--gray-mid)' }}>
@@ -414,16 +457,32 @@ export default function LandingPage() {
             </p>
             <div className="flex flex-wrap gap-2 flex-row-reverse">
               {['خدمات', 'توصيل', 'B2B'].map(t => (
-                <span key={t} className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'rgba(212,166,83,0.1)', color: 'var(--gold)' }}>{t}</span>
+                <span
+                  key={t}
+                  className="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style={{ background: 'rgba(212,166,83,0.1)', color: 'var(--gold)' }}
+                >
+                  {t}
+                </span>
               ))}
             </div>
           </div>
-          <div className="p-6 rounded-2xl border text-right" style={{ background: 'rgba(27,107,62,0.03)', borderColor: 'rgba(27,107,62,0.15)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}>
+
+          {/* Financial */}
+          <div
+            className="p-6 rounded-2xl border text-right"
+            style={{ background: 'rgba(27,107,62,0.03)', borderColor: 'rgba(27,107,62,0.15)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}
+          >
             <div className="flex items-center gap-2 mb-4 flex-row-reverse">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(27,107,62,0.1)' }}>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(27,107,62,0.1)' }}
+              >
                 <LineChart className="w-4 h-4" style={{ color: 'var(--green-brand)' }} />
               </div>
-              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--green-brand)' }}>التحليل المالي</span>
+              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--green-brand)' }}>
+                التحليل المالي
+              </span>
             </div>
             <div className="space-y-2">
               {[
@@ -433,16 +492,28 @@ export default function LandingPage() {
                 { k: 'نقطة التعادل',     v: 'الشهر ٤' },
                 { k: 'الربح بعد ١٢ شهر', v: '+$85,000' },
               ].map(({ k, v }) => (
-                <div key={k} className="flex justify-between text-sm border-b pb-1.5 flex-row-reverse" style={{ borderColor: 'rgba(27,107,62,0.1)' }}>
+                <div
+                  key={k}
+                  className="flex justify-between text-sm border-b pb-1.5 flex-row-reverse"
+                  style={{ borderColor: 'rgba(27,107,62,0.1)' }}
+                >
                   <span style={{ color: 'var(--gray-mid)' }}>{k}</span>
                   <span className="font-bold" style={{ color: 'var(--text-dark)' }}>{v}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="p-6 rounded-2xl border text-right" style={{ background: 'rgba(212,166,83,0.05)', borderColor: 'rgba(212,166,83,0.25)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}>
+
+          {/* Score */}
+          <div
+            className="p-6 rounded-2xl border text-right"
+            style={{ background: 'rgba(212,166,83,0.05)', borderColor: 'rgba(212,166,83,0.25)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}
+          >
             <div className="flex items-center gap-2 mb-4 flex-row-reverse">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(212,166,83,0.12)' }}>
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(212,166,83,0.12)' }}
+              >
                 <Star className="w-4 h-4" style={{ color: 'var(--gold)' }} />
               </div>
               <span className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--gold)' }}>تقويم الفكرة</span>
@@ -451,7 +522,8 @@ export default function LandingPage() {
               <div className="relative w-28 h-28">
                 <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
                   <circle cx="60" cy="60" r="50" fill="none" stroke="var(--gray-light)" strokeWidth="10" />
-                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--green-brand)" strokeWidth="10" strokeDasharray="251 314" strokeLinecap="round" />
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="var(--green-brand)" strokeWidth="10"
+                    strokeDasharray="251 314" strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-3xl font-extrabold" style={{ color: 'var(--green-brand)' }}>٨٠</span>
@@ -471,7 +543,10 @@ export default function LandingPage() {
                     <span className="font-bold" style={{ color: 'var(--green-brand)' }}>{b.v}/{b.max}</span>
                   </div>
                   <div className="h-1.5 rounded-full" style={{ background: 'var(--gray-light)' }}>
-                    <div className="h-full rounded-full" style={{ width: `${(b.v / b.max) * 100}%`, background: 'var(--green-brand)' }} />
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${(b.v / b.max) * 100}%`, background: 'var(--green-brand)' }}
+                    />
                   </div>
                 </div>
               ))}
@@ -483,12 +558,21 @@ export default function LandingPage() {
       {/* ══════════════════════════════════════
           6. بذرتك ملكك — SECURITY
       ══════════════════════════════════════ */}
-      <section className="py-24" style={{ background: 'var(--white)', borderTop: '1px solid var(--gray-light)', borderBottom: '1px solid var(--gray-light)' }}>
+      <section
+        className="py-24"
+        style={{ background: 'var(--white)', borderTop: '1px solid var(--gray-light)', borderBottom: '1px solid var(--gray-light)' }}
+      >
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5" style={{ background: 'rgba(27,107,62,0.07)' }}>
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
+            style={{ background: 'rgba(27,107,62,0.07)' }}
+          >
             <Shield className="w-7 h-7" style={{ color: 'var(--green-brand)' }} />
           </div>
-          <h2 className="font-extrabold mb-3" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)' }}>
+          <h2
+            className="font-extrabold mb-3"
+            style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.5rem, 3.5vw, 2rem)' }}
+          >
             بذرتك ملكك وحدك
           </h2>
           <p className="mb-10 text-sm leading-relaxed" style={{ color: 'var(--gray-mid)' }}>
@@ -501,8 +585,15 @@ export default function LandingPage() {
               { icon: FileText, title: 'اتفاقية قانونية', desc: 'نوافق قانونياً على عدم استخدام أو نسخ أو مشاركة فكرتك.' },
               { icon: Trash2,   title: 'احذف في أي وقت', desc: 'يمكنك حذف فكرتك وبياناتك نهائياً بضغطة زر واحدة.' },
             ].map(({ icon: Icon, title, desc }, i) => (
-              <div key={i} className="p-5 rounded-xl border" style={{ background: 'var(--off-white)', borderColor: 'var(--gray-light)' }}>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ background: 'rgba(27,107,62,0.07)' }}>
+              <div
+                key={i}
+                className="p-5 rounded-xl border"
+                style={{ background: 'var(--off-white)', borderColor: 'var(--gray-light)' }}
+              >
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center mb-3"
+                  style={{ background: 'rgba(27,107,62,0.07)' }}
+                >
                   <Icon className="w-4 h-4" style={{ color: 'var(--green-brand)' }} />
                 </div>
                 <h3 className="font-bold text-sm mb-1" style={{ color: 'var(--text-dark)' }}>{title}</h3>
@@ -511,7 +602,11 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="mt-8">
-            <Link href="/ip-policy" className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline" style={{ color: 'var(--green-brand)' }}>
+            <Link
+              href="/ip-policy"
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: 'var(--green-brand)' }}
+            >
               اقرأ سياسة حماية الملكية الفكرية الكاملة
               <ArrowLeft className="w-4 h-4" />
             </Link>
@@ -530,7 +625,10 @@ export default function LandingPage() {
           >
             التمويل والمستثمرون
           </span>
-          <h2 className="font-extrabold mb-5 text-white" style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+          <h2
+            className="font-extrabold mb-5 text-white"
+            style={{ fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+          >
             لا نترك فكرتك في ملف…
             <br />
             <span style={{ color: 'var(--gold)' }}>نربطك بالممولين المناسبين</span>
@@ -545,8 +643,18 @@ export default function LandingPage() {
               { icon: Users,      label: 'لوحة للمستثمرين',         desc: 'إتاحة مشروعك لشبكة ممولين مختارين.' },
               { icon: Shield,     label: 'تواصل آمن بين الطرفين',   desc: 'بياناتك محمية وهويتك في يدك.' },
             ].map(({ icon: Icon, label, desc }, i) => (
-              <div key={i} className="rounded-2xl p-6 text-right" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4" style={{ background: 'rgba(212,166,83,0.12)' }}>
+              <div
+                key={i}
+                className="rounded-2xl p-6 text-right"
+                style={{
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }}
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                  style={{ background: 'rgba(212,166,83,0.12)' }}
+                >
                   <Icon className="w-5 h-5" style={{ color: 'var(--gold)' }} />
                 </div>
                 <p className="font-bold text-sm text-white mb-1">{label}</p>
@@ -582,7 +690,10 @@ export default function LandingPage() {
           >
             الأسعار
           </span>
-          <h2 className="font-extrabold mb-3" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+          <h2
+            className="font-extrabold mb-3"
+            style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+          >
             أسعار تناسب كل مرحلة
           </h2>
           <p className="text-sm mb-12" style={{ color: 'var(--gray-mid)' }}>
@@ -590,10 +701,10 @@ export default function LandingPage() {
           </p>
           <div className="grid sm:grid-cols-4 gap-4 mb-10">
             {[
-              { icon: '🌱', name: 'مجاني',       price: '$0',      desc: 'للاستكشاف',      popular: false },
-              { icon: '🌿', name: 'برو',          price: '$19/شهر', desc: 'AI + غير محدود', popular: true },
-              { icon: '🚀', name: 'نمو',          price: '$49/شهر', desc: 'فريق + أولوية',  popular: false },
-              { icon: '🏢', name: 'أكسيليريتور', price: 'مخصص',    desc: 'للشركات',         popular: false },
+              { icon: '🌱', name: 'مجاني',       price: '$0',       desc: 'للاستكشاف', popular: false },
+              { icon: '🌿', name: 'برو',          price: '$19/شهر',  desc: 'AI + غير محدود', popular: true },
+              { icon: '🚀', name: 'نمو',          price: '$49/شهر',  desc: 'فريق + أولوية', popular: false },
+              { icon: '🏢', name: 'أكسيليريتور', price: 'مخصص',     desc: 'للشركات', popular: false },
             ].map((p, i) => (
               <div
                 key={i}
@@ -605,18 +716,30 @@ export default function LandingPage() {
                 }}
               >
                 {p.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap" style={{ background: 'var(--green-brand)', color: 'var(--white)' }}>
+                  <div
+                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2.5 py-0.5 rounded-full whitespace-nowrap"
+                    style={{ background: 'var(--green-brand)', color: 'var(--white)' }}
+                  >
                     الأكثر شعبية
                   </div>
                 )}
                 <div className="text-2xl mb-2">{p.icon}</div>
                 <div className="font-bold text-sm mb-0.5" style={{ color: 'var(--text-dark)' }}>{p.name}</div>
-                <div className="font-extrabold text-base mb-1" style={{ color: p.popular ? 'var(--green-brand)' : 'var(--text-dark)' }}>{p.price}</div>
+                <div
+                  className="font-extrabold text-base mb-1"
+                  style={{ color: p.popular ? 'var(--green-brand)' : 'var(--text-dark)' }}
+                >
+                  {p.price}
+                </div>
                 <div className="text-xs" style={{ color: 'var(--gray-mid)' }}>{p.desc}</div>
               </div>
             ))}
           </div>
-          <Link href="/pricing" className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm transition-all hover:opacity-90" style={{ background: 'var(--green-brand)', color: 'var(--white)' }}>
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm transition-all hover:opacity-90"
+            style={{ background: 'var(--green-brand)', color: 'var(--white)' }}
+          >
             شاهد جميع الباقات
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -635,13 +758,18 @@ export default function LandingPage() {
             >
               بذور جاهزة للزراعة
             </span>
-            <h2 className="font-extrabold mb-4" style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}>
+            <h2
+              className="font-extrabold mb-4"
+              style={{ color: 'var(--text-dark)', fontSize: 'clamp(1.7rem, 4vw, 2.5rem)' }}
+            >
               ما عندك فكرة؟ لا مشكلة
             </h2>
             <p className="text-sm max-w-lg mx-auto leading-relaxed" style={{ color: 'var(--gray-mid)' }}>
               اختر من <strong style={{ color: 'var(--text-dark)' }}>40+ فكرة مشروع</strong> مدروسة وجاهزة للتنفيذ، خصّصها لسوقك، وابدأ رحلتك فوراً.
             </p>
           </div>
+
+          {/* Sector pills */}
           <div className="flex flex-wrap justify-center gap-3 mb-12">
             {[
               { icon: '🍎', label: 'الزراعة والغذاء' },
@@ -653,22 +781,35 @@ export default function LandingPage() {
               { icon: '🚚', label: 'اللوجستيات' },
               { icon: '🔧', label: 'الخدمات المهنية' },
             ].map(({ icon, label }) => (
-              <div key={label} className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium" style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', color: 'var(--text-dark)' }}>
+              <div
+                key={label}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium"
+                style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', color: 'var(--text-dark)' }}
+              >
                 <span>{icon}</span>
                 <span>{label}</span>
               </div>
             ))}
           </div>
+
+          {/* Preview cards */}
           <div className="grid sm:grid-cols-3 gap-4 mb-10">
             {[
-              { icon: '🍎', sector: 'الزراعة والغذاء',    title: 'توصيل خضار طازجة للمكاتب',              iro: '~350%', breakeven: '~8 أشهر' },
-              { icon: '💻', sector: 'برمجيات الأعمال',    title: 'نظام إدارة مخزون للمطاعم',              iro: '~420%', breakeven: '~10 أشهر' },
-              { icon: '📚', sector: 'التعليم الإلكتروني', title: 'تطبيق تحفيظ القرآن بالذكاء الاصطناعي', iro: '~500%', breakeven: '~10 أشهر' },
+              { icon: '🍎', sector: 'الزراعة والغذاء',     title: 'توصيل خضار طازجة للمكاتب',              iro: '~350%', breakeven: '~8 أشهر' },
+              { icon: '💻', sector: 'برمجيات الأعمال',     title: 'نظام إدارة مخزون للمطاعم',              iro: '~420%', breakeven: '~10 أشهر' },
+              { icon: '📚', sector: 'التعليم الإلكتروني',  title: 'تطبيق تحفيظ القرآن بالذكاء الاصطناعي', iro: '~500%', breakeven: '~10 أشهر' },
             ].map((card, i) => (
-              <div key={i} className="p-5 rounded-2xl border text-right" style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}>
+              <div
+                key={i}
+                className="p-5 rounded-2xl border text-right"
+                style={{ background: 'var(--white)', borderColor: 'var(--gray-light)', boxShadow: '0 2px 8px rgba(15,61,36,0.06)' }}
+              >
                 <div className="flex items-center gap-2 flex-row-reverse mb-3">
                   <span className="text-lg">{card.icon}</span>
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'rgba(27,107,62,0.07)', color: 'var(--green-brand)' }}>
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded-full"
+                    style={{ background: 'rgba(27,107,62,0.07)', color: 'var(--green-brand)' }}
+                  >
                     {card.sector}
                   </span>
                 </div>
@@ -680,8 +821,13 @@ export default function LandingPage() {
               </div>
             ))}
           </div>
+
           <div className="text-center">
-            <Link href="/signup" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base transition-all hover:opacity-90 shadow-md" style={{ background: 'var(--green-brand)', color: 'var(--white)' }}>
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-base transition-all hover:opacity-90 shadow-md"
+              style={{ background: 'var(--green-brand)', color: 'var(--white)' }}
+            >
               استكشف 40+ فكرة جاهزة — مجاناً
               <ArrowLeft className="w-5 h-5" />
             </Link>
@@ -694,10 +840,16 @@ export default function LandingPage() {
       ══════════════════════════════════════ */}
       <section className="py-28" style={{ background: 'var(--green-deep)' }}>
         <div className="max-w-3xl mx-auto px-6 text-center">
-          <div className="inline-flex w-16 h-16 rounded-2xl items-center justify-center mx-auto mb-8" style={{ background: 'rgba(212,166,83,0.12)' }}>
+          <div
+            className="inline-flex w-16 h-16 rounded-2xl items-center justify-center mx-auto mb-8"
+            style={{ background: 'rgba(212,166,83,0.12)' }}
+          >
             <Sprout className="w-8 h-8" style={{ color: 'var(--gold)' }} />
           </div>
-          <h2 className="font-extrabold mb-5 text-white leading-tight" style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)' }}>
+          <h2
+            className="font-extrabold mb-5 text-white leading-tight"
+            style={{ fontSize: 'clamp(2rem, 5vw, 3.25rem)' }}
+          >
             فكرتك تستحق أن تُبنى…
             <br />
             <span style={{ color: 'var(--gold)' }}>لا تبقَ في رأسك</span>
@@ -719,6 +871,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <SiteFooter />
     </div>
   )
 }
