@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SiteHeader from '@/components/SiteHeader';
 import SiteFooter from '@/components/SiteFooter';
+import BethrhLogo from '@/components/BethrhLogo';
 
 /* ── Founder nav ── */
 const founderNavItems = [
@@ -46,32 +47,6 @@ const bottomItems = [
   { href: '/privacy',   label: 'الخصوصية والكوكيز',    icon: Cookie },
   { href: '/ip-policy', label: 'حماية الملكية الفكرية', icon: Shield },
 ];
-
-/* ── Brand sidebar logo ── */
-function SidebarLogo() {
-  return (
-    <div className="flex items-center gap-2.5 flex-row-reverse">
-      <div
-        className="w-10 h-10 rounded-xl flex items-center justify-center relative shrink-0"
-        style={{ background: 'var(--green-deep)' }}
-      >
-        <Sprout className="w-5 h-5 absolute" style={{ color: 'var(--gold)', opacity: 0.45 }} />
-        <span
-          className="relative font-bold text-sm font-latin leading-none"
-          style={{ color: 'var(--gold)' }}
-        >
-          $
-        </span>
-      </div>
-      <span
-        className="font-bold text-2xl font-arabic tracking-tight"
-        style={{ color: 'var(--green-deep)' }}
-      >
-        بذرة
-      </span>
-    </div>
-  );
-}
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname     = usePathname();
@@ -169,7 +144,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           {/* Brand + back-to-home */}
           <div className="px-4 py-4 border-b" style={{ borderColor: 'var(--gray-light)' }}>
             <div className="flex items-center justify-center mb-3">
-              <SidebarLogo />
+              <BethrhLogo size="sm" />
             </div>
             <Link
               href="/"
