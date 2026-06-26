@@ -1,28 +1,37 @@
+// 📁 FILE: app/signup/page.tsx
+// 📋 ACTION: REPLACE existing file
+// ─────────────────────────────────
+// FIXED: Removed old Sprout+$ logo → BethrhLogo SVG
+//        Removed duplicate SiteHeader + SiteFooter
+//        Removed "سوريا" reference → MENA general
+//        Updated decorative panel with BethrhLogo
+//        Kept all auth logic unchanged
+// ─────────────────────────────────
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, CircleCheck as CheckCircle, Sprout } from 'lucide-react';
-import SiteHeader from '@/components/SiteHeader';
-import SiteFooter from '@/components/SiteFooter';
+import { ArrowLeft, CircleCheck as CheckCircle, Loader as Loader2 } from 'lucide-react';
+import BethrhLogo from '@/components/BethrhLogo';
 
 const features = [
-  'إطار تحقق منظّم',
-  'تدريب بالذكاء الاصطناعي بالعربية',
-  'مجموعات مساءلة مع الأقران',
+  'إطار تحقق منظّم خطوة بخطوة',
+  'مدرب ذكاء اصطناعي بالعربية',
+  'مجموعات مساءلة مع رواد أعمال',
   'تتبع التقدم أسبوعاً بأسبوع',
+  'ربط مباشر مع المستثمرين',
 ];
 
 export default function SignupPage() {
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [mode, setMode] = useState<'signin' | 'signup'>('signup');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [checking, setChecking]   = useState(true);
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [mode, setMode]           = useState<'signin' | 'signup'>('signup');
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState('');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -50,83 +59,107 @@ export default function SignupPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--off-white)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--green-brand)' }} />
       </div>
     );
   }
 
   return (
-    <div dir="rtl" className="min-h-screen flex flex-col bg-background">
-      <SiteHeader />
-      <div className="flex flex-1 pt-16">
-      {/* Decorative panel */}
+    <div dir="rtl" className="min-h-screen flex" style={{ background: 'var(--off-white)' }}>
+
+      {/* ── Decorative panel (desktop only, right side in RTL) ── */}
       <div
         className="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden order-last"
-        style={{ background: 'linear-gradient(145deg, var(--green-deep) 0%, var(--green-brand) 55%, var(--gold) 100%)' }}
+        style={{ background: 'var(--green-deep)' }}
       >
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-        }} />
-        <div className="flex items-center gap-2.5 relative flex-row-reverse">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center relative shrink-0"
-            style={{ background: 'rgba(212,166,83,0.15)' }}
-          >
-            <Sprout className="w-8 h-8 absolute" style={{ color: 'var(--gold)', opacity: 0.45 }} />
-            <span className="relative font-bold text-xl" style={{ color: 'var(--gold)', fontFamily: "'Nunito Sans', sans-serif" }}>$</span>
-          </div>
-          <span className="font-kufam font-bold text-4xl text-white">بذرة</span>
-        </div>
+        {/* Subtle pattern */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              -45deg, transparent, transparent 40px,
+              rgba(255,255,255,0.02) 40px, rgba(255,255,255,0.02) 41px
+            )`,
+          }}
+        />
+        {/* Gold top border */}
+        <div
+          className="absolute top-0 left-0 right-0 h-1"
+          style={{ background: 'linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold))' }}
+        />
+
+        {/* Logo */}
         <div className="relative">
-          <h1 className="text-white text-4xl font-bold leading-tight mb-6 text-right">
-            نمِّ شركتك الناشئة<br />من سوريا إلى العالم
+          <BethrhLogo size="md" color="#D4A653" />
+        </div>
+
+        {/* Content */}
+        <div className="relative">
+          <h1
+            className="text-white text-4xl font-bold leading-tight mb-6 text-right font-arabic"
+            style={{ lineHeight: 1.4 }}
+          >
+            انطلق بفكرتك
+            <br />
+            <span style={{ color: 'var(--gold)' }}>اصنع مستقبلك</span>
           </h1>
-          <p className="text-white/80 text-lg mb-10 text-right">
-            حاضنة المشروعات الريادية، تحقق حلمك في ١٢ أسبوعاً: من الفكرة، إيجاد الزبائن وحتى تبني مشروعاً حقيقياً وحقق أحلامك
+          <p className="text-white/70 text-lg mb-10 text-right font-arabic leading-relaxed">
+            منصة بذرة تأخذك من الفكرة إلى مشروع ناجح — تحليلاً وتصميماً وتمويلاً.
           </p>
           <div className="space-y-4" dir="rtl">
             {features.map(item => (
-              <div key={item} className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-white/90 shrink-0" />
-                <span className="text-white/90">{item}</span>
+              <div key={item} className="flex items-center gap-3 flex-row-reverse">
+                <CheckCircle className="w-5 h-5 shrink-0" style={{ color: 'var(--gold)' }} />
+                <span className="text-white/85 font-arabic">{item}</span>
               </div>
             ))}
           </div>
         </div>
-        <div className="text-white/50 text-sm text-right">مبني لرواد الأعمال السوريين حول العالم</div>
+
+        <p className="text-white/35 text-sm text-right font-arabic relative">
+          © ٢٠٢٦ Life Easy LLC · bethra.co
+        </p>
       </div>
 
-      {/* Form panel */}
+      {/* ── Form panel ── */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
+
           {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-2.5 mb-10 flex-row-reverse">
-            <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center relative shrink-0"
-              style={{ background: 'var(--green-deep)' }}
-            >
-              <Sprout className="w-7 h-7 absolute" style={{ color: 'var(--gold)', opacity: 0.45 }} />
-              <span className="relative font-bold text-lg" style={{ color: 'var(--gold)', fontFamily: "'Nunito Sans', sans-serif" }}>$</span>
-            </div>
-            <span className="font-kufam font-bold text-3xl" style={{ color: 'var(--green-deep)' }}>بذرة</span>
+          <div className="lg:hidden flex justify-center mb-10">
+            <BethrhLogo size="sm" color="#1B6B3E" />
           </div>
 
-          <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+          {/* Back link */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm mb-8 transition-colors font-arabic"
+            style={{ color: 'var(--gray-mid)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--green-brand)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--gray-mid)')}
+          >
             <ArrowLeft className="w-4 h-4 rotate-180" />
             العودة للرئيسية
           </Link>
 
-          <h2 className="text-2xl font-bold mb-1 text-right">
+          {/* Title */}
+          <h2 className="text-2xl font-bold mb-1 text-right font-arabic" style={{ color: 'var(--text-dark)' }}>
             {mode === 'signin' ? 'أهلاً بعودتك' : 'ابدأ رحلتك'}
           </h2>
-          <p className="text-muted-foreground mb-8 text-right">
-            {mode === 'signin' ? 'سجّل دخولك إلى حسابك' : 'أنشئ حسابك المجاني'}
+          <p className="mb-8 text-right font-arabic" style={{ color: 'var(--gray-mid)' }}>
+            {mode === 'signin' ? 'سجّل دخولك إلى حسابك' : 'أنشئ حسابك المجاني — بدون بطاقة ائتمان'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-right">البريد الإلكتروني</label>
+              <label
+                className="block text-sm font-medium mb-1.5 text-right font-arabic"
+                style={{ color: 'var(--text-dark)' }}
+              >
+                البريد الإلكتروني
+              </label>
               <input
                 type="email"
                 value={email}
@@ -134,11 +167,21 @@ export default function SignupPage() {
                 required
                 dir="ltr"
                 placeholder="you@example.com"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition text-left"
+                className="w-full px-3.5 py-2.5 rounded-lg border text-sm outline-none transition-all"
+                style={{ borderColor: 'var(--gray-light)', color: 'var(--text-dark)', background: 'white' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--gray-light)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
+
+            {/* Password */}
             <div>
-              <label className="block text-sm font-medium mb-1.5 text-right">كلمة المرور</label>
+              <label
+                className="block text-sm font-medium mb-1.5 text-right font-arabic"
+                style={{ color: 'var(--text-dark)' }}
+              >
+                كلمة المرور
+              </label>
               <input
                 type="password"
                 value={password}
@@ -146,45 +189,71 @@ export default function SignupPage() {
                 required
                 dir="ltr"
                 placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition text-left"
+                className="w-full px-3.5 py-2.5 rounded-lg border text-sm outline-none transition-all"
+                style={{ borderColor: 'var(--gray-light)', color: 'var(--text-dark)', background: 'white' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--gray-light)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
 
+            {/* Error */}
             {error && (
-              <div className="px-3.5 py-2.5 rounded-lg bg-destructive/10 text-destructive text-sm text-right">
+              <div
+                className="px-3.5 py-2.5 rounded-lg text-sm text-right font-arabic"
+                style={{ background: 'hsl(0,80%,97%)', border: '1px solid hsl(0,60%,85%)', color: 'hsl(0,60%,40%)' }}
+              >
                 {error}
               </div>
             )}
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-lg font-medium text-sm hover:bg-primary/90 transition disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg font-medium text-sm transition-all font-arabic"
+              style={{
+                background: 'var(--green-brand)',
+                color: 'white',
+                opacity: loading ? 0.7 : 1,
+              }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.background = 'var(--green-mid)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--green-brand)'; }}
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  {mode === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب'}
+                  {mode === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب مجاني'}
                   <ArrowLeft className="w-4 h-4" />
                 </>
               )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
+          {/* Toggle mode */}
+          <p className="text-center text-sm mt-6 font-arabic" style={{ color: 'var(--gray-mid)' }}>
             {mode === 'signin' ? 'ليس لديك حساب؟' : 'لديك حساب بالفعل؟'}{' '}
             <button
               onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(''); }}
-              className="text-primary font-medium hover:underline"
+              className="font-semibold hover:underline transition-colors font-arabic"
+              style={{ color: 'var(--green-brand)' }}
             >
               {mode === 'signin' ? 'سجّل الآن' : 'سجّل دخولك'}
             </button>
           </p>
+
+          {/* Links to full register/login */}
+          <div className="mt-4 text-center">
+            <Link
+              href="/register"
+              className="text-xs hover:underline font-arabic"
+              style={{ color: 'var(--gray-mid)' }}
+            >
+              إنشاء حساب كامل مع اختيار الدور →
+            </Link>
+          </div>
         </div>
       </div>
-      </div>
-      <SiteFooter />
     </div>
   );
 }
