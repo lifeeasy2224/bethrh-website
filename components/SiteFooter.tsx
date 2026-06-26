@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Sprout } from 'lucide-react';
+import BethrhLogo from '@/components/BethrhLogo';
 
 const footerColumns = [
   {
@@ -46,15 +46,8 @@ export default function SiteFooter() {
       <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
 
         {/* Brand row */}
-        <div className="flex items-center gap-3 flex-row-reverse mb-3">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center relative shrink-0"
-            style={{ background: 'rgba(212,166,83,0.15)' }}
-          >
-            <Sprout className="w-5 h-5 absolute" style={{ color: 'var(--gold)', opacity: 0.45 }} />
-            <span className="relative font-bold text-sm font-latin" style={{ color: 'var(--gold)' }}>$</span>
-          </div>
-          <span className="font-bold text-xl font-arabic" style={{ color: 'var(--gold)' }}>بذرة</span>
+        <div className="mb-3">
+          <BethrhLogo size="sm" color="#D4A653" />
         </div>
         <p className="text-sm mb-12 text-right" style={{ color: 'rgba(232,192,122,0.55)', fontStyle: 'italic' }}>
           حيث تنمو الأفكار.
