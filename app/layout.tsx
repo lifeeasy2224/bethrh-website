@@ -3,10 +3,22 @@ import type { Metadata } from 'next';
 import { Toaster } from '@/components/ui/toaster';
 import CookieBanner from '@/components/CookieBanner';
 import I18nProvider from '@/components/I18nProvider';
+import SiteHeader from '@/components/SiteHeader';
+import SiteFooter from '@/components/SiteFooter';
 
 export const metadata: Metadata = {
   title: 'بذرة — منصة تسريع الأعمال',
-  description: 'تحقق من فكرتك، ابنِ شركتك الناشئة، وتواصل مع رواد الأعمال.',
+  description: 'تحقق من فكرتك، ابنِ شركتك الناشئة، وتواصل مع رواد الأعمال في منطقة الشرق الأوسط وشمال أفريقيا.',
+  keywords: 'بذرة, bethra, ريادة أعمال, مشاريع ناشئة, الشرق الأوسط',
+  openGraph: {
+    title: 'بذرة — منصة تسريع الأعمال',
+    description: 'انطلق بفكرتك — اصنع مستقبلك',
+    url: 'https://bethra.co',
+    siteName: 'بذرة',
+    locale: 'ar_SA',
+    type: 'website',
+  },
+  metadataBase: new URL('https://bethra.co'),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -15,24 +27,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* بذرة brand fonts: Noto Kufi Arabic (Arabic) + Nunito Sans (Latin/English) */}
         <link
           rel="preload"
           as="style"
-          href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&family=Nunito+Sans:wght@400;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&family=Nunito+Sans:wght@400;600;700;800&family=Montserrat:wght@400;600;700;800&display=swap"
           rel="stylesheet"
         />
       </head>
       <body>
         <I18nProvider>
-          {children}
+          <SiteHeader />
+          <main className="pt-16 min-h-screen">
+            {children}
+          </main>
+          <SiteFooter />
         </I18nProvider>
         <Toaster />
         <CookieBanner />
-        <a
+        
           href="https://wa.me/14804476256"
           target="_blank"
           rel="noopener noreferrer"
