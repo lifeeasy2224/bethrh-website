@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "home": "Ana Sayfa",
+    "faq": "SSS",
+    "pricing": "Fiyatlar",
+    "greenhouse": "Sera",
+    "start": "Yolculuğuna Başla"
+  },
+  "hero": {
+    "title": "Tohumdan Meyveye",
+    "subtitle": "Girişimciler için inşa edilmiş bir iş hızlandırma platformu — fikrinizi 12 haftada gerçek bir girişime dönüştürün",
+    "cta": "Yolculuğunu Başlat",
+    "cta_secondary": "Platformu Keşfet"
+  },
+  "about": {
+    "label": "Bethrh Hakkında",
+    "title": "Hırslı Girişimciler için Akıllı Kuluçka Merkezi",
+    "desc": "Bethrh sadece bir platform değil — sıfırdan ilk yatırıma kadar girişiminizi inşa etmede ortağınız."
+  },
+  "features": {
+    "ideas": "Yatırımcıya hazır analiz edilmiş fikirler",
+    "secure": "Kurucularla güvenli ve gizli iletişim",
+    "score": "Bethrh her fikri 100 üzerinden puanlar",
+    "network": "Büyüyen kurucu ağı"
+  },
+  "faq": {
+    "title": "Sık Sorulan Sorular",
+    "platform_q": "Bethrh nedir?",
+    "platform_a": "Bethrh, dünyanın her yerindeki Suriyeli girişimciler için inşa edilmiş 12 haftalık bir iş hızlandırma platformudur.",
+    "stages_q": "Girişim aşamaları nelerdir?",
+    "stages_a": "Bethrh 5 aşama kullanır: Fikir, Doğrulama, İnşa, Lansman ve Büyüme.",
+    "add_idea_q": "Proje fikri nasıl eklerim?",
+    "add_idea_a": "Fikirlerim bölümüne gidin ve Yeni Fikir'e tıklayın.",
+    "value_q": "Değer önerisi nedir ve nasıl oluşturulur?",
+    "validation_q": "Doğrulama nedir ve nasıl takip ederim?",
+    "pods_q": "Hesap verebilirlik grubu nedir?",
+    "score_q": "Fikir puanlama sistemi nasıl çalışır?",
+    "coach_q": "Bethrh'deki Yapay Zeka Koç kim?",
+    "coach_a": "Yapay Zeka Koç, Suriye pazarında uzmanlaşmış danışman arkadaşınızdır.",
+    "privacy_q": "Verilerim özel ve güvenli mi?",
+    "privacy_a": "Evet. Bethrh, tüm tablolarda Satır Düzeyi Güvenlik etkin olan Supabase kullanmaktadır."
+  },
+  "footer": {
+    "tagline": "İlham veren kurucular için iş hızlandırma platformu — fikirleri gerçek projelere dönüştürüyoruz.",
+    "quick_links": "Hızlı Bağlantılar",
+    "about": "Bethrh Hakkında",
+    "legal": "Yasal",
+    "privacy": "Gizlilik Politikası",
+    "terms": "Şartlar ve Koşullar",
+    "ip": "Fikri Mülkiyet",
+    "cookies": "Çerez Yönetimi",
+    "contact": "Bize Ulaşın",
+    "rights": "© 2026 Life Easy LLC — Tüm hakları saklıdır"
+  },
+  "lang": {
+    "ar": "العربية",
+    "en": "English",
+    "fr": "Français",
+    "tr": "Türkçe",
+    "es": "Español"
+  }
+}

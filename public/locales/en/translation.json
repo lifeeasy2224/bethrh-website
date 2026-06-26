@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "home": "Home",
+    "faq": "FAQ",
+    "pricing": "Pricing",
+    "greenhouse": "Greenhouse",
+    "start": "Start Your Journey"
+  },
+  "hero": {
+    "title": "From Seed to Fruit",
+    "subtitle": "A business accelerator platform built for entrepreneurs — turn your idea into a real startup in 12 weeks",
+    "cta": "Start Your Journey",
+    "cta_secondary": "Discover the Platform"
+  },
+  "about": {
+    "label": "About Bethrh",
+    "title": "A Smart Incubator for Ambitious Entrepreneurs",
+    "desc": "Bethrh is more than a platform — it's your partner in building your startup from scratch to first funding."
+  },
+  "features": {
+    "ideas": "Investor-ready analyzed ideas",
+    "secure": "Secure & private founder communication",
+    "score": "Bethrh scores every idea out of 100",
+    "network": "Growing network of founders"
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "platform_q": "What is Bethrh?",
+    "platform_a": "Bethrh is a 12-week business accelerator platform built for Syrian entrepreneurs everywhere.",
+    "stages_q": "What are the startup stages?",
+    "stages_a": "Bethrh uses 5 stages: Idea, Validation, Build, Launch, and Growth.",
+    "add_idea_q": "How do I add a project idea?",
+    "add_idea_a": "Go to My Ideas and click New Idea.",
+    "value_q": "What is a value proposition and how do I craft one?",
+    "validation_q": "What is validation and how do I track it?",
+    "pods_q": "What is an accountability group?",
+    "score_q": "How does the idea scoring system work?",
+    "coach_q": "Who is the AI Coach in Bethrh?",
+    "coach_a": "The AI Coach is your specialized advisory companion for the Syrian market.",
+    "privacy_q": "Is my data private and secure?",
+    "privacy_a": "Yes. Bethrh uses Supabase with Row Level Security enabled on all tables."
+  },
+  "footer": {
+    "tagline": "The business accelerator platform for inspired founders — we turn ideas into real projects.",
+    "quick_links": "Quick Links",
+    "about": "About Bethrh",
+    "legal": "Legal",
+    "privacy": "Privacy Policy",
+    "terms": "Terms & Conditions",
+    "ip": "Intellectual Property",
+    "cookies": "Cookie Management",
+    "contact": "Contact Us",
+    "rights": "© 2026 Life Easy LLC — All rights reserved"
+  },
+  "lang": {
+    "ar": "العربية",
+    "en": "English",
+    "fr": "Français",
+    "tr": "Türkçe",
+    "es": "Español"
+  }
+}

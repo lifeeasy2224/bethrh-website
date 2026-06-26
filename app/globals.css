@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * ─────────────────────────────────────────
+ *  بذرة — Brand Identity
+ *  Green + Gold palette  |  RTL Arabic
+ * ─────────────────────────────────────────
+ */
+
+/* ── Brand CSS custom properties ── */
+:root {
+  /* Brand greens */
+  --green-deep:   #0F3D24;   /* dark bg, headers */
+  --green-brand:  #1B6B3E;   /* primary, buttons, sidebar */
+  --green-mid:    #2A8A52;   /* hover states */
+
+  /* Brand golds */
+  --gold:         #D4A653;   /* CTA, accents, logo */
+  --gold-light:   #E8C07A;   /* decorative */
+
+  /* Surfaces */
+  --off-white:    #F7F3EC;   /* page background */
+  --white:        #FFFFFF;   /* cards */
+  --gray-light:   #E8E4DC;   /* borders */
+  --gray-mid:     #8A8070;   /* secondary text */
+  --text-dark:    #1A1A1A;   /* body text */
+}
+
+/* ── Tailwind semantic tokens → brand colours ── */
+@layer base {
+  :root {
+    --background:           42 25% 96%;    /* off-white */
+    --foreground:           0 0% 10%;      /* text-dark */
+
+    --card:                 0 0% 100%;     /* white */
+    --card-foreground:      0 0% 10%;
+
+    --popover:              0 0% 100%;
+    --popover-foreground:   0 0% 10%;
+
+    /* Primary = green-brand */
+    --primary:              149 59% 26%;   /* #1B6B3E */
+    --primary-foreground:   0 0% 100%;
+
+    /* Secondary = off-white surface */
+    --secondary:            42 35% 92%;
+    --secondary-foreground: 149 59% 15%;
+
+    --muted:                42 20% 90%;
+    --muted-foreground:     30 10% 50%;   /* gray-mid */
+
+    /* Accent = gold */
+    --accent:               38 60% 58%;   /* #D4A653 */
+    --accent-foreground:    0 0% 10%;
+
+    --success:              149 59% 26%;
+    --success-foreground:   0 0% 100%;
+
+    --warning:              38 95% 50%;
+    --warning-foreground:   0 0% 10%;
+
+    --destructive:          0 78% 52%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border:               42 20% 86%;   /* gray-light */
+    --input:                42 20% 86%;
+    --ring:                 149 59% 26%;
+
+    --radius: 0.625rem;
+
+    /* Charts: green, gold, teal, amber, olive */
+    --chart-1: 149 59% 26%;
+    --chart-2:  38 60% 58%;
+    --chart-3: 185 52% 36%;
+    --chart-4:  38 95% 50%;
+    --chart-5:  90 42% 40%;
+  }
+
+  .dark {
+    --background:           158 22%  7%;
+    --foreground:            42 28% 92%;
+
+    --card:                 155 20% 10%;
+    --card-foreground:       42 28% 92%;
+
+    --popover:              155 20% 10%;
+    --popover-foreground:    42 28% 92%;
+
+    --primary:              149 50% 38%;
+    --primary-foreground:   0 0% 100%;
+
+    --secondary:            155 20% 15%;
+    --secondary-foreground:  42 28% 82%;
+
+    --muted:                155 20% 15%;
+    --muted-foreground:      42 16% 52%;
+
+    --accent:                38 70% 60%;
+    --accent-foreground:    158 30%  8%;
+
+    --success:              149 50% 38%;
+    --success-foreground:   0 0% 100%;
+
+    --warning:               38 95% 55%;
+    --warning-foreground:   158 30%  8%;
+
+    --destructive:            0 60% 42%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border:               155 20% 19%;
+    --input:                155 20% 19%;
+    --ring:                 149 50% 38%;
+
+    --chart-1: 149 50% 38%;
+    --chart-2:  38 70% 60%;
+    --chart-3: 185 52% 46%;
+    --chart-4:  38 95% 55%;
+    --chart-5:  90 42% 48%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Noto Kufi Arabic', 'Nunito Sans', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    direction: rtl;
+  }
+
+  /* Arabic content — Noto Kufi Arabic */
+  html[lang="ar"],
+  html[lang="ar"] body {
+    font-family: 'Noto Kufi Arabic', sans-serif;
+  }
+
+  /* Latin/mixed content — Nunito Sans */
+  html[lang="en"],
+  html[lang="es"],
+  html[lang="fr"],
+  html[lang="tr"] {
+    font-family: 'Nunito Sans', sans-serif;
+  }
+}
+
+/* ── LTR overrides ── */
+[dir="rtl"] .ltr-content,
+[dir="rtl"] a[href^="mailto"],
+[dir="rtl"] a[href^="tel"] {
+  direction: ltr;
+  unicode-bidi: embed;
+  font-family: 'Nunito Sans', sans-serif;
+}
+
+/* ── Global RTL text alignment ── */
+[dir="rtl"],
+[dir="rtl"] p,
+[dir="rtl"] li,
+[dir="rtl"] span,
+[dir="rtl"] label,
+[dir="rtl"] td,
+[dir="rtl"] th {
+  text-align: right;
+}
+
+/* ── WhatsApp button ── */
+.wa-btn:hover { background: #D1FAE5 !important; }
+
+@layer utilities {
+  .text-success  { color: hsl(var(--success)); }
+  .bg-success    { background-color: hsl(var(--success)); }
+  .bg-success\/10 { background-color: hsl(var(--success) / 0.1); }
+  .text-warning  { color: hsl(var(--warning)); }
+  .bg-warning    { background-color: hsl(var(--warning)); }
+  .border-success { border-color: hsl(var(--success)); }
+  .text-accent-custom { color: hsl(var(--accent)); }
+
+  /* Brand utilities */
+  .bg-green-deep  { background-color: var(--green-deep); }
+  .bg-green-brand { background-color: var(--green-brand); }
+  .bg-green-mid   { background-color: var(--green-mid); }
+  .bg-gold        { background-color: var(--gold); }
+  .bg-gold-light  { background-color: var(--gold-light); }
+  .bg-off-white   { background-color: var(--off-white); }
+  .text-green-deep  { color: var(--green-deep); }
+  .text-green-brand { color: var(--green-brand); }
+  .text-gold        { color: var(--gold); }
+  .text-gold-light  { color: var(--gold-light); }
+  .border-gold      { border-color: var(--gold); }
+  .border-gray-brand { border-color: var(--gray-light); }
+
+  /* RTL helper */
+  [dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+  /* Font helpers */
+  .font-arabic {
+    font-family: 'Noto Kufi Arabic', sans-serif;
+  }
+  .font-kufam {
+    font-family: 'Noto Kufi Arabic', sans-serif;
+  }
+  .font-latin {
+    font-family: 'Nunito Sans', sans-serif;
+  }
+
+  /* Logo blend */
+  .logo-blend      { mix-blend-mode: multiply; }
+  .logo-blend-dark { mix-blend-mode: screen; }
+}
+
+/* ── Testimonials carousel ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(2rem); }
+  to   { opacity: 1; transform: translateY(0); }
+}

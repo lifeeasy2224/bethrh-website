@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "faq": "Preguntas Frecuentes",
+    "pricing": "Precios",
+    "greenhouse": "Invernadero",
+    "start": "Comienza tu Viaje"
+  },
+  "hero": {
+    "title": "De la Semilla al Fruto",
+    "subtitle": "Una plataforma de aceleración empresarial para emprendedores — convierte tu idea en una startup real en 12 semanas",
+    "cta": "Comienza ahora",
+    "cta_secondary": "Descubrir la plataforma"
+  },
+  "about": {
+    "label": "Sobre Bethrh",
+    "title": "Una Incubadora Inteligente para Emprendedores Ambiciosos",
+    "desc": "Bethrh no es solo una plataforma — es tu socio para construir tu startup desde cero hasta la primera financiación."
+  },
+  "features": {
+    "ideas": "Ideas analizadas listas para inversores",
+    "secure": "Comunicación segura y privada con fundadores",
+    "score": "Bethrh puntúa cada idea sobre 100",
+    "network": "Red creciente de fundadores"
+  },
+  "faq": {
+    "title": "Preguntas Frecuentes",
+    "platform_q": "¿Qué es Bethrh?",
+    "platform_a": "Bethrh es una plataforma de aceleración empresarial de 12 semanas construida para emprendedores sirios en todo el mundo.",
+    "stages_q": "¿Cuáles son las etapas de una startup?",
+    "stages_a": "Bethrh usa 5 etapas: Idea, Validación, Construcción, Lanzamiento y Crecimiento.",
+    "add_idea_q": "¿Cómo añado una idea de proyecto?",
+    "add_idea_a": "Ve a Mis Ideas y haz clic en Nueva Idea.",
+    "value_q": "¿Qué es una propuesta de valor y cómo crearla?",
+    "validation_q": "¿Qué es la validación y cómo la sigo?",
+    "pods_q": "¿Qué es un grupo de responsabilidad?",
+    "score_q": "¿Cómo funciona el sistema de puntuación de ideas?",
+    "coach_q": "¿Quién es el Coach IA en Bethrh?",
+    "coach_a": "El Coach IA es tu asesor especializado en el mercado sirio.",
+    "privacy_q": "¿Son mis datos privados y seguros?",
+    "privacy_a": "Sí. Bethrh usa Supabase con Seguridad a Nivel de Fila activada en todas las tablas."
+  },
+  "footer": {
+    "tagline": "La plataforma de aceleración para fundadores inspirados — convertimos ideas en proyectos reales.",
+    "quick_links": "Enlaces Rápidos",
+    "about": "Sobre Bethrh",
+    "legal": "Legal",
+    "privacy": "Política de Privacidad",
+    "terms": "Términos y Condiciones",
+    "ip": "Propiedad Intelectual",
+    "cookies": "Gestión de Cookies",
+    "contact": "Contáctanos",
+    "rights": "© 2026 Life Easy LLC — Todos los derechos reservados"
+  },
+  "lang": {
+    "ar": "العربية",
+    "en": "English",
+    "es": "Español",
+    "fr": "Français",
+    "tr": "Türkçe"
+  }
+}

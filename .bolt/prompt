@@ -1,0 +1,89 @@
+# بذرة (Bethrh) — Project Knowledge
+
+⚠️ ENHANCEMENT ONLY. Do NOT rebuild. Preserve all existing data/features.
+
+## Info
+- Domain: bethrh.co | Email: hello@bethrh.co | WhatsApp: +14804476256
+- Owner: Life Easy LLC | CEO: Moha Reda
+- Stack: React+Vite+MUI, Supabase, Groq, Resend, Stripe, Netlify
+- Language: Arabic RTL | Currency: USD
+
+## Colors (APPLY GLOBALLY — replace all existing)
+```
+--green-deep: #0F3D24 (dark bg, headers)
+--green-brand: #1B6B3E (primary, buttons, sidebar)
+--green-mid: #2A8A52 (hover)
+--gold: #D4A653 (CTA, accents, logo)
+--gold-light: #E8C07A (decorative)
+--off-white: #F7F3EC (page bg)
+--white: #FFFFFF (cards)
+--gray-light: #E8E4DC (borders)
+--gray-mid: #8A8070 (secondary text)
+--text-dark: #1A1A1A (body)
+```
+
+## Fonts
+- Arabic: 'Noto Kufi Arabic' (400,600,700)
+- English: 'Nunito Sans' (400,600,700,800)
+
+## Logo
+Sprout+$ icon (gold) + "بذرة" wordmark (gold on green)
+
+## Roles & Access
+- Founder (رائد أعمال): /dashboard, /journey/*, /ai-coach, /groups, /connections
+- Investor (مستثمر): /investor/dashboard, /marketplace, /investor/guide, /investor/connections
+- STRICT: founders cannot access investor pages, investors cannot access founder pages
+
+## Pricing
+- Free: $0 (1 idea, stress test, basic SWOT)
+- Pro: $19/mo or $190/yr (unlimited, canvas, pitch, AI coach, 90-day)
+- Growth: $49/mo or $490/yr (Pro + team, priority)
+- Accelerator: Custom
+
+## Critical Fixes Needed
+1. AI Coach (/chat): BROKEN — hardcoded mock. Wire Groq llama-3.1-70b-versatile with Arabic system prompt
+2. Stripe: UI exists, not wired. Create products + checkout + webhook edge functions
+3. Reset password: fragile 1.5s timeout hack
+4. founder_progress: not initialized on signup
+5. "73 spots remain": hardcoded, make dynamic
+
+## Missing Features to Add
+- SWOT Analysis (/journey/swot) — AI-powered 4 quadrants
+- Connections + Messaging — full system between founder/investor
+- Investor Dashboard (/investor/dashboard)
+- Investor Profile with Sharia-compliant toggle
+- Investor Guide (replace /investor-assistant)
+- Enhanced Marketplace (upgrade /greenhouse)
+- Email system: 8 templates + 14 edge functions + 100 inspiration messages + CRON
+- Admin: CRM, Marketing, Revenue dashboard, Content editor
+
+## New Tables Needed
+connections, messages, swot_analyses, subscriptions, revenue_events, mrr_snapshots, inspiration_messages, marketing_campaigns, campaign_recipients, marketing_segments, crm_contacts, marketing_automations, email_suppression_list, notifications, blocked_investors, site_content, milestone_logs, user_activity_log
+
+## RLS: Enable on ALL tables. Users read/write own data only. Admin full access.
+
+## Edge Functions (14)
+ai-coach, stripe-checkout, stripe-webhook, send-welcome-email, send-investor-match, send-investor-interested, send-new-message, send-weekly-digest, send-validation-complete, send-weekly-inspiration, send-inspiration-upgrade, send-campaign, process-automations, handle-email-webhook
+
+## Secrets
+GROQ_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY
+
+## Rules
+1. Enhance only — never rebuild
+2. Preserve data — never DROP/DELETE
+3. RTL always
+4. Arabic only (except "Life Easy LLC", "SWOT")
+5. Green+Gold — no old colors
+6. Noto Kufi Arabic font
+7. Role separation enforced
+8. RLS on everything
+9. Test saves after changes
+10. Match IdeaIQ quality
+
+## Priority Order
+Phase 1: New identity + fix AI Coach + fix Stripe
+Phase 2: Missing features (SWOT, connections, investor pages)
+Phase 3: Email system (8 templates, 100 messages, CRON)
+Phase 4: Payments (Stripe products, webhook, subscriptions)
+Phase 5: Admin (CRM, marketing, revenue, content)
+Phase 6: Polish (SEO, responsive, performance)

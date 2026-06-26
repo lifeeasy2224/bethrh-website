@@ -1,0 +1,62 @@
+{
+  "nav": {
+    "home": "Accueil",
+    "faq": "FAQ",
+    "pricing": "Tarifs",
+    "greenhouse": "La Serre",
+    "start": "Commencer"
+  },
+  "hero": {
+    "title": "De la Graine au Fruit",
+    "subtitle": "Une plateforme d'accélération d'entreprises pour les entrepreneurs — transformez votre idée en startup en 12 semaines",
+    "cta": "Commencer maintenant",
+    "cta_secondary": "Découvrir la plateforme"
+  },
+  "about": {
+    "label": "À propos de Bethrh",
+    "title": "Un incubateur intelligent pour entrepreneurs ambitieux",
+    "desc": "Bethrh n'est pas seulement une plateforme — c'est votre partenaire pour construire votre startup de zéro jusqu'au premier financement."
+  },
+  "features": {
+    "ideas": "Idées analysées prêtes pour les investisseurs",
+    "secure": "Communication sécurisée avec les fondateurs",
+    "score": "Bethrh note chaque idée sur 100",
+    "network": "Réseau croissant de fondateurs"
+  },
+  "faq": {
+    "title": "Questions Fréquentes",
+    "platform_q": "Qu'est-ce que Bethrh ?",
+    "platform_a": "Bethrh est une plateforme d'accélération de 12 semaines pour les entrepreneurs syriens partout dans le monde.",
+    "stages_q": "Quelles sont les étapes d'une startup ?",
+    "stages_a": "Bethrh utilise 5 étapes : Idée, Validation, Construction, Lancement et Croissance.",
+    "add_idea_q": "Comment ajouter une idée de projet ?",
+    "add_idea_a": "Allez dans Mes Idées et cliquez sur Nouvelle Idée.",
+    "value_q": "Qu'est-ce qu'une proposition de valeur et comment la formuler ?",
+    "validation_q": "Qu'est-ce que la validation et comment la suivre ?",
+    "pods_q": "Qu'est-ce qu'un groupe de responsabilité ?",
+    "score_q": "Comment fonctionne le système de notation des idées ?",
+    "coach_q": "Qui est le Coach IA dans Bethrh ?",
+    "coach_a": "Le Coach IA est votre conseiller spécialisé dans le marché syrien.",
+    "privacy_q": "Mes données sont-elles privées et sécurisées ?",
+    "privacy_a": "Oui. Bethrh utilise Supabase avec la sécurité au niveau des lignes activée sur toutes les tables."
+  },
+  "footer": {
+    "tagline": "La plateforme d'accélération pour les fondateurs inspirés — nous transformons les idées en projets réels.",
+    "quick_links": "Liens Rapides",
+    "about": "À propos de Bethrh",
+    "legal": "Légal",
+    "privacy": "Politique de Confidentialité",
+    "terms": "Conditions Générales",
+    "ip": "Propriété Intellectuelle",
+    "cookies": "Gestion des Cookies",
+    "contact": "Nous Contacter",
+    "rights": "© 2026 Life Easy LLC — Tous droits réservés"
+  },
+  "lang": {
+    "ar": "العربية",
+    "en": "English",
+    "fr": "Français",
+    "tr": "Türkçe",
+    "es": "Español"
+  }
+}
