@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import BethrhLogo from '@/components/BethrhLogo';
 
 const footerColumns = [
   {
@@ -43,24 +42,35 @@ const footerColumns = [
 export default function SiteFooter() {
   return (
     <footer dir="rtl" style={{ background: 'var(--green-deep)' }}>
-      <div className="max-w-7xl mx-auto px-6 pt-16 pb-10">
+      <div className="max-w-7xl mx-auto px-6 pt-10 pb-6">
 
-        {/* Brand row */}
-        <div className="mb-3">
-          <BethrhLogo size="sm" color="#D4A653" />
+        {/* Brand row — compact wordmark only */}
+        <div className="flex items-center gap-2 flex-row-reverse mb-2">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#D4A653' }} />
+          <span
+            style={{
+              fontFamily: "'Noto Kufi Arabic', sans-serif",
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              color: '#D4A653',
+              lineHeight: 1,
+            }}
+          >
+            بذرة
+          </span>
         </div>
-        <p className="text-sm mb-12 text-right" style={{ color: 'rgba(232,192,122,0.55)', fontStyle: 'italic' }}>
+        <p className="text-xs mb-8 text-right" style={{ color: 'rgba(232,192,122,0.5)', fontStyle: 'italic' }}>
           حيث تنمو الأفكار.
         </p>
 
         {/* Columns */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           {footerColumns.map(col => (
             <div key={col.title} className="text-right">
-              <h4 className="text-xs font-bold uppercase tracking-widest mb-5" style={{ color: 'var(--gold-light)' }}>
+              <h4 className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--gold-light)' }}>
                 {col.title}
               </h4>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5">
                 {col.links.map(link => (
                   <li key={link.label}>
                     <Link
@@ -80,7 +90,7 @@ export default function SiteFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t pt-6 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+        <div className="border-t pt-4 text-center" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
           <p className="text-xs" style={{ color: 'rgba(212,166,83,0.4)' }}>
             © ٢٠٢٦ Life Easy LLC — جميع الحقوق محفوظة
           </p>
