@@ -13,7 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import SiteHeader from '@/components/SiteHeader';
-import SiteFooter from '@/components/SiteFooter';
+
 import BethrhLogo from '@/components/BethrhLogo';
 
 /* ── Founder nav ── */
@@ -232,7 +232,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex-1">
             {children}
           </div>
-          <SiteFooter />
+
         </main>
       </div>
     </div>
