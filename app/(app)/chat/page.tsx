@@ -6,11 +6,52 @@ import { supabase, AiChat } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { Send, Bot, User, Sparkles, Trash2 } from 'lucide-react';
 
+// ── Enhanced starter prompts — grouped by founder journey stage ──
 const STARTER_PROMPTS = [
-  'كيف أتحقق من فكرة مشروعي في السوق؟',
-  'ما أفضل القطاعات لرواد الأعمال في الشرق الأوسط؟',
-  'كيف أجد أول 10 عملاء لي؟',
-  'ساعدني في كتابة عرض القيمة',
+  // Stage 1 — Idea & Validation
+  'لدي فكرة مشروع لكن لا أعرف إن كانت تستحق المتابعة — كيف أتحقق منها في 2 أسبوع؟',
+  'ما الأسئلة التي يجب أن أسألها لعملائي المحتملين قبل بناء أي شيء؟',
+  // Stage 2 — First Customers
+  'مشروعي جاهز لكن لا عملاء بعد — أعطني خطة عملية للوصول لأول 10 عملاء هذا الشهر',
+  'كيف أكتب عرض قيمة مقنعاً لمشروعي يجعل العميل يقول "هذا بالضبط ما أحتاجه"؟',
+  // Stage 3 — Revenue & Growth
+  'كيف أحدد السعر المناسب لمنتجي أو خدمتي في سوق الشرق الأوسط؟',
+  'ما أفضل نموذج إيراد لمشروع خدمي في مرحلة الانطلاق — اشتراك، عمولة، أم مبيعات مباشرة؟',
+  // Stage 4 — Funding & Pitch
+  'كيف أبني ملف مشروع (Pitch Deck) يقنع المستثمرين في منطقة الخليج؟',
+  'ما القطاعات الأكثر جذباً للتمويل في منطقة MENA الآن وكيف أضع مشروعي فيها؟',
+];
+
+// ── Prompt categories for display ──
+const PROMPT_CATEGORIES = [
+  {
+    label: '💡 التحقق من الفكرة',
+    prompts: [
+      'لدي فكرة مشروع لكن لا أعرف إن كانت تستحق المتابعة — كيف أتحقق منها في 2 أسبوع؟',
+      'ما الأسئلة التي يجب أن أسألها لعملائي المحتملين قبل بناء أي شيء؟',
+    ],
+  },
+  {
+    label: '🎯 أول عملاء',
+    prompts: [
+      'مشروعي جاهز لكن لا عملاء بعد — أعطني خطة عملية للوصول لأول 10 عملاء هذا الشهر',
+      'كيف أكتب عرض قيمة مقنعاً لمشروعي يجعل العميل يقول "هذا بالضبط ما أحتاجه"؟',
+    ],
+  },
+  {
+    label: '💰 الإيرادات والتسعير',
+    prompts: [
+      'كيف أحدد السعر المناسب لمنتجي أو خدمتي في سوق الشرق الأوسط؟',
+      'ما أفضل نموذج إيراد لمشروع خدمي في مرحلة الانطلاق — اشتراك، عمولة، أم مبيعات مباشرة؟',
+    ],
+  },
+  {
+    label: '🚀 التمويل والنمو',
+    prompts: [
+      'كيف أبني ملف مشروع (Pitch Deck) يقنع المستثمرين في منطقة الخليج؟',
+      'ما القطاعات الأكثر جذباً للتمويل في منطقة MENA الآن وكيف أضع مشروعي فيها؟',
+    ],
+  },
 ];
 
 export default function ChatPage() {
@@ -21,7 +62,6 @@ export default function ChatPage() {
   const [thinking, setThinking] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history from Supabase
   useEffect(() => {
     if (!supaUser) return;
     supabase
@@ -44,7 +84,6 @@ export default function ChatPage() {
     if (!msg || !supaUser) return;
     setInput('');
 
-    // Optimistic UI — show user message immediately
     const userMsg: AiChat = {
       id: `temp-${Date.now()}`,
       user_id: supaUser.id,
@@ -56,49 +95,42 @@ export default function ChatPage() {
     setMessages(updatedMessages);
     setThinking(true);
 
-    // Save user message to Supabase
     await Promise.all([
       supabase.from('ai_chats').insert({ user_id: supaUser.id, role: 'user', message: msg }),
       supabase.from('question_logs').insert({ user_id: supaUser.id, question: msg }),
     ]);
 
     try {
-      // Call our secure server-side API route
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: updatedMessages.filter(m => !m.id.startsWith('temp-ai-')),
-        }),
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
       const data = await response.json();
       const reply = data.reply ?? 'عذراً، حدث خطأ. حاول مرة أخرى.';
 
-      // Save AI reply to Supabase
       await supabase.from('ai_chats').insert({
         user_id: supaUser.id,
         role: 'assistant',
         message: reply,
       });
 
-      const aiMsg: AiChat = {
+      setMessages(m => [...m, {
         id: `temp-ai-${Date.now()}`,
         user_id: supaUser.id,
         role: 'assistant',
         message: reply,
         created_at: new Date().toISOString(),
-      };
-      setMessages(m => [...m, aiMsg]);
+      }]);
     } catch {
-      const errorMsg: AiChat = {
+      setMessages(m => [...m, {
         id: `temp-ai-${Date.now()}`,
         user_id: supaUser.id,
         role: 'assistant',
-        message: 'عذراً، لم أتمكن من الاتصال بالمساعد الذكي. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.',
+        message: 'عذراً، لم أتمكن من الاتصال. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.',
         created_at: new Date().toISOString(),
-      };
-      setMessages(m => [...m, errorMsg]);
+      }]);
     } finally {
       setThinking(false);
     }
@@ -127,7 +159,7 @@ export default function ChatPage() {
           </div>
           <div className="text-right">
             <h1 className="font-semibold text-sm">مدرب المشاريع الذكي</h1>
-            <p className="text-xs text-muted-foreground">متخصص في أسواق الشرق الأوسط</p>
+            <p className="text-xs text-muted-foreground">متخصص في أسواق الشرق الأوسط · مدعوم بـ Claude AI</p>
           </div>
         </div>
         {messages.length > 0 && (
@@ -147,27 +179,44 @@ export default function ChatPage() {
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-2xl mx-auto">
+            {/* Welcome */}
             <div className="text-center mb-8">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Sparkles className="w-7 h-7 text-primary" />
               </div>
               <h2 className="font-semibold text-lg mb-1">مدرب مشاريعك الذكي</h2>
-              <p className="text-muted-foreground text-sm">
-                مدعوم بـ Claude AI — اسأل أي شيء عن التحقق من فكرتك أو إيجاد العملاء أو تنمية مشروعك.
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                أنا هنا لمساعدتك في كل مرحلة من رحلتك الريادية — من الفكرة إلى أول إيراد وما بعده.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {STARTER_PROMPTS.map(prompt => (
-                <button
-                  key={prompt}
-                  onClick={() => sendMessage(prompt)}
-                  className="text-right px-4 py-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 text-sm transition-all"
-                >
-                  {prompt}
-                </button>
+
+            {/* Categorized prompts */}
+            <div className="space-y-5">
+              {PROMPT_CATEGORIES.map(cat => (
+                <div key={cat.label}>
+                  <p className="text-xs font-bold text-muted-foreground mb-2 text-right tracking-wide">
+                    {cat.label}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {cat.prompts.map(prompt => (
+                      <button
+                        key={prompt}
+                        onClick={() => sendMessage(prompt)}
+                        className="text-right px-4 py-3 rounded-xl border border-border bg-card hover:border-primary/40 hover:bg-primary/5 text-sm transition-all leading-relaxed"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
+
+            {/* Tip */}
+            <p className="text-center text-xs text-muted-foreground mt-6 opacity-60">
+              💡 كلما كانت سؤالك أكثر تفصيلاً، كان ردي أكثر دقة وفائدة
+            </p>
           </div>
         ) : (
           <>
@@ -218,7 +267,7 @@ export default function ChatPage() {
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="اسأل مدرب مشاريعك..."
+            placeholder="اسأل مدرب مشاريعك... كن محدداً للحصول على أفضل إجابة"
             disabled={thinking}
             dir="rtl"
             className="flex-1 px-4 py-2.5 rounded-xl border border-input bg-card text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-60 transition"
