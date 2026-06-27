@@ -178,7 +178,6 @@ export default function ProfilePage() {
       phone:   form.phone || null,
       country: form.country,
       skills:  form.skills,
-      email:   supaUser.email,
       role:    isInvestor ? 'investor' : 'founder',
     };
 
