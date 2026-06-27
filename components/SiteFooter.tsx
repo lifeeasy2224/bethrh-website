@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import BethrhLogo from '@/components/BethrhLogo';
 
 const footerColumns = [
   {
@@ -44,20 +45,9 @@ export default function SiteFooter() {
     <footer dir="rtl" style={{ background: 'var(--green-deep)' }}>
       <div className="max-w-7xl mx-auto px-6 pt-10 pb-6">
 
-        {/* Brand row — compact wordmark only */}
-        <div className="flex items-center gap-2 flex-row-reverse mb-2">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#D4A653' }} />
-          <span
-            style={{
-              fontFamily: "'Noto Kufi Arabic', sans-serif",
-              fontWeight: 700,
-              fontSize: '1.25rem',
-              color: '#D4A653',
-              lineHeight: 1,
-            }}
-          >
-            بذرة
-          </span>
+        {/* Brand row — compact gold shield */}
+        <div className="mb-1">
+          <BethrhLogo variant="compact" size="sm" color="#D4A653" />
         </div>
         <p className="text-xs mb-8 text-right" style={{ color: 'rgba(232,192,122,0.5)', fontStyle: 'italic' }}>
           حيث تنمو الأفكار.
