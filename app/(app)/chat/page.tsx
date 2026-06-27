@@ -1,3 +1,4 @@
+// 📁 FILE: app/(app)/chat/page.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -12,26 +13,6 @@ const STARTER_PROMPTS = [
   'ساعدني في كتابة عرض القيمة',
 ];
 
-function buildMockResponse(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes('تحقق') || lower.includes('فكرة') || lower.includes('validate')) {
-    return 'سؤال ممتاز! للتحقق من فكرتك في أسواق الشرق الأوسط، ابدأ بـ 10 مقابلات مع عملاء محتملين قبل البناء. ركّز على: (١) هل هذه مشكلة حقيقية؟ (٢) كيف يحلونها اليوم؟ (٣) هل سيدفعون مقابل حل أفضل؟ استهدف الحصول على 3 طلبات مسبقة أو 20 تسجيلاً كأول هدف. سجّل كل شيء في متتبع التحقق هنا.';
-  }
-  if (lower.includes('قطاع') || lower.includes('زراعي') || lower.includes('غذاء')) {
-    return 'القطاعات الأربعة الرئيسية ذات الفرص الكبيرة في منطقة الشرق الأوسط: **التقنية والفينتك** (حلول الدفع، الخدمات المالية)، **الرعاية الصحية** (الصحة الرقمية، العيادات)، **التجارة الإلكترونية** (المنتجات المحلية، اللوجستيات)، و**التعليم** (التعلم الإلكتروني، المهارات التقنية). أي قطاع يثير اهتمامك أكثر؟';
-  }
-  if (lower.includes('عميل') || lower.includes('أول')) {
-    return 'للعثور على أول 10 عملاء: (١) ابدأ بشبكتك الشخصية — من يعاني من المشكلة التي تحلها؟ (٢) انشر في مجموعات LinkedIn وتويتر ذات الصلة بقطاعك. (٣) زر 3 شركات أو مجمعات أعمال محلية شخصياً. (٤) اطلب من كل عميل إحالة واحدة. الهدف ليس التوسع بعد — بل التعلم. ما هي فكرتك؟';
-  }
-  if (lower.includes('عرض القيمة') || lower.includes('value')) {
-    return 'عرض القيمة القوي يتبع هذه الصيغة: **"نساعد [نوع العميل] الذي [يعاني من هذه المشكلة] على [تحقيق هذه النتيجة] بخلاف [البدائل الحالية]."** مثال: "نساعد الشركات الصغيرة في الخليج على تحصيل مدفوعاتها بسرعة أكبر بنسبة 40% عبر منصتنا الرقمية." ما هو نوع عميلك ومشكلته؟';
-  }
-  if (lower.includes('إيرادات') || lower.includes('تسعير') || lower.includes('نموذج')) {
-    return 'لمرحلة الانطلاق، فكّر في هذه النماذج: (١) **المبيعات المباشرة** — مناسب للمنتجات الملموسة. (٢) **الاشتراك** — رسوم شهرية للقيمة المستمرة. (٣) **العمولة** — نسبة من المعاملات، مخاطر أقل. ابدأ بما يحتاج أقل قدر من بناء الثقة. ما نموذج عملك؟';
-  }
-  return 'سؤال رائع! لأقدم لك أفضل نصيحة، هل يمكنك إخباري بـ: (١) فكرة مشروعك أو قطاعه، (٢) التحدي المحدد الذي تواجهه، (٣) المرحلة التي أنت فيها (فكرة، تحقق، بناء)؟ هذا سيساعدني على تخصيص إجابتي.';
-}
-
 export default function ChatPage() {
   const { supaUser } = useAuth();
   const [messages, setMessages] = useState<AiChat[]>([]);
@@ -40,6 +21,7 @@ export default function ChatPage() {
   const [thinking, setThinking] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Load chat history from Supabase
   useEffect(() => {
     if (!supaUser) return;
     supabase
@@ -62,6 +44,7 @@ export default function ChatPage() {
     if (!msg || !supaUser) return;
     setInput('');
 
+    // Optimistic UI — show user message immediately
     const userMsg: AiChat = {
       id: `temp-${Date.now()}`,
       user_id: supaUser.id,
@@ -69,27 +52,56 @@ export default function ChatPage() {
       message: msg,
       created_at: new Date().toISOString(),
     };
-    setMessages(m => [...m, userMsg]);
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setThinking(true);
 
+    // Save user message to Supabase
     await Promise.all([
       supabase.from('ai_chats').insert({ user_id: supaUser.id, role: 'user', message: msg }),
       supabase.from('question_logs').insert({ user_id: supaUser.id, question: msg }),
     ]);
-    await new Promise(r => setTimeout(r, 900 + Math.random() * 700));
 
-    const reply = buildMockResponse(msg);
-    const aiMsg: AiChat = {
-      id: `temp-ai-${Date.now()}`,
-      user_id: supaUser.id,
-      role: 'assistant',
-      message: reply,
-      created_at: new Date().toISOString(),
-    };
+    try {
+      // Call our secure server-side API route
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: updatedMessages.filter(m => !m.id.startsWith('temp-ai-')),
+        }),
+      });
 
-    await supabase.from('ai_chats').insert({ user_id: supaUser.id, role: 'assistant', message: reply });
-    setMessages(m => [...m, aiMsg]);
-    setThinking(false);
+      const data = await response.json();
+      const reply = data.reply ?? 'عذراً، حدث خطأ. حاول مرة أخرى.';
+
+      // Save AI reply to Supabase
+      await supabase.from('ai_chats').insert({
+        user_id: supaUser.id,
+        role: 'assistant',
+        message: reply,
+      });
+
+      const aiMsg: AiChat = {
+        id: `temp-ai-${Date.now()}`,
+        user_id: supaUser.id,
+        role: 'assistant',
+        message: reply,
+        created_at: new Date().toISOString(),
+      };
+      setMessages(m => [...m, aiMsg]);
+    } catch {
+      const errorMsg: AiChat = {
+        id: `temp-ai-${Date.now()}`,
+        user_id: supaUser.id,
+        role: 'assistant',
+        message: 'عذراً، لم أتمكن من الاتصال بالمساعد الذكي. تأكد من اتصالك بالإنترنت وحاول مرة أخرى.',
+        created_at: new Date().toISOString(),
+      };
+      setMessages(m => [...m, errorMsg]);
+    } finally {
+      setThinking(false);
+    }
   }
 
   async function clearHistory() {
@@ -99,11 +111,14 @@ export default function ChatPage() {
   }
 
   function formatMessage(text: string) {
-    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    return text
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br/>');
   }
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] md:h-screen" dir="rtl">
+
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-card shrink-0 flex-row-reverse">
         <div className="flex items-center gap-3 flex-row-reverse">
@@ -116,7 +131,10 @@ export default function ChatPage() {
           </div>
         </div>
         {messages.length > 0 && (
-          <button onClick={clearHistory} className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+          <button
+            onClick={clearHistory}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+          >
             <Trash2 className="w-4 h-4" />
           </button>
         )}
@@ -135,7 +153,9 @@ export default function ChatPage() {
                 <Sparkles className="w-7 h-7 text-primary" />
               </div>
               <h2 className="font-semibold text-lg mb-1">مدرب مشاريعك الذكي</h2>
-              <p className="text-muted-foreground text-sm">اسأل أي شيء عن التحقق من فكرتك أو إيجاد العملاء أو تنمية مشروعك.</p>
+              <p className="text-muted-foreground text-sm">
+                مدعوم بـ Claude AI — اسأل أي شيء عن التحقق من فكرتك أو إيجاد العملاء أو تنمية مشروعك.
+              </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {STARTER_PROMPTS.map(prompt => (
