@@ -354,9 +354,9 @@ export default function RegisterPage() {
           {/* ── Google ── */}
           <button
             type="button"
-            onClick={handleGoogle}
-            disabled={googleLoading}
-            className="w-full h-12 rounded-lg border flex items-center justify-center gap-3 text-sm font-medium transition-all hover:bg-gray-50 font-arabic"
+  onClick={handleGoogle}
+  disabled={googleLoading}
+  className="hidden w-full h-12 rounded-lg border flex items-center justify-center gap-3 text-sm font-medium transition-all hover:bg-gray-50 font-arabic"
             style={{ borderColor: BORDER, color: TEXT_MAIN, background: 'white' }}
           >
             {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon />}
