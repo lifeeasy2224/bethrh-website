@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import BethrhWordmark from '@/components/BethrhWordmark';
+import BethrhLogo from '@/components/BethrhLogo';
 
 const navLinks = [
   { label: 'الرئيسية',      href: '/' },
@@ -26,9 +26,9 @@ export default function SiteHeader() {
     >
       <div className="max-w-7xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
 
-        {/* Logo */}
+        {/* Logo — compact shield in green */}
         <Link href="/" className="shrink-0">
-          <BethrhWordmark color="#1B6B3E" />
+          <BethrhLogo variant="compact" size="sm" color="#1B6B3E" />
         </Link>
 
         {/* Desktop nav */}
@@ -71,7 +71,6 @@ export default function SiteHeader() {
             ابدأ مجاناً
           </Link>
 
-          {/* Mobile hamburger */}
           <button
             className="md:hidden w-10 h-10 flex items-center justify-center rounded-md transition-colors"
             style={{ color: 'var(--green-brand)' }}
