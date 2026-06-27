@@ -1,296 +1,168 @@
 // 📁 FILE: app/login/page.tsx
-// 📋 ACTION: REPLACE existing file
-// ─────────────────────────────────
-// FIXED: Removed old Sprout+$ logo → BethrhLogo SVG
-//        Removed duplicate SiteHeader + SiteFooter
-//        (layout.tsx handles them globally now)
-//        Kept all auth logic unchanged
-// ─────────────────────────────────
 'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, Loader as Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { ArrowLeft, Mail, Lock, Loader as Loader2 } from 'lucide-react';
 import BethrhLogo from '@/components/BethrhLogo';
-
-const PRIMARY       = 'var(--green-brand)';
-const PRIMARY_HOVER = 'var(--green-mid)';
-const TEXT_MAIN     = 'var(--text-dark)';
-const TEXT_MUTED    = 'var(--gray-mid)';
-const BORDER        = 'var(--gray-light)';
-const BG            = 'var(--off-white)';
-
-const ERROR_MESSAGES: Record<string, string> = {
-  'Invalid login credentials': 'البريد أو كلمة المرور غير صحيحة',
-  'Email not confirmed':       'يرجى تفعيل بريدك أولاً',
-  'Too many requests':         'محاولات كثيرة. حاول بعد قليل',
-};
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-      <path d="M3.964 10.71A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-    </svg>
-  );
-}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [checking, setChecking]         = useState(true);
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
-  const [showPass, setShowPass]         = useState(false);
-  const [remember, setRemember]         = useState(false);
-  const [loading, setLoading]           = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError]               = useState('');
-  const [fieldErrors, setFieldErrors]   = useState<{ email?: string; password?: string }>({});
+  const [checking, setChecking] = useState(true);
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/dashboard');
-      else setChecking(false);
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session) {
+        // Check role and redirect accordingly
+        const { data: profile } = await supabase
+          .from('users').select('role').eq('id', session.user.id).maybeSingle();
+        router.replace(profile?.role === 'investor' ? '/greenhouse' : '/founder-dashboard');
+      } else {
+        setChecking(false);
+      }
     });
   }, [router]);
 
-  function validate() {
-    const errs: { email?: string; password?: string } = {};
-    if (!email.includes('@') || !email.includes('.')) errs.email = 'يرجى إدخال بريد إلكتروني صحيح';
-    if (!password) errs.password = 'يرجى إدخال كلمة المرور';
-    setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!validate()) return;
     setLoading(true);
     setError('');
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      setError(ERROR_MESSAGES[signInError.message] ?? 'البريد أو كلمة المرور غير صحيحة');
-      setLoading(false);
-    } else {
-      router.replace('/dashboard');
-    }
-  }
 
-  async function handleGoogle() {
-    setGoogleLoading(true);
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    setGoogleLoading(false);
+    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (err) {
+      setError('البريد أو كلمة المرور غير صحيحة');
+      setLoading(false);
+      return;
+    }
+
+    // Check if profile exists
+    const { data: profile } = await supabase
+      .from('users').select('role').eq('id', data.user.id).maybeSingle();
+
+    if (!profile) {
+      // No profile yet → onboarding
+      router.replace('/profile?onboard=1');
+    } else if (profile.role === 'investor') {
+      router.replace('/greenhouse');
+    } else {
+      router.replace('/founder-dashboard');
+    }
+    setLoading(false);
   }
 
   if (checking) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: BG }}>
-        <Loader2 className="w-7 h-7 animate-spin" style={{ color: PRIMARY }} />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--off-white)' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--green-brand)' }} />
       </div>
     );
   }
 
-  const canSubmit = email.trim() && password.trim() && !loading;
-
   return (
     <div dir="rtl" className="min-h-screen flex items-center justify-center px-4 py-20"
-      style={{ background: BG }}>
+      style={{ background: 'var(--off-white)' }}>
 
       <div className="w-full" style={{ maxWidth: 420 }}>
+        <div className="rounded-2xl bg-white px-10 py-10"
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
 
-        {/* ── Card ── */}
-        <div
-          className="rounded-2xl bg-white px-10 py-10"
-          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}
-        >
-          {/* ── Logo — BethrhLogo SVG (green on white) ── */}
-          <div className="flex justify-center mb-8">
+          {/* Logo */}
+          <div className="flex justify-center mb-7">
             <BethrhLogo size="sm" color="#1B6B3E" />
           </div>
 
-          {/* ── Title ── */}
-          <h1
-            className="text-center font-bold text-2xl mb-2 font-arabic"
-            style={{ color: TEXT_MAIN }}
-          >
-            تسجيل الدخول
+          <h1 className="text-center font-bold text-2xl mb-2 font-arabic"
+            style={{ color: 'var(--text-dark)' }}>
+            أهلاً بعودتك
           </h1>
-          <p
-            className="text-center text-sm mb-8 font-arabic"
-            style={{ color: TEXT_MUTED }}
-          >
-            أهلاً بعودتك! سجّل دخولك لمتابعة رحلتك
+          <p className="text-center text-sm mb-7 font-arabic" style={{ color: 'var(--gray-mid)' }}>
+            سجّل دخولك لمتابعة رحلتك 🌱
           </p>
 
-          {/* ── Global error ── */}
           {error && (
-            <div
-              className="mb-5 px-4 py-3 rounded-lg text-sm text-right font-arabic"
-              style={{
-                background: 'hsl(0,80%,97%)',
-                border: '1px solid hsl(0,60%,85%)',
-                color: 'hsl(0,60%,40%)',
-              }}
-            >
+            <div className="mb-5 px-4 py-3 rounded-lg text-sm text-right font-arabic"
+              style={{ background: 'hsl(0,80%,97%)', border: '1px solid hsl(0,60%,85%)', color: 'hsl(0,60%,40%)' }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
-
-            {/* Email */}
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label
-                className="block text-sm font-medium mb-1.5 text-right font-arabic"
-                style={{ color: TEXT_MAIN }}
-              >
+              <label className="block text-sm font-medium mb-1.5 text-right font-arabic"
+                style={{ color: 'var(--text-dark)' }}>
                 البريد الإلكتروني
               </label>
               <div className="relative">
                 <input
-                  type="email"
-                  value={email}
-                  onChange={e => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: undefined })); }}
-                  dir="ltr"
-                  placeholder="example@email.com"
+                  type="email" value={email} onChange={e => setEmail(e.target.value)}
+                  required dir="ltr" placeholder="example@email.com"
                   className="w-full h-12 pr-10 pl-4 rounded-lg border text-sm outline-none transition-all"
-                  style={{ borderColor: fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER, color: TEXT_MAIN }}
+                  style={{ borderColor: 'var(--gray-light)', color: 'var(--text-dark)' }}
                   onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
-                  onBlur={e => { e.target.style.borderColor = fieldErrors.email ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--gray-light)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
+                <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  style={{ color: 'var(--gray-mid)' }} />
               </div>
-              {fieldErrors.email && (
-                <p className="mt-1 text-xs text-right font-arabic" style={{ color: 'hsl(0,60%,45%)' }}>
-                  {fieldErrors.email}
-                </p>
-              )}
             </div>
 
-            {/* Password */}
             <div>
-              <label
-                className="block text-sm font-medium mb-1.5 text-right font-arabic"
-                style={{ color: TEXT_MAIN }}
-              >
-                كلمة المرور
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <Link href="/forgot-password"
+                  className="text-xs hover:underline font-arabic"
+                  style={{ color: 'var(--green-brand)' }}>
+                  نسيت كلمة المرور؟
+                </Link>
+                <label className="text-sm font-medium font-arabic" style={{ color: 'var(--text-dark)' }}>
+                  كلمة المرور
+                </label>
+              </div>
               <div className="relative">
                 <input
-                  type={showPass ? 'text' : 'password'}
-                  value={password}
-                  onChange={e => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: undefined })); }}
-                  placeholder="••••••••"
-                  className="w-full h-12 pr-10 pl-10 rounded-lg border text-sm outline-none transition-all"
-                  style={{ borderColor: fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER, color: TEXT_MAIN }}
+                  type="password" value={password} onChange={e => setPassword(e.target.value)}
+                  required placeholder="••••••••"
+                  className="w-full h-12 pr-10 pl-4 rounded-lg border text-sm outline-none transition-all"
+                  style={{ borderColor: 'var(--gray-light)', color: 'var(--text-dark)' }}
                   onFocus={e => { e.target.style.borderColor = 'var(--green-brand)'; e.target.style.boxShadow = '0 0 0 3px rgba(27,107,62,0.12)'; }}
-                  onBlur={e => { e.target.style.borderColor = fieldErrors.password ? 'hsl(0,60%,60%)' : BORDER; e.target.style.boxShadow = 'none'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--gray-light)'; e.target.style.boxShadow = 'none'; }}
                 />
-                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: TEXT_MUTED }} />
-                <button
-                  type="button"
-                  onClick={() => setShowPass(v => !v)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:opacity-70"
-                  style={{ color: TEXT_MUTED }}
-                  tabIndex={-1}
-                >
-                  {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
+                <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
+                  style={{ color: 'var(--gray-mid)' }} />
               </div>
-              {fieldErrors.password && (
-                <p className="mt-1 text-xs text-right font-arabic" style={{ color: 'hsl(0,60%,45%)' }}>
-                  {fieldErrors.password}
-                </p>
-              )}
             </div>
 
-            {/* Remember me */}
-            <div className="flex items-center gap-2 flex-row-reverse">
-              <input
-                id="remember"
-                type="checkbox"
-                checked={remember}
-                onChange={e => setRemember(e.target.checked)}
-                className="w-4 h-4 rounded cursor-pointer"
-                style={{ accentColor: PRIMARY }}
-              />
-              <label
-                htmlFor="remember"
-                className="text-sm cursor-pointer select-none font-arabic"
-                style={{ color: TEXT_MUTED }}
-              >
-                تذكرني
-              </label>
-            </div>
-
-            {/* Submit */}
             <button
-              type="submit"
-              disabled={!canSubmit}
+              type="submit" disabled={loading || !email || !password}
               className="w-full h-12 rounded-lg font-semibold text-base text-white flex items-center justify-center gap-2 transition-all font-arabic"
               style={{
-                background: canSubmit ? PRIMARY : 'rgba(27,107,62,0.4)',
-                boxShadow: canSubmit ? '0 2px 12px rgba(27,107,62,0.3)' : 'none',
-                cursor: canSubmit ? 'pointer' : 'not-allowed',
+                background: loading || !email || !password ? 'rgba(27,107,62,0.4)' : 'var(--green-brand)',
+                cursor: loading || !email || !password ? 'not-allowed' : 'pointer',
               }}
-              onMouseEnter={e => { if (canSubmit) e.currentTarget.style.background = PRIMARY_HOVER; }}
-              onMouseLeave={e => { if (canSubmit) e.currentTarget.style.background = PRIMARY; }}
+              onMouseEnter={e => { if (!loading && email && password) e.currentTarget.style.background = 'var(--green-mid)'; }}
+              onMouseLeave={e => { if (!loading && email && password) e.currentTarget.style.background = 'var(--green-brand)'; }}
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'تسجيل الدخول'}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                <><ArrowLeft className="w-4 h-4" />تسجيل الدخول</>
+              )}
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px" style={{ background: BORDER }} />
-            <span className="text-sm font-arabic" style={{ color: TEXT_MUTED }}>أو</span>
-            <div className="flex-1 h-px" style={{ background: BORDER }} />
-          </div>
-
-          {/* Google */}
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={googleLoading}
-            className="w-full h-12 rounded-lg border flex items-center justify-center gap-3 text-sm font-medium transition-all hover:bg-gray-50 font-arabic"
-            style={{ borderColor: BORDER, color: TEXT_MAIN, background: 'white' }}
-          >
-            {googleLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <GoogleIcon />}
-            الدخول بـ Google
-          </button>
-
-          {/* Forgot password */}
-          <div className="mt-5 text-center">
-            <Link
-              href="/forgot-password"
-              className="text-sm transition-colors hover:underline font-arabic"
-              style={{ color: PRIMARY }}
-            >
-              نسيت كلمة المرور؟
-            </Link>
-          </div>
-
-          {/* Register link */}
-          <p className="mt-4 text-center text-sm font-arabic" style={{ color: TEXT_MUTED }}>
+          <p className="mt-6 text-center text-sm font-arabic" style={{ color: 'var(--gray-mid)' }}>
             ليس لديك حساب؟{' '}
-            <Link
-              href="/register"
-              className="font-semibold hover:underline transition-colors"
-              style={{ color: PRIMARY }}
-            >
-              أنشئ حساب جديد
+            <Link href="/register" className="font-semibold hover:underline font-arabic"
+              style={{ color: 'var(--green-brand)' }}>
+              سجّل الآن
             </Link>
           </p>
         </div>
 
-        {/* Footer note */}
         <p className="mt-8 text-center text-xs font-arabic" style={{ color: 'var(--gray-mid)', fontWeight: 300 }}>
           © ٢٠٢٦ Life Easy LLC — جميع الحقوق محفوظة
         </p>
