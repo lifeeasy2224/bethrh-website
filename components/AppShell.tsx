@@ -142,20 +142,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           dir="rtl"
         >
           {/* Brand + back-to-home */}
-          <div className="px-4 py-4 border-b" style={{ borderColor: 'var(--gray-light)' }}>
-            <div className="flex items-center justify-center mb-3">
-              <BethrhLogo size="sm" />
-            </div>
-            <Link
-              href="/"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-row-reverse"
-              style={{ color: 'var(--gray-mid)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--secondary)'; e.currentTarget.style.color = 'var(--green-brand)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-mid)'; }}
+          <div className="border-b" style={{ borderColor: 'var(--gray-light)' }}>
+            {/* Logo on deep green — as per corporate identity */}
+            <div
+              className="flex items-center justify-center px-4 py-5"
+              style={{ background: 'var(--green-deep)' }}
             >
-              <span className="flex-1 text-right">العودة للرئيسية</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </Link>
+              <BethrhLogo size="sm" color="#D4A653" variant="full" />
+            </div>
+            <div className="px-4 py-3">
+              <Link
+                href="/"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors flex-row-reverse"
+                style={{ color: 'var(--gray-mid)' }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--secondary)'; e.currentTarget.style.color = 'var(--green-brand)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--gray-mid)'; }}
+              >
+                <span className="flex-1 text-right">العودة للرئيسية</span>
+                <ArrowRight className="w-4 h-4 shrink-0" />
+              </Link>
+            </div>
           </div>
 
           {/* Main nav */}
