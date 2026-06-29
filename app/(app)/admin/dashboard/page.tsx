@@ -29,7 +29,7 @@ export default function AdminDashboardPage() {
         return;
       }
 
-      // ✅ Redirect to the real admin dashboard
+      // ✅ Go to the real admin panel inside (app)/admin
       router.replace('/admin');
     };
 
@@ -39,8 +39,8 @@ export default function AdminDashboardPage() {
   return (
     <div
       dir="rtl"
-      className="min-h-screen bg-[#0F3D24] flex items-center justify-center"
-      style={{ fontFamily: "'Noto Kufi Arabic', sans-serif" }}
+      className="min-h-screen flex items-center justify-center"
+      style={{ background: '#0F3D24', fontFamily: "'Noto Kufi Arabic', sans-serif" }}
     >
       <div className="text-center">
         <div className="w-14 h-14 border-2 border-[#D4A653] border-t-transparent rounded-full animate-spin mx-auto mb-6" />
