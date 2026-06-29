@@ -4,27 +4,23 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
 import AppShell from '@/components/AppShell';
 
-// ── Public paths — no auth required ──────────────────────────────
 const PUBLIC_PATHS = [
   '/ip-policy', '/help', '/privacy', '/terms', '/cookies', '/pricing',
 ];
 
-// ── Investor-only paths ───────────────────────────────────────────
 const INVESTOR_ONLY_PATHS = [
   '/greenhouse', '/investor-assistant',
 ];
 
-// ── Founder-only paths ────────────────────────────────────────────
 const FOUNDER_ONLY_PATHS = [
   '/founder-dashboard', '/dashboard', '/pods', '/ideas', '/chat',
   '/canvas', '/validation', '/pitch', '/journey', '/seeds', '/billing',
   '/checkout',
 ];
 
-// ── Admin paths — auth required but NO AppShell wrapper ──────────
+// Admin gets its own layout — no AppShell sidebar
 const ADMIN_PATHS = ['/admin'];
 
-// ── Onboarding path — needs session but no profile yet ───────────
 const ONBOARDING_PATHS = ['/profile'];
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -38,41 +34,18 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const isFounderPath  = FOUNDER_ONLY_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isAdminPath    = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
-  // Block rendering while profile is loading (but not on onboarding or public pages)
   const profilePending = !isPublic && !isOnboarding && session && !profile;
 
   useEffect(() => {
     if (loading) return;
-
-    // Not logged in → send to login
-    if (!session && !isPublic) {
-      router.replace('/login');
-      return;
-    }
-
-    // Logged in but no profile yet → send to onboarding
-    if (session && !profile && !isPublic && !isOnboarding) {
-      router.replace('/profile?onboard=1');
-      return;
-    }
-
-    // Investor trying to access founder pages → send to greenhouse
-    if (session && isInvestor && isFounderPath) {
-      router.replace('/greenhouse');
-      return;
-    }
-
-    // Founder trying to access investor pages → send to dashboard
-    if (session && !isInvestor && isInvestorPath) {
-      router.replace('/founder-dashboard');
-      return;
-    }
+    if (!session && !isPublic) { router.replace('/login'); return; }
+    if (session && !profile && !isPublic && !isOnboarding) { router.replace('/profile?onboard=1'); return; }
+    if (session && isInvestor && isFounderPath) { router.replace('/greenhouse'); return; }
+    if (session && !isInvestor && isInvestorPath) { router.replace('/founder-dashboard'); return; }
   }, [loading, session, profile, router, isPublic, isOnboarding, isInvestor, isFounderPath, isInvestorPath]);
 
-  // Always render public pages
   if (isPublic) return <>{children}</>;
 
-  // Show spinner while loading
   if (loading || profilePending) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -81,20 +54,15 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Not logged in
   if (!session) return null;
-
-  // Onboarding — render without AppShell
   if (isOnboarding) return <>{children}</>;
 
-  // Admin — render without AppShell (admin has its own layout)
+  // ✅ Admin pages — render WITHOUT AppShell (no sidebar overlap)
   if (isAdminPath) return <>{children}</>;
 
-  // Role mismatch — render nothing (redirect in effect above)
   if (isInvestor && isFounderPath) return null;
   if (!isInvestor && isInvestorPath) return null;
 
-  // All good — render with sidebar
   return <AppShell>{children}</AppShell>;
 }
 
