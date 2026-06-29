@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase, AiChat } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth-context';
 import { Send, Bot, User, Sparkles, Trash2 } from 'lucide-react';
+import SafeMessage from '@/components/SafeMessage';
 
 // ── Enhanced starter prompts — grouped by founder journey stage ──
 const STARTER_PROMPTS = [
@@ -101,13 +102,14 @@ export default function ChatPage() {
     ]);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: updatedMessages,
-          userId: supaUser.id,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ messages: updatedMessages }),
       });
 
       const data = await response.json();
@@ -143,12 +145,6 @@ export default function ChatPage() {
     if (!supaUser || !confirm('مسح كل سجل المحادثة؟')) return;
     await supabase.from('ai_chats').delete().eq('user_id', supaUser.id);
     setMessages([]);
-  }
-
-  function formatMessage(text: string) {
-    return text
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\n/g, '<br/>');
   }
 
   return (
@@ -237,9 +233,9 @@ export default function ChatPage() {
                       ? 'bg-primary text-primary-foreground rounded-tl-sm'
                       : 'bg-card border border-border rounded-tr-sm'
                   }`}
-                  dir="rtl"
-                  dangerouslySetInnerHTML={{ __html: formatMessage(msg.message) }}
-                />
+                >
+                  <SafeMessage text={msg.message} dir="rtl" />
+                </div>
               </div>
             ))}
             {thinking && (

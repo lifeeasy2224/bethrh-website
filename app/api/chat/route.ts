@@ -1,11 +1,13 @@
 // 📁 FILE: app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 
 // ── Rate limiting config ──────────────────────────────────────────
 const DAILY_MESSAGE_LIMIT = 10;      // Max messages per user per day
 const MAX_MESSAGE_LENGTH  = 500;     // Max characters per message
+const IP_MINUTE_LIMIT     = 20;      // Max requests per IP per minute
 
 // ── Topic guard — reject off-topic messages ───────────────────────
 const OFF_TOPIC_KEYWORDS = [
@@ -37,9 +39,9 @@ function isOffTopic(message: string): boolean {
   return false;
 }
 
-// ── In-memory rate limiter (resets on server restart) ────────────
-// For production, use Redis or Supabase — this works for now
+// ── In-memory rate limiters (resets on server restart) ───────────
 const userMessageCounts = new Map<string, { count: number; date: string }>();
+const ipRequestCounts   = new Map<string, { count: number; minute: string }>();
 
 function checkRateLimit(userId: string): { allowed: boolean; remaining: number } {
   const today = new Date().toISOString().split('T')[0];
@@ -56,6 +58,40 @@ function checkRateLimit(userId: string): { allowed: boolean; remaining: number }
 
   record.count += 1;
   return { allowed: true, remaining: DAILY_MESSAGE_LIMIT - record.count };
+}
+
+function checkIpRateLimit(ip: string): boolean {
+  const minute = new Date().toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  const record = ipRequestCounts.get(ip);
+
+  if (!record || record.minute !== minute) {
+    ipRequestCounts.set(ip, { count: 1, minute });
+    return true;
+  }
+
+  if (record.count >= IP_MINUTE_LIMIT) return false;
+  record.count += 1;
+  return true;
+}
+
+async function verifyJwt(req: NextRequest): Promise<string | null> {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader?.startsWith('Bearer ')) return null;
+
+  const token = authHeader.slice(7);
+  const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return null;
+    return user.id;
+  } catch {
+    return null;
+  }
 }
 
 // ── System prompt ─────────────────────────────────────────────────
@@ -76,23 +112,34 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   if (!apiKey) {
-    // Never expose this error to users
     console.error('CRITICAL: ANTHROPIC_API_KEY missing');
     return NextResponse.json({
       reply: 'الخدمة غير متاحة مؤقتاً. سيتم إصلاحها قريباً.',
     });
   }
 
-  let userId = '';
+  // ── IP rate limit ──
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkIpRateLimit(ip)) {
+    return NextResponse.json({ reply: 'طلبات كثيرة جداً. انتظر دقيقة وحاول مرة أخرى.' }, { status: 429 });
+  }
+
+  // ── JWT verification ──
+  const verifiedUserId = await verifyJwt(req);
+  if (!verifiedUserId) {
+    return NextResponse.json({ reply: 'غير مصرح. يرجى تسجيل الدخول.' }, { status: 401 });
+  }
+
   let messages: { role: string; message?: string; content?: string }[] = [];
 
   try {
     const body = await req.json();
     messages = body.messages || [];
-    userId = body.userId || 'anonymous';
   } catch {
     return NextResponse.json({ reply: 'خطأ في قراءة البيانات.' });
   }
+
+  const userId = verifiedUserId;
 
   // ── 1. Rate limit check ──
   const { allowed, remaining } = checkRateLimit(userId);
