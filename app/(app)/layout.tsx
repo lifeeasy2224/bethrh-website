@@ -18,7 +18,6 @@ const FOUNDER_ONLY_PATHS = [
   '/checkout',
 ];
 
-// Admin gets its own layout — no AppShell sidebar
 const ADMIN_PATHS = ['/admin'];
 
 const ONBOARDING_PATHS = ['/profile'];
@@ -57,7 +56,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   if (!session) return null;
   if (isOnboarding) return <>{children}</>;
 
-  // ✅ Admin pages — render WITHOUT AppShell (no sidebar overlap)
+  // ✅ Admin pages — NO AppShell, no sidebar
   if (isAdminPath) return <>{children}</>;
 
   if (isInvestor && isFounderPath) return null;
