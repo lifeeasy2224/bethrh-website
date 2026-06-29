@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+// This layout wraps all (app)/admin/* pages
+// It renders with NO AppShell — admin gets a clean full-width layout
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAdmin, loading } = useAuth();
   const router = useRouter();
