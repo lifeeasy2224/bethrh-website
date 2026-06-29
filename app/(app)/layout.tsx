@@ -1,6 +1,4 @@
-// 📁 FILE: app/(app)/layout.tsx
 'use client';
-
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/lib/auth-context';
@@ -20,8 +18,11 @@ const INVESTOR_ONLY_PATHS = [
 const FOUNDER_ONLY_PATHS = [
   '/founder-dashboard', '/dashboard', '/pods', '/ideas', '/chat',
   '/canvas', '/validation', '/pitch', '/journey', '/seeds', '/billing',
-  '/checkout', '/admin',
+  '/checkout',
 ];
+
+// ── Admin paths — auth required but NO AppShell wrapper ──────────
+const ADMIN_PATHS = ['/admin'];
 
 // ── Onboarding path — needs session but no profile yet ───────────
 const ONBOARDING_PATHS = ['/profile'];
@@ -35,6 +36,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const isOnboarding   = ONBOARDING_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isInvestorPath = INVESTOR_ONLY_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
   const isFounderPath  = FOUNDER_ONLY_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
+  const isAdminPath    = ADMIN_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   // Block rendering while profile is loading (but not on onboarding or public pages)
   const profilePending = !isPublic && !isOnboarding && session && !profile;
@@ -82,8 +84,11 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   // Not logged in
   if (!session) return null;
 
-  // Onboarding — render without AppShell (no sidebar needed)
+  // Onboarding — render without AppShell
   if (isOnboarding) return <>{children}</>;
+
+  // Admin — render without AppShell (admin has its own layout)
+  if (isAdminPath) return <>{children}</>;
 
   // Role mismatch — render nothing (redirect in effect above)
   if (isInvestor && isFounderPath) return null;
