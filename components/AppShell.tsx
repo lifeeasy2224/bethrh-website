@@ -126,8 +126,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       )}
     </div>
   );
+  if (isAdmin) return <>{children}</>;
 
-  return (
+    return (
     <div className="min-h-screen" style={{ background: 'var(--off-white)' }}>
       <SiteHeader />
 
