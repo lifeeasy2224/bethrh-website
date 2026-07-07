@@ -46,12 +46,27 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui-core': ['@mui/material', '@emotion/react', '@emotion/styled'],
-          'mui-icons': ['@mui/icons-material'],
-          'charts': ['recharts'],
-          'supabase': ['@supabase/supabase-js'],
+        // Function form (not object) to avoid the circular chunk that a plain
+        // object map produced: `jsxImportSource: '@emotion/react'` makes emotion's
+        // jsx-runtime a dependency of every module, so putting @emotion in a
+        // SEPARATE chunk from react created a mui-core <-> react-vendor cycle.
+        // At runtime that cycle initialized react-dom before react's internals
+        // existed → "Cannot read properties of undefined (reading
+        // '__CLIENT_INTERNALS_...')" → the whole app failed to mount (blank/
+        // prerender-only, no routing). Keep react + react-dom + router + emotion
+        // in ONE chunk so their init order is guaranteed; MUI depends on that
+        // chunk one-directionally, so no cycle.
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/]node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler|use-sync-external-store)[\\/]/.test(id)) {
+            return 'react-vendor';
+          }
+          if (id.includes('@emotion')) return 'react-vendor';
+          if (id.includes('@mui/icons-material')) return 'mui-icons';
+          if (id.includes('@mui')) return 'mui-core';
+          if (id.includes('recharts') || id.includes('/d3-') || id.includes('victory-vendor')) return 'charts';
+          if (id.includes('@supabase')) return 'supabase';
+          return undefined;
         },
       },
     },
