@@ -1,20 +1,64 @@
+# Netlify configuration — build settings, SPA fallback, asset caching,
+# and security headers.
+
+# ---------------------------------------------------------------------------
+# Build (Vite) — this OVERRIDES the dashboard's Next.js settings from the old
+# bethrh-website app. Required for the cutover: the repo is reused, so without
+# this block Netlify would keep trying to build it as a Next.js site.
+# ---------------------------------------------------------------------------
 [build]
-command = "npx next build"
-publish = ".next"
+  command = "npm run build"
+  publish = "dist"
 
-[build.environment]
-SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_URL,SUPABASE_ANON_KEY,ANTHROPIC_API_KEY"
+# SPA fallback: client-side routes (e.g. /dashboard, /journey/canvas) must
+# serve index.html. Prerendered static pages in dist/ shadow this redirect
+# automatically (Netlify serves existing files before applying redirects).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
-[[plugins]]
-package = "@netlify/plugin-nextjs"
+# ---------------------------------------------------------------------------
+# Caching
+# ---------------------------------------------------------------------------
+# Vite emits content-hashed filenames under /assets (e.g. index-BpJWgJ4M.js).
+# The URL changes whenever the content changes, so these can be cached forever.
+# Previously they were served with max-age=0, must-revalidate, forcing a
+# revalidation round-trip for every asset on every repeat visit.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
+# The HTML shell must always revalidate so a new deploy is picked up immediately.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ---------------------------------------------------------------------------
+# Security headers (applied site-wide)
+# ---------------------------------------------------------------------------
 [[headers]]
   for = "/*"
   [headers.values]
+    # Clickjacking protection (X-Frame-Options + CSP frame-ancestors below).
     X-Frame-Options = "DENY"
+    # Block MIME-type sniffing.
     X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
+    # Send origin only on cross-origin navigations; full URL same-origin.
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://api.anthropic.com;"
+    # Deny powerful features the app doesn't use. Payment happens on Stripe's
+    # hosted checkout (a redirect off our origin), so payment=() is safe here.
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+    # Keep HTTPS pinned. (No preload — leaves room to add subdomains later.)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    # Content-Security-Policy — allowlist matches actual usage:
+    #   script-src 'unsafe-inline' : required by Vite's inline modulepreload
+    #     polyfill in the prerendered static HTML. Tighten later by disabling
+    #     the polyfill (build.modulePreload.polyfill=false) and dropping this.
+    #   style-src  'unsafe-inline' : MUI/Emotion inject inline <style> tags.
+    #   fonts.googleapis.com / fonts.gstatic.com : Montserrat via Google Fonts,
+    #     and @react-pdf fetches gstatic .woff files at runtime (connect-src).
+    #   *.supabase.co (+ wss) : REST, auth, edge functions, realtime.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- Bethra favicon (brand guidelines §09): solid gold seed on deep-green
+       rounded square; inner split line omitted at small sizes for clarity. -->
+  <rect width="48" height="48" rx="11" fill="#0F3D24"/>
+  <!-- seed path from the official mark (viewBox 0 0 200 240), scaled 0.12 and centered -->
+  <g transform="translate(12, 9.6) scale(0.12)">
+    <path d="M100 24 C 44 78, 44 162, 100 216 C 156 162, 156 78, 100 24 Z" fill="#D4A653"/>
+  </g>
+</svg>

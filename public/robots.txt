@@ -1,0 +1,24 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /ai-coach
+Disallow: /ai-coach/
+Disallow: /journey
+Disallow: /journey/
+Disallow: /groups
+Disallow: /groups/
+Disallow: /connections
+Disallow: /connections/
+Disallow: /investor/
+Disallow: /marketplace
+Disallow: /marketplace/
+Disallow: /checkout
+Disallow: /checkout/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /onboarding
+Disallow: /onboarding/
+
+Sitemap: https://bethra.co/sitemap.xml
