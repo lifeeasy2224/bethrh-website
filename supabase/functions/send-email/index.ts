@@ -19,7 +19,7 @@ const WRAP = (gradient: string, emoji: string, headerTitle: string, body: string
   <table width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr><td align="center" style="padding:40px 16px;">
     <table width="560" cellpadding="0" cellspacing="0" dir="rtl" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);">
       <tr><td style="background:${gradient};padding:40px 40px 32px;text-align:center;">
-        <div style="font-size:34px;font-weight:900;color:#D4A653;">بذرة</div>
+        <img src="https://bethra.co/email-logo.png" alt="بذرة" width="160" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;" />
         <div style="font-size:20px;margin-top:10px;">${emoji}</div>
         <div style="color:#F7F3EC;font-size:18px;font-weight:700;margin-top:6px;">${headerTitle}</div>
       </td></tr>
