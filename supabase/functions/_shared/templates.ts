@@ -6,7 +6,7 @@ const FONT_STACK = `'Segoe UI',Tahoma,Arial,sans-serif`;
 
 const BASE_HEADER = (accentGradient: string, emoji: string, title: string) => `
   <tr><td style="background:${accentGradient};padding:40px;text-align:center;">
-    <img src="https://bethra.co/email-logo.png" alt="بذرة" width="160" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;" />
+    <img src="https://bethra.co/email-logo.png?v=2" alt="بذرة" width="160" style="display:block;margin:0 auto;border:0;outline:none;text-decoration:none;" />
     <div style="font-size:20px;margin-top:12px;">${emoji}</div>
     <div style="font-size:22px;font-weight:700;color:#fff;margin-top:8px;">${title}</div>
   </td></tr>`;
