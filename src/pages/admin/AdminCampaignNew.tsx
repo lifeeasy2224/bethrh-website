@@ -228,7 +228,7 @@ export default function AdminCampaignNew() {
               <TextField label="Campaign Name" size="small" fullWidth value={campaignName} onChange={e => setCampaignName(e.target.value)} placeholder="e.g. June Newsletter" />
               <Stack direction="row" spacing={2}>
                 <TextField label="From Name" size="small" fullWidth value={fromName} onChange={e => setFromName(e.target.value)} />
-                <TextField label="From Email" size="small" fullWidth value={fromEmail} onChange={e => setFromEmail(e.target.value)} type="email" placeholder="hello@yourapp.com" />
+                <TextField label="From Email" size="small" fullWidth value={fromEmail} onChange={e => setFromEmail(e.target.value)} type="email" placeholder="info@bethra.co" />
               </Stack>
               <TextField label="Reply-To Email (optional)" size="small" fullWidth value={replyTo} onChange={e => setReplyTo(e.target.value)} type="email" />
             </Stack>

@@ -195,7 +195,7 @@ export default function AdminCommentsPage() {
     setReplyItem(null);
     setReplyBody('');
     if (res.ok) {
-      setSnack({ msg: 'Reply sent via hello@bethra.co', sev: 'success' });
+      setSnack({ msg: 'Reply sent via info@bethra.co', sev: 'success' });
       void load();
     } else {
       setSnack({ msg: 'Failed to send reply', sev: 'error' });
@@ -427,7 +427,7 @@ export default function AdminCommentsPage() {
             <DialogTitle>
               <Typography variant="h6" fontWeight={700}>Reply to Feedback</Typography>
               <Typography variant="caption" color="text.secondary">
-                Reply will be sent from hello@bethra.co to {replyItem.user_name}
+                Reply will be sent from info@bethra.co to {replyItem.user_name}
               </Typography>
             </DialogTitle>
             <DialogContent dividers>

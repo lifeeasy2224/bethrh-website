@@ -59,7 +59,7 @@ INSERT INTO system_settings (key, value, label, description, category) VALUES
   ('email_welcome_enabled',    'true'::jsonb,                                                  'Welcome Email',            'Send welcome email on new registration',                  'email'),
   ('email_digest_frequency',   '"daily"'::jsonb,                                               'Admin Email Digest',       'real_time | hourly | daily | off',                        'email'),
   ('email_from_name',          '"Bethra Team"'::jsonb,                                         'From Name',                'Sender name for outgoing emails',                         'email'),
-  ('email_from_address',       '"hello@bethra.co"'::jsonb,                                     'From Address',             'Sender email address',                                    'email'),
+  ('email_from_address',       '"info@bethra.co"'::jsonb,                                     'From Address',             'Sender email address',                                    'email'),
   ('notif_new_user',           'true'::jsonb,                                                  'Notify: New Registration', 'Alert admins when a new user registers',                  'notifications'),
   ('notif_new_ticket',         'true'::jsonb,                                                  'Notify: New Ticket',       'Alert admins when a support ticket is submitted',         'notifications'),
   ('notif_failed_login',       'true'::jsonb,                                                  'Notify: Failed Logins',    'Alert on 5+ consecutive failed admin login attempts',     'notifications'),

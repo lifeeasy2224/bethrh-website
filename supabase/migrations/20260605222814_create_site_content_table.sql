@@ -67,7 +67,7 @@ INSERT INTO public.site_content (key, value, label, category, type, sort_order) 
   ('pricing.family.tagline',  'Builder features for up to 3 members',                                        'Family Plan Tagline',     'Pricing Page',        'text',     6),
   -- Pricing Info Cards
   ('pricing.students.title',  'Students & Educators',                                                        'Students Card Title',     'Pricing Page',        'text',     7),
-  ('pricing.students.body',   'Verified students and teachers get 50% off all paid plans. Email us at hello@bethra.co with your .edu address.', 'Students Card Body', 'Pricing Page', 'textarea', 8),
+  ('pricing.students.body',   'Verified students and teachers get 50% off all paid plans. Email us at info@bethra.co with your .edu address.', 'Students Card Body', 'Pricing Page', 'textarea', 8),
   ('pricing.investors.title', 'Investors Always Free',                                                       'Investors Card Title',    'Pricing Page',        'text',     9),
   ('pricing.investors.body',  'Verified angel investors and VCs access Bethra at no cost. Browse validated deals, connect with founders, track portfolio ideas.', 'Investors Card Body', 'Pricing Page', 'textarea', 10)
 ON CONFLICT (key) DO NOTHING;

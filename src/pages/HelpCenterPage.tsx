@@ -224,7 +224,7 @@ export default function HelpCenterPage() {
                 </Button>
                 <Stack direction="row" spacing={1} alignItems="center">
                   <EmailIcon sx={{ color: 'primary.main', fontSize: 20 }} />
-                  <Typography fontWeight={600} color="primary.main">hello@bethra.co</Typography>
+                  <Typography fontWeight={600} color="primary.main">info@bethra.co</Typography>
                 </Stack>
               </Stack>
             </CardContent>

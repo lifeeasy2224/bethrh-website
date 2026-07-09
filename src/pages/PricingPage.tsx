@@ -382,7 +382,7 @@ export default function PricingPage() {
                   </Typography>
                   <Typography sx={{ fontFamily: FONT, fontWeight: 400, fontSize: '0.875rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
                     الطلاب يحصلون على برو بخصم ٥٠٪ ببريد جامعي صالح. راسلنا على{' '}
-                    <Box component="span" sx={{ color: GOLD }}>hello@bethra.co</Box> للحصول عليه.
+                    <Box component="span" sx={{ color: GOLD }}>info@bethra.co</Box> للحصول عليه.
                   </Typography>
                 </Box>
               </Box>
@@ -409,7 +409,7 @@ export default function PricingPage() {
                   </Typography>
                   <Typography sx={{ fontFamily: FONT, fontWeight: 400, fontSize: '0.875rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.6 }}>
                     جهّز دفعتك كاملة بحلول مخصصة للمسرعات والحاضنات ←{' '}
-                    <Box component="span" sx={{ color: GOLD }}>hello@bethra.co</Box>
+                    <Box component="span" sx={{ color: GOLD }}>info@bethra.co</Box>
                   </Typography>
                 </Box>
               </Box>

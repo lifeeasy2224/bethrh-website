@@ -34,7 +34,7 @@ export const CONTENT_DEFAULTS: Record<string, string> = {
   'pricing.launch.tagline':       'كل شيء + الظهور أمام المستثمرين',
   'pricing.family.tagline':       'مزايا البنّاء حتى ٣ أفراد من العائلة',
   'pricing.students.title':       'الطلاب والمعلمون',
-  'pricing.students.body':        'الطلاب والمعلمون الموثّقون يحصلون على خصم ٥٠٪ على جميع الخطط المدفوعة. راسلنا على hello@bethra.co من بريدك الجامعي.',
+  'pricing.students.body':        'الطلاب والمعلمون الموثّقون يحصلون على خصم ٥٠٪ على جميع الخطط المدفوعة. راسلنا على info@bethra.co من بريدك الجامعي.',
   'pricing.investors.title':      'المستثمرون مجاناً دائماً',
   'pricing.investors.body':       'المستثمرون الملائكة وصناديق رأس المال الجريء الموثّقون يستخدمون بذرة بلا مقابل. تصفّح فرصاً متحقَّقاً منها، وتواصل مع المؤسسين، وتابع أفكار محفظتك.',
   'home.founder.visible':         'true',

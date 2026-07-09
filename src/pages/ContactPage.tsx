@@ -211,7 +211,7 @@ export default function ContactPage() {
                 </Box>
 
                 {[
-                  { icon: <EmailIcon sx={{ fontSize: 22 }} />, label: 'البريد الإلكتروني', value: 'hello@bethra.co', color: '#1B6B3E' },
+                  { icon: <EmailIcon sx={{ fontSize: 22 }} />, label: 'البريد الإلكتروني', value: 'info@bethra.co', color: '#1B6B3E' },
                   { icon: <AccessTimeOutlinedIcon sx={{ fontSize: 22 }} />, label: 'ساعات العمل', value: 'الأحد–الخميس', color: '#8A8070' },
                 ].map(item => (
                   <Stack key={item.label} direction="row" spacing={2} alignItems="flex-start">

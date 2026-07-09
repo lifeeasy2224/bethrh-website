@@ -75,7 +75,7 @@ export default function Footer() {
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Box
               component="a"
-              href="mailto:hello@bethra.co"
+              href="mailto:info@bethra.co"
               sx={{ color: 'grey.300', display: 'flex', alignItems: 'center', '&:hover': { color: 'white' }, transition: 'color 150ms ease' }}
             >
               <EmailIcon sx={{ fontSize: 18 }} />
