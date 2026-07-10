@@ -10,11 +10,11 @@ const corsHeaders = {
 // Email clients can't load web fonts reliably; use a system stack that renders
 // Arabic well. Variable names must match what client callers already pass.
 
-const FONT = `'Segoe UI',Tahoma,Arial,sans-serif`;
+const FONT = `'Noto Kufi Arabic','Segoe UI',Tahoma,Arial,sans-serif`;
 
 const WRAP = (gradient: string, emoji: string, headerTitle: string, body: string) => `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;700&display=swap" rel="stylesheet"></head>
 <body style="margin:0;padding:0;background:#F7F3EC;font-family:${FONT};" dir="rtl">
   <table width="100%" cellpadding="0" cellspacing="0" dir="rtl"><tr><td align="center" style="padding:40px 16px;">
     <table width="560" cellpadding="0" cellspacing="0" dir="rtl" style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 16px rgba(0,0,0,0.08);">
