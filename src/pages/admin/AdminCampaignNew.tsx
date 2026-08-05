@@ -178,7 +178,9 @@ export default function AdminCampaignNew() {
 
     if (sendMode === 'now') {
       // Trigger edge function
-      await supabase.functions.invoke('send-campaign', { body: { campaign_id: campaign.id } });
+      await supabase.functions.invoke('send-campaign', {
+        body: { campaign_id: campaign.id, session_token: sessionToken },
+      });
     }
 
     setSaving(false);
