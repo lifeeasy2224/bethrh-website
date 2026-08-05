@@ -42,6 +42,7 @@ const ALLOWED_TABLES = new Set<string>([
   "sectors",
   "segment_members",
   "subscriptions",
+  "testimonials",
   "user_activity_log",
   "user_ideas",
 ]);

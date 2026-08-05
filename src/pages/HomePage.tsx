@@ -41,6 +41,7 @@ import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined
 import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';
+import TestimonialsSection from '../components/TestimonialsSection';
 import { useSiteContent } from '../hooks/useSiteContent';
 import { useSEO } from '../hooks/useSEO';
 
@@ -87,12 +88,6 @@ const SCORE_LEVELS = [
   { range: '٠–٤٩', level: 'بذرة', desc: 'مرحلة مبكرة — واصل التحقق', color: '#8A8070', bg: '#F7F3EC' },
   { range: '٥٠–٧٩', level: 'تنمو', desc: 'تتقدّم — ابنِ نموذجك', color: '#D08A28', bg: '#F5EAD3' },
   { range: '٨٠–١٠٠', level: 'جاهزة', desc: 'جاهزة للمستثمرين — انطلق!', color: '#1B6B3E', bg: '#DEEBE2' },
-];
-
-const TESTIMONIALS = [
-  { quote: 'كانت الفكرة في رأسي منذ سنتين. بذرة ساعدتني أتحقق منها في ٦ أسابيع، والآن ٣ مستثمرون مهتمون.', name: 'سارة الخالد', role: 'مؤسِّسة — الرياض', avatar: 'س' },
-  { quote: 'مكتبة الأفكار عبقرية. لم أكن أعرف ماذا أبني؛ أخذت فكرة وخصّصتها وبدأت أحقق مبيعات فعلاً.', name: 'محمد جمال', role: 'مؤسس — دبي', avatar: 'م' },
-  { quote: 'كمستثمر، أحب أن كل فكرة أراها تم التحقق منها مسبقاً — يوفّر عليّ ساعات من الفحص النافي للجهالة.', name: 'خالد الراشد', role: 'مستثمر ملاك — جدة', avatar: 'خ' },
 ];
 
 const FAQ_ITEMS = [
@@ -879,34 +874,8 @@ export default function HomePage() {
         </Container>
       </Box>
 
-      {/* Testimonials */}
-      <Box sx={{ py: { xs: 8, md: 10 }, bgcolor: 'grey.50' }}>
-        <Container maxWidth="lg">
-          <Typography variant="h2" fontWeight={800} textAlign="center" sx={{ mb: 6 }}>ماذا يقول روّاد الأعمال</Typography>
-          <Grid container spacing={3}>
-            {TESTIMONIALS.map(t => (
-              <Grid size={{ xs: 12, md: 4 }} key={t.name}>
-                <Card sx={{ height: '100%', boxShadow: 2 }}>
-                  <CardContent sx={{ p: 4 }}>
-                    <Typography variant="body1" sx={{ fontStyle: 'italic', lineHeight: 1.75, color: 'text.secondary', mb: 3, fontSize: '1.0625rem' }}>
-                      "{t.quote}"
-                    </Typography>
-                    <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Box sx={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1B6B3E, #D4A653)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, flexShrink: 0 }}>
-                        {t.avatar}
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" fontWeight={700}>{t.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">{t.role}</Typography>
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
+      {/* Testimonials — real, curated, DB-backed (§1e). No hardcoded personas. */}
+      <TestimonialsSection />
 
       {/* Why Founders Choose Bethra — Comparison Table */}
       <Box sx={{ py: { xs: 10, md: 12 }, bgcolor: '#0F3D24' }}>

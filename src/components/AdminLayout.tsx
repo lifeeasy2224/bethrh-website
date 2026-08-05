@@ -128,6 +128,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Templates', path: '/admin/marketing/templates' },
       { label: 'Upload Contacts', path: '/admin/marketing/upload' },
       { label: 'Suppression List', path: '/admin/marketing/suppression' },
+      { label: 'Testimonials', path: '/admin/marketing/testimonials' },
       { label: 'Automations', path: '/admin/marketing/automations' },
     ],
   },
