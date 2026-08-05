@@ -38,6 +38,29 @@ function replacePlaceholders(template: string, vars: Record<string, string>): st
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
 }
 
+// §10b — mirrors admin-db/admin-auth's resolveSession: valid token, past 2FA,
+// not expired. Returns the admin_users record (or null). Also slides the 30-min
+// session window on success, matching the rest of the admin console.
+async function resolveSession(
+  supabase: ReturnType<typeof createClient>,
+  token: string,
+) {
+  if (!token) return null;
+  const { data } = await supabase
+    .from("admin_sessions")
+    .select("*, admin_users(*)")
+    .eq("token", token)
+    .eq("is_pending_2fa", false)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (!data) return null;
+  await supabase.from("admin_sessions").update({
+    last_active: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  }).eq("id", data.id);
+  return data.admin_users as Record<string, unknown>;
+}
+
 async function getUserEmails(
   supabase: ReturnType<typeof createClient>,
   segmentId: string | null
@@ -108,12 +131,26 @@ Deno.serve(async (req: Request) => {
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { campaign_id } = await req.json() as { campaign_id: string };
+  const { campaign_id, session_token } = await req.json() as {
+    campaign_id: string;
+    session_token?: string;
+  };
   if (!campaign_id) {
     return new Response(JSON.stringify({ error: "campaign_id required" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // §10b — verify the admin session server-side before touching any data or
+  // sending a single email. This function runs with the service-role key, so
+  // without this guard anyone holding the public anon key could trigger a send.
+  const admin = await resolveSession(supabase, session_token ?? "");
+  if (!admin) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const adminUserId = admin.id as string;
 
   // Load campaign
   const { data: campaign } = await supabase
@@ -176,11 +213,16 @@ Deno.serve(async (req: Request) => {
       `<a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a></p>`;
     const personalizedBody = replacePlaceholders(bodyWithUnsubscribe, vars);
 
+    // Strip HTML tags to create plain text version
+    const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+    const textBody = stripHtml(personalizedBody);
+
     const emailPayload: Record<string, unknown> = {
       from: `${campaign.from_name} <${campaign.from_email}>`,
       to: [recipient.email],
       subject: personalizedSubject,
       html: personalizedBody,
+      text: textBody,
       tags: [{ name: "campaign_id", value: campaign.id }],
     };
 
@@ -214,6 +256,13 @@ Deno.serve(async (req: Request) => {
     total_recipients: eligible.length,
     sent_count: sentCount,
   }).eq("id", campaign_id);
+
+  // §10b — audit trail: record which admin triggered this send.
+  await supabase.from("admin_action_log").insert({
+    admin_user_id: adminUserId,
+    action: "send_campaign",
+    metadata: { campaign_id, sent: sentCount, total: eligible.length },
+  });
 
   return new Response(JSON.stringify({ success: true, sent: sentCount, total: eligible.length }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
