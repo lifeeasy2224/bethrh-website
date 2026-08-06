@@ -6,7 +6,7 @@ SELECT cron.schedule(
   '0 * * * *',
   $$
   SELECT net.http_post(
-    url     := 'https://lspymfdrtuducsblgiva.supabase.co/functions/v1/process-automations',
+    url     := 'https://czreiquyyepzqfimrycl.supabase.co/functions/v1/process-automations',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('supabase.service_role_key', true)
@@ -24,7 +24,7 @@ SELECT cron.schedule(
   '0 0 1 * *',
   $$
   SELECT net.http_post(
-    url     := 'https://lspymfdrtuducsblgiva.supabase.co/functions/v1/snapshot-mrr',
+    url     := 'https://czreiquyyepzqfimrycl.supabase.co/functions/v1/snapshot-mrr',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('supabase.service_role_key', true)

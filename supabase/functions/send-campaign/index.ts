@@ -194,23 +194,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const firstName = recipient.full_name?.split(" ")[0] ?? "";
-    const appUrl = SUPABASE_URL.replace(/\.supabase\.co.*$/, ".app") ?? "https://bethra.co";
+    const appUrl = "https://bethra.co";
     const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(recipient.email)}&campaign=${campaign.id}`;
 
     const vars: Record<string, string> = {
       first_name: firstName,
       full_name: recipient.full_name ?? "",
       email: recipient.email,
-      app_name: "IdeaVault",
+      app_name: "بذرة",
       cta_url: appUrl,
       unsubscribe_url: unsubscribeUrl,
     };
 
     const personalizedSubject = replacePlaceholders(subject, vars);
     const bodyWithUnsubscribe = campaign.body_html +
-      `\n<p style="font-size:11px;color:#94a3b8;text-align:center;margin-top:32px;">` +
-      `You're receiving this because you signed up for IdeaVault. ` +
-      `<a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a></p>`;
+      `\n<p dir="rtl" style="font-size:11px;color:#94a3b8;text-align:center;margin-top:32px;">` +
+      `تصلك هذه الرسالة لأنك مشترك في بذرة. ` +
+      `<a href="${unsubscribeUrl}" style="color:#94a3b8;">إلغاء الاشتراك</a></p>`;
     const personalizedBody = replacePlaceholders(bodyWithUnsubscribe, vars);
 
     // Strip HTML tags to create plain text version

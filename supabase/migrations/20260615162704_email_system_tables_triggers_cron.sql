@@ -78,7 +78,7 @@ CREATE OR REPLACE FUNCTION _call_edge_function(fn_name text, payload jsonb)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   PERFORM net.http_post(
-    url     := 'https://lspymfdrtuducsblgiva.supabase.co/functions/v1/' || fn_name,
+    url     := 'https://czreiquyyepzqfimrycl.supabase.co/functions/v1/' || fn_name,
     headers := '{"Content-Type":"application/json"}'::jsonb,
     body    := payload
   );
@@ -179,7 +179,7 @@ SELECT cron.schedule(
   '0 9 * * 1',
   $$
     SELECT net.http_post(
-      url     := 'https://lspymfdrtuducsblgiva.supabase.co/functions/v1/send-weekly-digest',
+      url     := 'https://czreiquyyepzqfimrycl.supabase.co/functions/v1/send-weekly-digest',
       headers := '{"Content-Type":"application/json"}'::jsonb,
       body    := '{"trigger":"cron"}'::jsonb
     );
@@ -192,7 +192,7 @@ SELECT cron.schedule(
   '0 10 * * 3',
   $$
     SELECT net.http_post(
-      url     := 'https://lspymfdrtuducsblgiva.supabase.co/functions/v1/send-weekly-inspiration',
+      url     := 'https://czreiquyyepzqfimrycl.supabase.co/functions/v1/send-weekly-inspiration',
       headers := '{"Content-Type":"application/json"}'::jsonb,
       body    := '{"trigger":"cron"}'::jsonb
     );

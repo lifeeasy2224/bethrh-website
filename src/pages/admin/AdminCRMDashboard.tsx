@@ -49,7 +49,6 @@ interface CRMUser {
   user_status: string | null;
   last_login_at: string | null;
   created_at: string | null;
-  iq_score?: number;
   tags?: Array<{ name: string; color: string }>;
 }
 
@@ -153,7 +152,7 @@ export default function AdminCRMDashboard() {
     if (!sessionToken) return;
     setLoading(true);
     const { data: profilesData } = await adminDb(sessionToken, 'profiles')
-      .select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at, iq_score');
+      .select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at');
 
     const { data: tagsData } = await adminDb(sessionToken, 'admin_user_tags')
       .select('user_id, admin_crm_tags(name, color)');
