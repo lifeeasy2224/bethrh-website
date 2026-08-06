@@ -1,9 +1,13 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { corsHeaders, render, resolveBody, sendViaResend, getServiceClient, jsonResp } from '../_shared/email-helper.ts';
 import { NEW_MESSAGE_TEMPLATE } from '../_shared/templates.ts';
+import { checkCronAuth } from '../_shared/cron-auth.ts';
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+
+  const denied = checkCronAuth(req);
+  if (denied) return denied;
 
   try {
     const { record } = await req.json() as { record: { connection_id: string; sender_id: string; content: string; created_at: string } };

@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { corsHeaders, render, resolveBody, sendViaResend, getServiceClient, jsonResp } from '../_shared/email-helper.ts';
 import { INVESTOR_MATCH_TEMPLATE } from '../_shared/templates.ts';
+import { checkCronAuth } from '../_shared/cron-auth.ts';
 
 const SECTOR_EMOJI: Record<string, string> = {
   'Food & Agriculture': '🌾', 'B2B SaaS': '💼', 'E-commerce': '🛒',
@@ -124,6 +125,9 @@ const CANVAS_KEYS = ['key_partners', 'key_activities', 'value_proposition', 'cus
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+
+  const denied = checkCronAuth(req);
+  if (denied) return denied;
 
   try {
     const body = await req.json() as { record?: IdeaRecord; idea_id?: string };

@@ -1,8 +1,9 @@
-// Shared bearer-token gate for cron-only edge functions.
+// Shared bearer-token gate for internal edge functions invoked by pg_cron or by
+// DB triggers (via the public._call_edge_function helper) — never by browsers.
 //
-// These functions are deployed with --no-verify-jwt so pg_cron can reach them
-// without a Supabase JWT. This shared secret is the ACTUAL auth: pg_cron reads
-// it from Vault (secret `cron_bearer_token`) and sends it as
+// These functions are deployed with --no-verify-jwt so those DB-side callers can
+// reach them without a Supabase JWT. This shared secret is the ACTUAL auth: the
+// caller reads it from Vault (secret `cron_bearer_token`) and sends it as
 // `Authorization: Bearer <token>`; the function compares it to the
 // CRON_BEARER_TOKEN edge-function secret. Fails closed if the secret is unset.
 export function checkCronAuth(req: Request): Response | null {
