@@ -20,6 +20,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
+import Tooltip from '@mui/material/Tooltip';
 import FormLabel from '@mui/material/FormLabel';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
@@ -376,7 +377,13 @@ export default function AdminCampaignNew() {
                 <FormLabel sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'text.primary', mb: 0.5 }}>Send Time</FormLabel>
                 <RadioGroup value={sendMode} onChange={e => setSendMode(e.target.value as 'now' | 'schedule')}>
                   <FormControlLabel value="now" control={<Radio size="small" />} label="Send now" />
-                  <FormControlLabel value="schedule" control={<Radio size="small" />} label="Schedule for later" />
+                  {/* Scheduled send is not yet wired to a processor — disabled until v2.0 so it
+                      can't silently no-op. See §10 CRM audit. */}
+                  <Tooltip title="Scheduled send is coming soon. Use “Send now” for now.">
+                    <span>
+                      <FormControlLabel value="schedule" disabled control={<Radio size="small" />} label="Schedule for later (coming soon)" />
+                    </span>
+                  </Tooltip>
                 </RadioGroup>
               </FormControl>
 
