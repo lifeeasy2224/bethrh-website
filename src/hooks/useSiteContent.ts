@@ -8,7 +8,6 @@ export const CONTENT_DEFAULTS: Record<string, string> = {
   'home.hero.supporting_line':    'بلا خطة عمل من ٤٠ صفحة. بلا تخمين. مسار سريع وموثوق نحو الإيراد.',
   'home.hero.cta_founder':        'ابدأ مجاناً — لديّ فكرة',
   'home.hero.cta_investor':       'أنا مستثمر — أرني الفرص',
-  'home.stats.founders':          '+٢٠٠٠ رائد أعمال يبنون الآن',
   'home.stats.ready':             '+٢٠ فكرة جاهزة للانطلاق',
   'home.whatisit.heading':        'أذكى طريق من «ماذا لو؟» إلى «ما التالي؟»',
   'home.whatisit.body':           'بذرة منصة تربط روّاد الأعمال في بداياتهم بالمستثمرين — لكننا لا نكتفي بالربط، بل نتأكد أنك جاهز فعلاً.',
