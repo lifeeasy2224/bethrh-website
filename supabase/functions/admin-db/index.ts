@@ -28,6 +28,7 @@ const ALLOWED_TABLES = new Set<string>([
   "admin_crm_tags",
   "admin_user_tags",
   "campaign_recipients",
+  "contact_segments",
   "crm_contacts",
   "email_suppression_list",
   "enriched_users",

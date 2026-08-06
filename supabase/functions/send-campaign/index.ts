@@ -213,13 +213,15 @@ async function getRecipients(
       }
     }
 
-    // Uploaded contact pool (P2.2)
-    const { data: contacts } = await supabase
-      .from("crm_contacts")
-      .select("email, full_name")
+    // Uploaded contact pool via the contact_segments junction — supports a
+    // contact belonging to multiple segments (was: crm_contacts.segment_id only).
+    const { data: memberships } = await supabase
+      .from("contact_segments")
+      .select("crm_contacts(email, full_name)")
       .eq("segment_id", segmentId);
-    for (const c of ((contacts ?? []) as { email: string; full_name: string | null }[])) {
-      if (c.email) out.push({ user_id: null, email: c.email, full_name: c.full_name ?? null });
+    for (const m of ((memberships ?? []) as { crm_contacts: { email: string; full_name: string | null } | null }[])) {
+      const c = m.crm_contacts;
+      if (c?.email) out.push({ user_id: null, email: c.email, full_name: c.full_name ?? null });
     }
   } else {
     // Smart segment — evaluate rules server-side (P2.1)
