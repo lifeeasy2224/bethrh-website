@@ -95,7 +95,7 @@ const FAQ_ITEMS = [
   { q: 'هل أحتاج خطة عمل لأبدأ؟', a: 'إطلاقاً. تكفي فكرة — حتى لو غير مكتملة. سنساعدك على صياغتها.' },
   { q: 'ما الفرق بين بذرة ومسرّعات الأعمال؟', a: 'المسرّعات تأخذ حصة من شركتك وتسير على جدولها هي. بذرة تسير بإيقاعك أنت، وتُبقي القرار بيدك، وتكلّف جزءاً يسيراً مما كنت ستتنازل عنه من حصص.' },
   { q: 'هل يستطيع فريقي استخدام حساب واحد؟', a: 'نعم! خطة نمو تتيح حتى ٣ أعضاء يتعاونون على الأفكار معاً.' },
-  { q: 'هل فكرتي محمية؟', a: 'نعم. كل فكرة تحصل على إثبات زمني لتاريخ إنشائها. بياناتك مشفّرة ولا تُشارك أبداً دون موافقتك الصريحة. اطّلع على سياسة حماية الملكية الفكرية.' },
+  { q: 'هل فكرتي محمية؟', a: 'نعم. كل فكرة تحصل على تاريخ إنشاء مسجّل وبياناتك مشفّرة ولا تُشارك أبداً دون موافقتك الصريحة. اطّلع على سياسة حماية الملكية الفكرية.' },
   { q: 'ماذا لو لم تكن لديّ فكرة؟', a: 'تصفّح مكتبة الأفكار — أكثر من ٤٠ فكرة مدروسة مسبقاً يمكنك حجزها وتخصيصها.' },
 ];
 
@@ -355,7 +355,7 @@ export default function HomePage() {
             {t('home.hero.supporting_line')}
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0} justifyContent="center" alignItems="center" divider={<Box sx={{ mx: 2, color: 'rgba(255,255,255,0.2)', display: { xs: 'none', sm: 'block' } }}>|</Box>}>
-            {[t('home.stats.founders'), t('home.stats.validated'), t('home.stats.ready')].map(stat => (
+            {[t('home.stats.validated'), t('home.stats.ready')].map(stat => (
               <Typography key={stat} variant="body2" sx={{ color: 'rgba(255,255,255,0.60)', fontWeight: 500 }}>{stat}</Typography>
             ))}
           </Stack>
@@ -753,7 +753,7 @@ export default function HomePage() {
               mb: 4,
             }}
           >
-            متوسط روّاد بذرة يصلون إلى أول دولار خلال ١٤ يوماً.
+            مسار مصمَّم يقودك نحو أول دولار.
           </Typography>
 
           <Button
@@ -1042,10 +1042,7 @@ export default function HomePage() {
       <Box sx={{ bgcolor: HERO_BG, py: { xs: 8, md: 10 }, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <Box sx={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(ellipse at 50% 0%, rgba(212,166,83,0.06) 0%, transparent 60%)', pointerEvents: 'none' }} />
         <Container maxWidth="sm" sx={{ position: 'relative' }}>
-          <Typography variant="h2" fontWeight={800} color="white" gutterBottom>{t('home.cta.title')}</Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.70)', mb: 5, fontSize: '1.1rem' }}>
-            {t('home.cta.subtitle')}
-          </Typography>
+          <Typography variant="h2" fontWeight={800} color="white" gutterBottom sx={{ mb: 5 }}>{t('home.cta.title')}</Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
             <Button component={Link} to="/signup" variant="contained" size="large"
               sx={{ bgcolor: GOLD, color: NAVY, fontWeight: 700, px: 4, fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', boxShadow: 'none', '&:hover': { bgcolor: '#A07830', boxShadow: 'none' } }}>
