@@ -1,6 +1,7 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { corsHeaders, render, resolveBody, sendViaResend, getServiceClient, jsonResp } from '../_shared/email-helper.ts';
 import { WEEKLY_INSPIRATION_TEMPLATE } from '../_shared/templates.ts';
+import { checkCronAuth } from '../_shared/cron-auth.ts';
 
 const PAID_TIERS = new Set(['pro', 'growth', 'accelerator']);
 const FREE_MAX_WEEKS = 8;
@@ -16,6 +17,9 @@ const CATEGORY_STYLES: Record<string, { color: string; bg: string }> = {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
+
+  const denied = checkCronAuth(req);
+  if (denied) return denied;
 
   try {
     const db = getServiceClient();
