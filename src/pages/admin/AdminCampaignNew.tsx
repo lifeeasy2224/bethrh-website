@@ -128,11 +128,15 @@ export default function AdminCampaignNew() {
   function handleTemplateSelect(id: string) {
     setSelectedTemplate(id);
     const tpl = templates.find(t => t.id === id);
-    if (tpl) {
-      setSubject(tpl.subject);
-      setPreviewText(tpl.preview_text ?? '');
-      setBodyHtml(tpl.body_html);
+    if (!tpl) return;
+    if (!tpl.body_html?.trim()) {
+      setError('هذا القالب فارغ ولا يحتوي على محتوى. اختر قالباً آخر أو اكتب المحتوى يدوياً.');
+      return;
     }
+    setError(null);
+    setSubject(tpl.subject);
+    setPreviewText(tpl.preview_text ?? '');
+    setBodyHtml(tpl.body_html);
   }
 
   function canProceed() {
@@ -144,6 +148,10 @@ export default function AdminCampaignNew() {
 
   async function handleSend() {
     if (!sessionToken) return;
+    if (!bodyHtml.trim()) {
+      setError('لا يمكن إرسال حملة بمحتوى فارغ. أضف محتوى أو اختر قالباً غير فارغ.');
+      return;
+    }
     setSaving(true);
     setError(null);
     const seg = segments.find(s => s.id === selectedSegment);
@@ -295,7 +303,10 @@ export default function AdminCampaignNew() {
                 <InputLabel>Start from Template (optional)</InputLabel>
                 <Select value={selectedTemplate} label="Start from Template (optional)" onChange={e => handleTemplateSelect(e.target.value)}>
                   <MenuItem value=""><em>Blank</em></MenuItem>
-                  {templates.map(t => <MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>)}
+                  {templates.map(t => {
+                    const empty = !t.body_html?.trim();
+                    return <MenuItem key={t.id} value={t.id} disabled={empty}>{t.name}{empty ? ' — ⚠️ فارغ' : ''}</MenuItem>;
+                  })}
                 </Select>
               </FormControl>
               <TextField label="Subject Line" size="small" fullWidth value={subject} onChange={e => setSubject(e.target.value)} placeholder="Use {{first_name}} for personalization" />

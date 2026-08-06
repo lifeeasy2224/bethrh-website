@@ -61,57 +61,187 @@ async function resolveSession(
   return data.admin_users as Record<string, unknown>;
 }
 
-async function getUserEmails(
-  supabase: ReturnType<typeof createClient>,
-  segmentId: string | null
-): Promise<Array<{ user_id: string; email: string; full_name: string | null }>> {
-  if (!segmentId) return [];
+// ── Segment rule evaluation ──────────────────────────────────────────────────
+// Ported verbatim from src/pages/admin/crmSegmentEngine.ts so a server-side send
+// matches the admin console's audience preview exactly. Smart-segment rules are
+// combined with AND (marketing_segments has no logic column; the UI defaults to
+// AND). Evaluated against the enriched_users view (profiles + user_ideas aggs).
+interface SegmentRule { field: string; operator: string; value: unknown; }
 
-  const { data: segData } = await supabase
+interface EnrichedUser {
+  user_id: string;
+  full_name: string | null;
+  role: string | null;
+  tier: string | null;
+  lead_score: number;
+  lifecycle_stage: string | null;
+  user_status: string | null;
+  last_login_at: string | null;
+  created_at: string | null;
+  login_count: number;
+  iq_score: number | null;
+  ideas_count: number;
+}
+
+interface Recipient { user_id: string | null; email: string; full_name: string | null; }
+
+function daysBetween(date: string | null): number {
+  if (!date) return 9999;
+  return Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+}
+
+function evaluateRule(user: EnrichedUser, rule: SegmentRule): boolean {
+  const { field, operator, value } = rule;
+  switch (field) {
+    case "role":
+      if (operator === "is") return user.role === value;
+      if (operator === "is_not") return user.role !== value;
+      break;
+    case "tier":
+      if (operator === "is") return (user.tier ?? "free") === value;
+      if (operator === "is_not") return (user.tier ?? "free") !== value;
+      if (operator === "in") return Array.isArray(value) && value.includes(user.tier ?? "free");
+      if (operator === "not_in") return Array.isArray(value) && !value.includes(user.tier ?? "free");
+      break;
+    case "user_status": {
+      const status = user.user_status ?? "inactive";
+      if (operator === "is") return status === value;
+      break;
+    }
+    case "lifecycle_stage": {
+      const stage = user.lifecycle_stage ?? "new";
+      if (operator === "is") return stage === value;
+      break;
+    }
+    case "lead_score": {
+      const s = user.lead_score ?? 0;
+      if (operator === "gte") return s >= Number(value);
+      if (operator === "lte") return s <= Number(value);
+      if (operator === "equals") return s === Number(value);
+      break;
+    }
+    case "iq_score": {
+      const iq = user.iq_score ?? 0;
+      if (operator === "gte") return iq >= Number(value);
+      if (operator === "lte") return iq <= Number(value);
+      if (operator === "equals") return iq === Number(value);
+      break;
+    }
+    case "login_count": {
+      const lc = user.login_count ?? 0;
+      if (operator === "gte") return lc >= Number(value);
+      if (operator === "lte") return lc <= Number(value);
+      if (operator === "equals") return lc === Number(value);
+      break;
+    }
+    case "ideas_count": {
+      const ic = user.ideas_count ?? 0;
+      if (operator === "gte") return ic >= Number(value);
+      if (operator === "lte") return ic <= Number(value);
+      if (operator === "equals") return ic === Number(value);
+      break;
+    }
+    case "last_login_at": {
+      const d = daysBetween(user.last_login_at);
+      if (operator === "within_days") return d <= Number(value);
+      if (operator === "more_than_days") return d > Number(value);
+      break;
+    }
+    case "created_at": {
+      const d = daysBetween(user.created_at);
+      if (operator === "within_days") return d <= Number(value);
+      if (operator === "more_than_days") return d > Number(value);
+      break;
+    }
+  }
+  return false;
+}
+
+function applyRules(users: EnrichedUser[], rules: SegmentRule[]): EnrichedUser[] {
+  if (!rules?.length) return users; // empty ruleset (e.g. "All Users") matches everyone
+  return users.filter((u) => rules.every((r) => evaluateRule(u, r)));
+}
+
+// Resolve the recipient list for a campaign's segment.
+//  - smart segments: evaluate rules server-side over enriched_users (was: send to
+//    ALL users regardless of rules — a mass mis-send risk).
+//  - manual segments: registered members (segment_members) PLUS the uploaded
+//    contact pool (crm_contacts by segment_id — previously never emailed).
+// Deduplicated by lowercased email (a contact who is also a registered user is
+// emailed once, keeping the registered user_id).
+async function getRecipients(
+  supabase: ReturnType<typeof createClient>,
+  segmentId: string | null,
+): Promise<{ recipients: Recipient[]; ruleCount: number; segmentType: string | null }> {
+  if (!segmentId) return { recipients: [], ruleCount: 0, segmentType: null };
+
+  const { data: seg } = await supabase
     .from("marketing_segments")
     .select("type, rules")
     .eq("id", segmentId)
     .single();
+  if (!seg) return { recipients: [], ruleCount: 0, segmentType: null };
 
-  if (!segData) return [];
+  const rules = (seg.rules ?? []) as SegmentRule[];
 
+  // user_id -> email for registered users
   const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
   const authUsers: AuthUser[] = users ?? [];
+  const emailById = new Map<string, string>();
+  for (const u of authUsers) if (u.email) emailById.set(u.id, u.email);
 
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, full_name")
-    .in("user_id", authUsers.map((u) => u.id));
+  const out: Recipient[] = [];
 
-  const profileMap = new Map<string, ProfileRow>(
-    ((profiles ?? []) as ProfileRow[]).map((p) => [p.user_id, p])
-  );
-
-  if (segData.type === "manual") {
+  if (seg.type === "manual") {
     const { data: members } = await supabase
       .from("segment_members")
       .select("user_id")
       .eq("segment_id", segmentId);
+    const memberIds = ((members ?? []) as { user_id: string }[]).map((m) => m.user_id);
 
-    const memberIds = new Set(((members ?? []) as { user_id: string }[]).map((m) => m.user_id));
+    if (memberIds.length) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", memberIds);
+      const nameById = new Map(
+        ((profiles ?? []) as ProfileRow[]).map((p) => [p.user_id, p.full_name]),
+      );
+      for (const id of memberIds) {
+        const email = emailById.get(id);
+        if (email) out.push({ user_id: id, email, full_name: nameById.get(id) ?? null });
+      }
+    }
 
-    return authUsers
-      .filter((u) => u.email && memberIds.has(u.id))
-      .map((u) => ({
-        user_id: u.id,
-        email: u.email!,
-        full_name: profileMap.get(u.id)?.full_name ?? null,
-      }));
+    // Uploaded contact pool (P2.2)
+    const { data: contacts } = await supabase
+      .from("crm_contacts")
+      .select("email, full_name")
+      .eq("segment_id", segmentId);
+    for (const c of ((contacts ?? []) as { email: string; full_name: string | null }[])) {
+      if (c.email) out.push({ user_id: null, email: c.email, full_name: c.full_name ?? null });
+    }
+  } else {
+    // Smart segment — evaluate rules server-side (P2.1)
+    const { data: enriched } = await supabase.from("enriched_users").select("*");
+    const matched = applyRules(((enriched ?? []) as EnrichedUser[]), rules);
+    for (const u of matched) {
+      const email = emailById.get(u.user_id);
+      if (email) out.push({ user_id: u.user_id, email, full_name: u.full_name });
+    }
   }
 
-  // Smart segment — return all users (rule evaluation happens client-side in campaigns page for counts)
-  return authUsers
-    .filter((u) => u.email)
-    .map((u) => ({
-      user_id: u.id,
-      email: u.email!,
-      full_name: profileMap.get(u.id)?.full_name ?? null,
-    }));
+  // Dedup by lowercased email (registered members are pushed before contacts).
+  const seen = new Set<string>();
+  const recipients: Recipient[] = [];
+  for (const r of out) {
+    const key = r.email.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    recipients.push(r);
+  }
+
+  return { recipients, ruleCount: rules.length, segmentType: seg.type };
 }
 
 Deno.serve(async (req: Request) => {
@@ -169,8 +299,9 @@ Deno.serve(async (req: Request) => {
   const { data: suppList } = await supabase.from("email_suppression_list").select("email");
   const suppressed = new Set(((suppList ?? []) as SuppressionRow[]).map((s) => s.email.toLowerCase()));
 
-  // Get recipients
-  const recipients = await getUserEmails(supabase, campaign.segment_id);
+  // Get recipients — smart segments evaluated server-side; manual segments include
+  // registered members + uploaded crm_contacts; deduped by email.
+  const { recipients, ruleCount, segmentType } = await getRecipients(supabase, campaign.segment_id);
   const eligible = recipients.filter((r) => !suppressed.has(r.email.toLowerCase()));
 
   let sentCount = 0;
@@ -261,7 +392,14 @@ Deno.serve(async (req: Request) => {
   await supabase.from("admin_action_log").insert({
     admin_user_id: adminUserId,
     action: "send_campaign",
-    metadata: { campaign_id, sent: sentCount, total: eligible.length },
+    metadata: {
+      campaign_id,
+      segment_type: segmentType,
+      rules_applied: ruleCount,
+      matched: recipients.length,
+      eligible: eligible.length,
+      sent: sentCount,
+    },
   });
 
   return new Response(JSON.stringify({ success: true, sent: sentCount, total: eligible.length }), {

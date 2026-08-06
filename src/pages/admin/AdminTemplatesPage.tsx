@@ -102,7 +102,8 @@ export default function AdminTemplatesPage() {
   }
 
   async function handleSave() {
-    if (!form.name.trim() || !form.subject.trim() || !sessionToken) return;
+    // Never save an empty-body template — it would send blank emails downstream.
+    if (!form.name.trim() || !form.subject.trim() || !form.body_html.trim() || !sessionToken) return;
     setSaving(true);
     if (dialog === 'create') {
       await adminDb(sessionToken, 'marketing_templates').insert({ ...form, is_builtin: false });
@@ -183,10 +184,16 @@ export default function AdminTemplatesPage() {
                       <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', maxWidth: 240 }}>{t.subject}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Chip label={t.is_builtin ? 'Built-in' : 'Custom'} size="small"
-                        sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700,
-                          bgcolor: t.is_builtin ? '#F5EAD3' : '#F0F5F1',
-                          color: t.is_builtin ? '#D08A28' : '#1B6B3E' }} />
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <Chip label={t.is_builtin ? 'Built-in' : 'Custom'} size="small"
+                          sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700,
+                            bgcolor: t.is_builtin ? '#F5EAD3' : '#F0F5F1',
+                            color: t.is_builtin ? '#D08A28' : '#1B6B3E' }} />
+                        {!t.body_html?.trim() && (
+                          <Chip label="⚠️ فارغ" size="small"
+                            sx={{ height: 18, fontSize: '0.65rem', fontWeight: 700, bgcolor: '#F5DDD9', color: '#C0392B' }} />
+                        )}
+                      </Stack>
                     </TableCell>
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
@@ -244,7 +251,7 @@ export default function AdminTemplatesPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialog(null)}>Cancel</Button>
-          <Button variant="contained" onClick={handleSave} disabled={!form.name.trim() || !form.subject.trim() || saving}>
+          <Button variant="contained" onClick={handleSave} disabled={!form.name.trim() || !form.subject.trim() || !form.body_html.trim() || saving}>
             {dialog === 'create' ? 'Create Template' : 'Save Changes'}
           </Button>
         </DialogActions>
