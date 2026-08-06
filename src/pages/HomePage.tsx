@@ -56,7 +56,7 @@ const FEATURES = [
   { icon: <FactCheckOutlinedIcon sx={{ fontSize: 28 }} />, title: 'متتبّع التحقق', desc: 'سجّل المقابلات والتسجيلات والطلبات المسبقة. ابنِ دليلاً على أن الناس يريدون فكرتك.', color: '#2A8A52', bg: '#DEEBE2' },
   { icon: <AutoGraphIcon sx={{ fontSize: 28 }} />, title: 'درجة بذرة', desc: 'درجة بالذكاء الاصطناعي (٠–١٠٠) تخبرك أنت والمستثمرين بمدى جاهزية فكرتك.', color: '#D08A28', bg: '#F5EAD3' },
   { icon: <StorefrontOutlinedIcon sx={{ fontSize: 28 }} />, title: 'سوق المستثمرين', desc: 'حيث تلتقي الأفكار المتحقَّق منها بمستثمرين موثّقين. مصنّفة، مقيّمة، محمية.', color: '#C0392B', bg: '#F5DDD9' },
-  { icon: <LightbulbOutlinedIcon sx={{ fontSize: 28 }} />, title: 'مكتبة الأفكار', desc: 'ليست لديك فكرة؟ تصفّح أكثر من ٤٠ فكرة مدروسة مسبقاً. احجز واحدة وانطلق.', color: '#2A8A52', bg: '#DEEBE2' },
+  { icon: <LightbulbOutlinedIcon sx={{ fontSize: 28 }} />, title: 'مكتبة الأفكار', desc: 'ليست لديك فكرة؟ تصفّح أكثر من ٢٠ فكرة مدروسة مسبقاً. احجز واحدة وانطلق.', color: '#2A8A52', bg: '#DEEBE2' },
   { icon: <GroupsOutlinedIcon sx={{ fontSize: 28 }} />, title: 'مجموعات الالتزام', desc: 'انضم إلى ٣–٥ روّاد في نفس الرحلة. متابعة أسبوعية. بلا أعذار.', color: '#96271B', bg: '#F5DDD9' },
 ];
 
@@ -96,7 +96,7 @@ const FAQ_ITEMS = [
   { q: 'ما الفرق بين بذرة ومسرّعات الأعمال؟', a: 'المسرّعات تأخذ حصة من شركتك وتسير على جدولها هي. بذرة تسير بإيقاعك أنت، وتُبقي القرار بيدك، وتكلّف جزءاً يسيراً مما كنت ستتنازل عنه من حصص.' },
   { q: 'هل يستطيع فريقي استخدام حساب واحد؟', a: 'نعم! خطة نمو تتيح حتى ٣ أعضاء يتعاونون على الأفكار معاً.' },
   { q: 'هل فكرتي محمية؟', a: 'نعم. كل فكرة تحصل على تاريخ إنشاء مسجّل وبياناتك مشفّرة ولا تُشارك أبداً دون موافقتك الصريحة. اطّلع على سياسة حماية الملكية الفكرية.' },
-  { q: 'ماذا لو لم تكن لديّ فكرة؟', a: 'تصفّح مكتبة الأفكار — أكثر من ٤٠ فكرة مدروسة مسبقاً يمكنك حجزها وتخصيصها.' },
+  { q: 'ماذا لو لم تكن لديّ فكرة؟', a: 'تصفّح مكتبة الأفكار — أكثر من ٢٠ فكرة مدروسة مسبقاً يمكنك حجزها وتخصيصها.' },
 ];
 
 function StepCard({ num, icon, title, desc }: { num: number; icon: React.ReactNode; title: string; desc: string }) {
@@ -355,7 +355,7 @@ export default function HomePage() {
             {t('home.hero.supporting_line')}
           </Typography>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0} justifyContent="center" alignItems="center" divider={<Box sx={{ mx: 2, color: 'rgba(255,255,255,0.2)', display: { xs: 'none', sm: 'block' } }}>|</Box>}>
-            {[t('home.stats.validated'), t('home.stats.ready')].map(stat => (
+            {[t('home.stats.ready')].map(stat => (
               <Typography key={stat} variant="body2" sx={{ color: 'rgba(255,255,255,0.60)', fontWeight: 500 }}>{stat}</Typography>
             ))}
           </Stack>
