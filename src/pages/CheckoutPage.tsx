@@ -70,7 +70,6 @@ const PLANS: Record<string, PlanConfig> = {
     icon: <RocketLaunchIcon sx={{ fontSize: 22 }} />,
     features: [
       'كل ما في برو',
-      'فريق حتى ٣ أعضاء',
       'مدرب AI — ٢٠٠ رسالة/يوم',
       'تقارير متقدمة ودعم أولوية',
       'Pitch Deck AI وتحليل SWOT متقدم',
