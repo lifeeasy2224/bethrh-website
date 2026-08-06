@@ -12,7 +12,6 @@ import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
 import Alert from '@mui/material/Alert';
 import Skeleton from '@mui/material/Skeleton';
-import LinearProgress from '@mui/material/LinearProgress';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -96,10 +95,6 @@ function Section({ title, icon, children }: { title: string; icon?: React.ReactN
   );
 }
 
-function fmt(n: number) {
-  if (n >= 1000) return `$${(n / 1000).toFixed(0)}K`;
-  return `$${n}`;
-}
 
 export default function IdeasLibraryDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -183,9 +178,7 @@ export default function IdeasLibraryDetailPage() {
     );
   }
 
-  const remaining = idea.spots_total - idea.spots_taken;
-  const spotsColor = remaining === 0 ? 'error.main' : remaining === 1 ? 'warning.main' : 'success.main';
-  const canGrab = !!user && profile?.plan !== 'free' && remaining > 0 && !hasGrabbed;
+  const canGrab = !!user && profile?.plan !== 'free' && !hasGrabbed;
   const emoji = idea.emoji || SECTOR_EMOJI[idea.sector] || '💡';
   const diffMeta = DIFFICULTY_META[idea.difficulty];
 
@@ -295,28 +288,6 @@ export default function IdeasLibraryDetailPage() {
             <Grid size={{ xs: 12, md: 4 }}>
               <Card sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
-                    <Typography variant="subtitle2" color="text.secondary">
-                      التوفّر
-                    </Typography>
-                    <Typography variant="subtitle2" sx={{ color: spotsColor, fontWeight: 700 }}>
-                      {remaining === 0 ? 'مكتملة' : `متبقٍ ${remaining}/${idea.spots_total} مقاعد`}
-                    </Typography>
-                  </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(idea.spots_taken / idea.spots_total) * 100}
-                    sx={{
-                      mb: 2.5,
-                      height: 6,
-                      borderRadius: 3,
-                      bgcolor: '#F7F3EC',
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: remaining === 0 ? 'error.main' : remaining === 1 ? 'warning.main' : 'success.main',
-                      },
-                    }}
-                  />
-
                   {!user ? (
                     <Stack spacing={1.5}>
                       <Button
@@ -367,10 +338,6 @@ export default function IdeasLibraryDetailPage() {
                         رقِّ إلى برو
                       </Button>
                     </Stack>
-                  ) : remaining === 0 ? (
-                    <Button variant="outlined" fullWidth disabled startIcon={<LockOutlinedIcon />}>
-                      اكتملت جميع المقاعد
-                    </Button>
                   ) : hasGrabbed ? (
                     <Stack spacing={1.5}>
                       <Alert severity="success" icon={<CheckCircleOutlineIcon />} sx={{ py: 1 }}>
@@ -402,10 +369,6 @@ export default function IdeasLibraryDetailPage() {
                       <Typography variant="caption" fontWeight={700}>{idea.time_to_launch_weeks}–{idea.time_to_launch_weeks + 4} أسبوعاً</Typography>
                     </Stack>
                     <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="caption" color="text.secondary">تكلفة البدء</Typography>
-                      <Typography variant="caption" fontWeight={700}>{fmt(idea.initial_investment_min)}–{fmt(idea.initial_investment_max)}</Typography>
-                    </Stack>
-                    <Stack direction="row" justifyContent="space-between">
                       <Typography variant="caption" color="text.secondary">نقطة التعادل</Typography>
                       <Typography variant="caption" fontWeight={700}>{idea.break_even_months} شهراً</Typography>
                     </Stack>
@@ -422,25 +385,9 @@ export default function IdeasLibraryDetailPage() {
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 8 }}>
-              {/* Financials */}
+              {/* Financials — break-even estimate only; founders model revenue/costs with real tools */}
               <Section title="لمحة مالية" icon={<AttachMoneyIcon />}>
                 <Grid container spacing={2}>
-                  <Grid size={{ xs: 6, sm: 3 }}>
-                    <StatCard
-                      icon={<TrendingUpIcon />}
-                      label="العائد المتوقع"
-                      value={`${idea.est_roi_min}–${idea.est_roi_max}%`}
-                      sub="السنة ١–٢"
-                    />
-                  </Grid>
-                  <Grid size={{ xs: 6, sm: 3 }}>
-                    <StatCard
-                      icon={<AttachMoneyIcon />}
-                      label="تكلفة البدء"
-                      value={`${fmt(idea.initial_investment_min)}–${fmt(idea.initial_investment_max)}`}
-                      sub="الاستثمار الأولي"
-                    />
-                  </Grid>
                   <Grid size={{ xs: 6, sm: 3 }}>
                     <StatCard
                       icon={<TimerOutlinedIcon />}
@@ -449,15 +396,17 @@ export default function IdeasLibraryDetailPage() {
                       sub="تقديري"
                     />
                   </Grid>
-                  <Grid size={{ xs: 6, sm: 3 }}>
-                    <StatCard
-                      icon={<AttachMoneyIcon />}
-                      label="الإيراد الشهري (سنة ١)"
-                      value={`${fmt(idea.monthly_revenue_y1_min)}–${fmt(idea.monthly_revenue_y1_max)}`}
-                      sub="عند الاستقرار"
-                    />
-                  </Grid>
                 </Grid>
+                <Box sx={{ mt: 3, p: 2.5, bgcolor: '#F7F3EC', borderRadius: 2 }}>
+                  <Typography variant="body2" sx={{ mb: 1.5, color: 'text.primary', lineHeight: 1.8 }}>
+                    الأرقام المالية تعتمد على سوقك الفعلي وتنفيذك. استخدم أدوات البناء المالي لنمذجة إيراداتك وتكاليفك الخاصة:
+                  </Typography>
+                  <Stack spacing={1}>
+                    <Link to="/journey/canvas" style={{ color: '#1B6B3E', textDecoration: 'underline', fontSize: '0.9rem', fontWeight: 600 }}>
+                      📊 مخطط نموذج العمل — بناء الإيرادات والتكاليف ونقطة التعادل
+                    </Link>
+                  </Stack>
+                </Box>
               </Section>
 
               {/* Problem */}
@@ -535,8 +484,6 @@ export default function IdeasLibraryDetailPage() {
                         { label: 'القطاع', value: `${SECTOR_EMOJI[idea.sector] ?? ''} ${SECTOR_AR[idea.sector] ?? idea.sector}` },
                         { label: 'الصعوبة', value: diffMeta.label },
                         { label: 'مدة الإطلاق', value: `${idea.time_to_launch_weeks} أسبوعاً` },
-                        { label: 'حد الروّاد', value: `${idea.spots_total} إجمالاً` },
-                        { label: 'المقاعد المتبقية', value: `${remaining}` },
                       ].map(({ label, value }) => (
                         <Stack key={label} direction="row" justifyContent="space-between">
                           <Typography variant="caption" color="text.secondary">{label}</Typography>

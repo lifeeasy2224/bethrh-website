@@ -14,13 +14,8 @@ import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
-import LinearProgress from '@mui/material/LinearProgress';
-import Tooltip from '@mui/material/Tooltip';
 import SearchIcon from '@mui/icons-material/Search';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
@@ -84,38 +79,10 @@ function IdeaCardSkeleton() {
   );
 }
 
-function SpotsMeter({ taken, total }: { taken: number; total: number }) {
-  const remaining = total - taken;
-  const pct = (taken / total) * 100;
-  const color = remaining === 0 ? '#C0392B' : remaining === 1 ? '#D4A653' : '#2A8A52';
-
-  return (
-    <Tooltip title={`متبقٍ ${remaining} من ${total} مقاعد`} arrow>
-      <Box>
-        <LinearProgress
-          variant="determinate"
-          value={pct}
-          sx={{
-            height: 4,
-            borderRadius: 2,
-            bgcolor: '#F7F3EC',
-            mb: 0.5,
-            '& .MuiLinearProgress-bar': { bgcolor: color },
-          }}
-        />
-        <Typography variant="caption" sx={{ color, fontWeight: 600 }}>
-          {remaining === 0 ? 'مكتملة' : `متبقٍ ${remaining} ${remaining !== 1 ? 'مقاعد' : 'مقعد'}`}
-        </Typography>
-      </Box>
-    </Tooltip>
-  );
-}
-
 function IdeaCard({ idea }: { idea: LibraryIdea }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const emoji = idea.emoji || SECTOR_EMOJI[idea.sector] || '💡';
-  const remaining = idea.spots_total - idea.spots_taken;
 
   function handleViewIdea() {
     if (!user) {
@@ -133,7 +100,6 @@ function IdeaCard({ idea }: { idea: LibraryIdea }) {
         flexDirection: 'column',
         transition: 'all 150ms ease',
         '&:hover': { boxShadow: 6, transform: 'translateY(-2px)' },
-        opacity: remaining === 0 ? 0.7 : 1,
       }}
     >
       <CardActionArea
@@ -190,13 +156,6 @@ function IdeaCard({ idea }: { idea: LibraryIdea }) {
               sx={{ fontSize: '0.7rem' }}
             />
             <Chip
-              icon={<TrendingUpIcon sx={{ fontSize: '0.75rem !important' }} />}
-              label={`عائد ${idea.est_roi_min}–${idea.est_roi_max}٪`}
-              size="small"
-              variant="outlined"
-              sx={{ fontSize: '0.7rem' }}
-            />
-            <Chip
               icon={<TimerOutlinedIcon sx={{ fontSize: '0.75rem !important' }} />}
               label={`الإطلاق خلال ${idea.time_to_launch_weeks} أسبوعاً`}
               size="small"
@@ -204,17 +163,11 @@ function IdeaCard({ idea }: { idea: LibraryIdea }) {
               sx={{ fontSize: '0.7rem' }}
             />
           </Stack>
-
-          <SpotsMeter taken={idea.spots_taken} total={idea.spots_total} />
         </CardContent>
       </CardActionArea>
 
       <Box sx={{ px: 3, pb: 2.5 }}>
-        {remaining === 0 ? (
-          <Button variant="outlined" fullWidth size="small" disabled startIcon={<LockOutlinedIcon />}>
-            اكتملت جميع المقاعد
-          </Button>
-        ) : !user ? (
+        {!user ? (
           <Button
             variant="contained"
             fullWidth
@@ -322,8 +275,6 @@ export default function IdeasLibraryPage() {
 
           <Stack direction="row" spacing={3} justifyContent="center" sx={{ mb: 4, flexWrap: 'wrap', gap: 2 }}>
             {[
-              { icon: <TrendingUpIcon fontSize="small" />, label: 'توقعات العائد مشمولة' },
-              { icon: <PeopleOutlinedIcon fontSize="small" />, label: 'حد أقصى ٣ روّاد لكل فكرة' },
               { icon: <TimerOutlinedIcon fontSize="small" />, label: 'جاهزة للإطلاق خلال أسابيع' },
             ].map(({ icon, label }) => (
               <Stack key={label} direction="row" spacing={0.75} alignItems="center">
