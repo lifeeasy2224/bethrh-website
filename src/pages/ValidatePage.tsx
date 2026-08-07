@@ -75,6 +75,7 @@ type Tier = 'high' | 'mid' | 'low';
 
 interface AIAnalysis {
   score: number;
+  coherent?: boolean; // optional — old cached responses lack it (treated as coherent)
   verdict: string;
   strengths: string[];
   weaknesses: string[];
@@ -340,19 +341,23 @@ function scoreColor(score: number): string {
 
 // ─── AI Results view ───────────────────────────────────────────────────────────
 function AIResultsView({
-  analysis, isPaid, onRetake, onBack, onSave, saving, saveError,
+  analysis, isPaid, onRetake, onBack, onSave, onEditAndRetry, saving, saveError,
 }: {
   analysis: AIAnalysis;
   isPaid: boolean;
   onRetake: () => void;
   onBack: () => void;
   onSave: () => void;
+  onEditAndRetry: () => void;
   saving: boolean;
   saveError: string | null;
 }) {
   const [copied, setCopied] = useState(false);
   const color = scoreColor(analysis.score);
   const scoreInt = Math.round(analysis.score);
+  // Incoherent/garbage results must not enter the save funnel. Default coherent
+  // when the flag is absent (old cached responses) — only explicit false gates.
+  const isCoherent = analysis.coherent !== false;
   const shareText = `فكرة مشروعي حصلت على ${analysis.score}/10 في اختبار بذرة الذكي للأفكار! 🚀 اختبر فكرتك مجاناً: bethra.co/validate`;
 
   const handleTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener');
@@ -411,6 +416,7 @@ function AIResultsView({
       </Box>
 
       {/* Strengths */}
+      {analysis.strengths?.length > 0 && (
       <Box sx={{ bgcolor: CARD_BG, borderRadius: 2.5, p: 2.5, mb: 2, border: '1px solid rgba(42, 138, 82,0.2)' }}>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: '#2A8A52', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5 }}>
           نقاط القوة
@@ -424,8 +430,10 @@ function AIResultsView({
           ))}
         </Box>
       </Box>
+      )}
 
       {/* Weaknesses */}
+      {analysis.weaknesses?.length > 0 && (
       <Box sx={{ bgcolor: CARD_BG, borderRadius: 2.5, p: 2.5, mb: 2, border: '1px solid rgba(212, 166, 83,0.2)' }}>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: '#D4A653', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5 }}>
           نقاط الضعف
@@ -439,8 +447,10 @@ function AIResultsView({
           ))}
         </Box>
       </Box>
+      )}
 
       {/* Suggestions */}
+      {analysis.suggestions?.length > 0 && (
       <Box sx={{ bgcolor: CARD_BG, borderRadius: 2.5, p: 2.5, mb: 2, border: '1px solid rgba(42, 138, 82,0.2)' }}>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: '#2A8A52', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5 }}>
           الخطوات التالية
@@ -459,6 +469,7 @@ function AIResultsView({
           ))}
         </Box>
       </Box>
+      )}
 
       {/* Market size */}
       <Box sx={{ bgcolor: `${GOLD}10`, borderRadius: 2.5, p: 2, mb: 3, border: `1px solid ${GOLD}30`, display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -496,30 +507,47 @@ function AIResultsView({
           {saveError}
         </Typography>
       )}
-      <Button
-        onClick={onSave} disabled={saving} fullWidth
-        sx={{
-          bgcolor: GOLD, color: NAVY, fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700,
-          fontSize: '0.9375rem', py: 2, borderRadius: 2, textTransform: 'none', letterSpacing: '0.02em',
-          boxShadow: `0 4px 24px ${GOLD}55`, mb: 1.25,
-          '&:hover': { bgcolor: '#A07830', boxShadow: `0 6px 32px ${GOLD}77` },
-          '&.Mui-disabled': { bgcolor: `${GOLD}88`, color: NAVY },
-        }}
-      >
-        {saving ? 'جارٍ الحفظ…' : 'احفظها في رحلتي ←'}
-      </Button>
+      {isCoherent ? (
+        <>
+          <Button
+            onClick={onSave} disabled={saving} fullWidth
+            sx={{
+              bgcolor: GOLD, color: NAVY, fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700,
+              fontSize: '0.9375rem', py: 2, borderRadius: 2, textTransform: 'none', letterSpacing: '0.02em',
+              boxShadow: `0 4px 24px ${GOLD}55`, mb: 1.25,
+              '&:hover': { bgcolor: '#A07830', boxShadow: `0 6px 32px ${GOLD}77` },
+              '&.Mui-disabled': { bgcolor: `${GOLD}88`, color: NAVY },
+            }}
+          >
+            {saving ? 'جارٍ الحفظ…' : 'احفظها في رحلتي ←'}
+          </Button>
 
-      <Button
-        onClick={onRetake} fullWidth variant="outlined"
-        sx={{
-          borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)',
-          fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 600,
-          fontSize: '0.875rem', py: 1.75, borderRadius: 2, textTransform: 'none', mb: 3,
-          '&:hover': { borderColor: 'rgba(255,255,255,0.35)', bgcolor: 'rgba(255,255,255,0.05)', color: 'white' },
-        }}
-      >
-        أعد الاختبار
-      </Button>
+          <Button
+            onClick={onRetake} fullWidth variant="outlined"
+            sx={{
+              borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.7)',
+              fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 600,
+              fontSize: '0.875rem', py: 1.75, borderRadius: 2, textTransform: 'none', mb: 3,
+              '&:hover': { borderColor: 'rgba(255,255,255,0.35)', bgcolor: 'rgba(255,255,255,0.05)', color: 'white' },
+            }}
+          >
+            أعد الاختبار
+          </Button>
+        </>
+      ) : (
+        // Incoherent input: no save into the funnel — make edit & retry the primary action.
+        <Button
+          onClick={onEditAndRetry} fullWidth
+          sx={{
+            bgcolor: GOLD, color: NAVY, fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700,
+            fontSize: '0.9375rem', py: 2, borderRadius: 2, textTransform: 'none', letterSpacing: '0.02em',
+            boxShadow: `0 4px 24px ${GOLD}55`, mb: 3,
+            '&:hover': { bgcolor: '#A07830', boxShadow: `0 6px 32px ${GOLD}77` },
+          }}
+        >
+          عدّل فكرتك وحاول مجدداً
+        </Button>
+      )}
 
       {/* Share */}
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)', mb: 2.5 }} />
@@ -996,6 +1024,9 @@ export default function ValidatePage() {
   // Logged in: create the user_idea now and open the journey on it.
   // Anon: stash the idea + results, then send to signup; OnboardingPage restores it.
   async function handleSaveToJourney() {
+    // Defensive guard: incoherent results must never reach user_ideas, even if
+    // this were ever triggered outside the (now-hidden) save button.
+    if (aiAnalysis?.coherent === false) return;
     const payload = buildIdeaPayload(answers);
     if (user) {
       setSaving(true); setSaveError(null);
@@ -1131,6 +1162,15 @@ export default function ValidatePage() {
     setDirection('forward');
   };
 
+  // Incoherent result: send the user back to the idea field (step 1) to fix it,
+  // WITHOUT wiping their other answers (unlike a full retake).
+  const handleEditAndRetry = () => {
+    setAiAnalysis(null);
+    setShowResults(false);
+    setStep(1);
+    setDirection('back');
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: NAVY, display: 'flex', flexDirection: 'column' }}>
 
@@ -1191,7 +1231,7 @@ export default function ValidatePage() {
           {analyzing ? (
             <AnalyzingScreen />
           ) : aiAnalysis ? (
-            <AIResultsView analysis={aiAnalysis} isPaid={isPaid} onRetake={handleRetake} onBack={goBack} onSave={handleSaveToJourney} saving={saving} saveError={saveError} />
+            <AIResultsView analysis={aiAnalysis} isPaid={isPaid} onRetake={handleRetake} onBack={goBack} onSave={handleSaveToJourney} onEditAndRetry={handleEditAndRetry} saving={saving} saveError={saveError} />
           ) : showResults ? (
             <ResultsView answers={answers} onBack={goBack} />
           ) : (
