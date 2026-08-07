@@ -13,6 +13,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabase';
+import { readPendingIdea, createUserIdea, clearPendingIdea } from '../../lib/pendingIdea';
 import BethraLogo from '../../components/BethraLogo';
 
 // label = stored DB value (must match library sector keys); ar = display only
@@ -181,6 +182,23 @@ export default function OnboardingPage() {
     if (err3) { setError(err3.message); setSaving(false); return; }
 
     await refreshProfile();
+
+    // §4 bridge: if the user validated an idea before signing up, create it now
+    // and drop them into the journey instead of the generic dashboard.
+    if (role === 'founder') {
+      const pending = readPendingIdea();
+      if (pending) {
+        try {
+          await createUserIdea(user.id, pending.payload, pending.results);
+          clearPendingIdea();
+          navigate('/journey/canvas', { replace: true });
+          return;
+        } catch {
+          clearPendingIdea(); // never trap the user on a bad stash
+        }
+      }
+    }
+
     navigate(role === 'founder' ? '/dashboard' : '/investor/dashboard', { replace: true });
   }
 

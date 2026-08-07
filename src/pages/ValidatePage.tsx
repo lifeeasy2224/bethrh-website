@@ -13,12 +13,13 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import BethraLogo from '../components/BethraLogo';
 import { useSEO } from '../hooks/useSEO';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { sendEmail } from '../lib/sendEmail';
+import { buildIdeaPayload, createUserIdea, stashPendingIdea } from '../lib/pendingIdea';
 
 const NAVY = '#0F3D24';
 const CARD_BG = '#1B6B3E';
@@ -339,12 +340,15 @@ function scoreColor(score: number): string {
 
 // ─── AI Results view ───────────────────────────────────────────────────────────
 function AIResultsView({
-  analysis, isPaid, onRetake, onBack,
+  analysis, isPaid, onRetake, onBack, onSave, saving, saveError,
 }: {
   analysis: AIAnalysis;
   isPaid: boolean;
   onRetake: () => void;
   onBack: () => void;
+  onSave: () => void;
+  saving: boolean;
+  saveError: string | null;
 }) {
   const [copied, setCopied] = useState(false);
   const color = scoreColor(analysis.score);
@@ -487,16 +491,22 @@ function AIResultsView({
       )}
 
       {/* CTA buttons */}
+      {saveError && (
+        <Typography sx={{ color: '#F1A9A0', fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontSize: '0.8rem', textAlign: 'center', mb: 1 }}>
+          {saveError}
+        </Typography>
+      )}
       <Button
-        component={Link} to="/signup" fullWidth
+        onClick={onSave} disabled={saving} fullWidth
         sx={{
           bgcolor: GOLD, color: NAVY, fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700,
           fontSize: '0.9375rem', py: 2, borderRadius: 2, textTransform: 'none', letterSpacing: '0.02em',
           boxShadow: `0 4px 24px ${GOLD}55`, mb: 1.25,
           '&:hover': { bgcolor: '#A07830', boxShadow: `0 6px 32px ${GOLD}77` },
+          '&.Mui-disabled': { bgcolor: `${GOLD}88`, color: NAVY },
         }}
       >
-        احفظها في رحلتي ←
+        {saving ? 'جارٍ الحفظ…' : 'احفظها في رحلتي ←'}
       </Button>
 
       <Button
@@ -933,8 +943,9 @@ export default function ValidatePage() {
     canonicalPath: '/validate',
   });
 
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const isPaid = (profile?.plan ?? 'free') !== 'free';
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState<'forward' | 'back'>('forward');
@@ -942,6 +953,28 @@ export default function ValidatePage() {
   const [showResults, setShowResults] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // "احفظها في رحلتي" — the core Validate→Save→Journey step.
+  // Logged in: create the user_idea now and open the journey on it.
+  // Anon: stash the idea + results, then send to signup; OnboardingPage restores it.
+  async function handleSaveToJourney() {
+    const payload = buildIdeaPayload(answers);
+    if (user) {
+      setSaving(true); setSaveError(null);
+      try {
+        await createUserIdea(user.id, payload, aiAnalysis);
+        navigate('/journey/canvas');
+      } catch {
+        setSaving(false);
+        setSaveError('فشل حفظ الفكرة. حاول مرة أخرى.');
+      }
+      return;
+    }
+    stashPendingIdea({ payload, answers, results: aiAnalysis, stashedAt: new Date().toISOString() });
+    navigate('/signup?next=journey');
+  }
 
   const canProceed = (): boolean => {
     const q = QUESTIONS[step - 1];
@@ -1121,7 +1154,7 @@ export default function ValidatePage() {
           {analyzing ? (
             <AnalyzingScreen />
           ) : aiAnalysis ? (
-            <AIResultsView analysis={aiAnalysis} isPaid={isPaid} onRetake={handleRetake} onBack={goBack} />
+            <AIResultsView analysis={aiAnalysis} isPaid={isPaid} onRetake={handleRetake} onBack={goBack} onSave={handleSaveToJourney} saving={saving} saveError={saveError} />
           ) : showResults ? (
             <ResultsView answers={answers} onBack={goBack} />
           ) : (
