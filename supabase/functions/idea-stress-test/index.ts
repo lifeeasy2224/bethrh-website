@@ -50,6 +50,8 @@ Deno.serve(async (req: Request) => {
 - Revenue model: ${revenue_model}
 - Competitors: ${competitors}
 
+Coherence check (do this FIRST): The "Idea" text may be garbage — keyboard-mashing (e.g. "asdfghjkl"), random or repeated words, a test string ("test test test"), or anything that is not an understandable product or service. If so, do NOT fabricate an analysis. Instead return "score": 1, a "verdict" in Arabic that politely asks the founder to describe a real idea in a full sentence, set "strengths": [], "weaknesses": ["الوصف غير واضح أو غير مكتمل"], "suggestions": ["صف فكرتك بجملة مفهومة: ما المنتج أو الخدمة؟ لمن؟ وما المشكلة التي يحلّها؟"], and "market_size": "غير محدد — الفكرة غير واضحة". Only when the idea is a genuine, coherent business concept, perform the full analysis below.
+
 Analysis requirements:
 - Evaluate the idea for the MENA market specifically: local demand, regional competitors, regulations/licensing, VAT, payment and delivery habits (WhatsApp-first, cash on delivery), and the Gulf/Egypt funding landscape.
 - market_size should reflect the MENA/Arab market (use USD).

@@ -795,6 +795,33 @@ function OptionCard({ label, selected, onSelect, centered }: { label: string; se
 }
 
 // ─── Quiz step ─────────────────────────────────────────────────────────────────
+// §3 Layer 1 — client-side garbage gate for the free-text idea field (Q1).
+// Cheap heuristics only; the real coherence judgement is server-side in
+// idea-stress-test. Thresholds tuned for Arabic: short vowels are usually
+// omitted diacritics, so many real Arabic words lack ا/و/ي — the gibberish
+// rule only fires on long (>8 char) words with no vowel/long-vowel at all
+// (keyboard-mashing like "asdfghjkl"), to avoid blocking real founders.
+function isLikelyGarbage(text: string): { garbage: boolean; reason?: string } {
+  const trimmed = text.trim();
+  if (trimmed.length < 15) {
+    return { garbage: true, reason: 'اكتب وصفاً أطول لفكرتك (جملة كاملة على الأقل).' };
+  }
+  const words = trimmed.split(/\s+/).filter(w => w.length > 0);
+  if (words.length < 3) {
+    return { garbage: true, reason: 'صف فكرتك بجملة مفهومة (٣ كلمات على الأقل).' };
+  }
+  const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+  if (uniqueWords.size < Math.max(2, Math.floor(words.length / 2))) {
+    return { garbage: true, reason: 'يبدو أن النص مكرر. صف فكرتك بوضوح.' };
+  }
+  const hasNoVowel = (w: string) => !/[اويأإآىaeiouAEIOU]/.test(w);
+  const longGibberishWords = words.filter(w => w.length > 8 && hasNoVowel(w));
+  if (longGibberishWords.length >= 1) {
+    return { garbage: true, reason: 'النص غير واضح. صف فكرتك بكلمات مفهومة.' };
+  }
+  return { garbage: false };
+}
+
 function QuizStep({
   question, stepNum, answers, setAnswers,
   onNext, onBack, direction, canProceed,
@@ -861,11 +888,19 @@ function QuizStep({
         {question.helper}
       </Typography>
 
-      {question.type === 'text' && (
+      {question.type === 'text' && (() => {
+        const check = isLikelyGarbage(value);
+        // Only surface the reason once the user has actually typed something —
+        // an empty field just keeps the Next button disabled, no red error.
+        const showError = value.trim().length > 0 && check.garbage;
+        return (
         <TextField
           multiline minRows={3} maxRows={6} fullWidth
           placeholder={question.placeholder}
           value={value}
+          error={showError}
+          helperText={showError ? check.reason : undefined}
+          FormHelperTextProps={{ sx: { fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontSize: '0.8rem', color: '#F1A9A0', mx: 0.5 } }}
           onChange={e => setAnswers({ ...answers, [stepNum]: e.target.value })}
           onKeyDown={e => {
             if (e.key === 'Enter' && !e.shiftKey && canProceed) { e.preventDefault(); onNext(); }
@@ -885,7 +920,8 @@ function QuizStep({
             },
           }}
         />
-      )}
+        );
+      })()}
 
       {question.type === 'single' && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25, mb: 3 }}>
@@ -978,7 +1014,8 @@ export default function ValidatePage() {
 
   const canProceed = (): boolean => {
     const q = QUESTIONS[step - 1];
-    if (q.type === 'text') return (answers[step] ?? '').trim().length > 0;
+    // Free-text idea step: block obvious garbage (too short / repeated / mashing).
+    if (q.type === 'text') return !isLikelyGarbage(answers[step] ?? '').garbage;
     return !!answers[step];
   };
 
