@@ -15,6 +15,7 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LoginIcon from '@mui/icons-material/Login';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { restorePendingIdea } from '../../lib/pendingIdea';
 import BethraLogo from '../../components/BethraLogo';
 
 export default function LoginPage() {
@@ -39,13 +40,25 @@ export default function LoginPage() {
     if (authLoading) return;
     if (!user) return;
     justLoggedIn.current = false;
-    if (from) {
-      navigate(from, { replace: true });
-    } else if (profile?.role === 'investor') {
-      navigate('/investor/dashboard', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
-    }
+    void (async () => {
+      // §4 bridge: an anon user who validated + stashed an idea, then logs in to
+      // an EXISTING account (skipping onboarding), gets their idea created now and
+      // lands on the journey. Idempotent — clears the stash, so it can't double.
+      if (profile?.role !== 'investor') {
+        const restoredId = await restorePendingIdea(user.id);
+        if (restoredId) {
+          navigate('/journey/canvas', { replace: true });
+          return;
+        }
+      }
+      if (from) {
+        navigate(from, { replace: true });
+      } else if (profile?.role === 'investor') {
+        navigate('/investor/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    })();
   }, [user, profile, authLoading, from, navigate]);
 
   // If already logged in, redirect immediately

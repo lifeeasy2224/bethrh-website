@@ -92,3 +92,21 @@ export function readPendingIdea(): PendingIdea | null {
 export function clearPendingIdea(): void {
   try { localStorage.removeItem(PENDING_IDEA_KEY); } catch { /* ignore */ }
 }
+
+// Restore a stashed pending idea after ANY successful auth (login or signup):
+// create the user_ideas row, set it selected, clear the stash, return its id
+// (or null if there was nothing to restore / it failed). Idempotent — the stash
+// is removed on success AND on failure, so a second call returns null. The
+// founder-only decision belongs to the caller (investors have no ideas).
+export async function restorePendingIdea(userId: string): Promise<string | null> {
+  const pending = readPendingIdea();
+  if (!pending) return null;
+  try {
+    const id = await createUserIdea(userId, pending.payload, pending.results);
+    clearPendingIdea();
+    return id;
+  } catch {
+    clearPendingIdea(); // never trap the user on a bad stash
+    return null;
+  }
+}
