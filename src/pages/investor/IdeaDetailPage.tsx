@@ -47,6 +47,7 @@ interface Idea {
   target_customer: string;
   stage: string;
   iq_score: number;
+  iq_breakdown: { validation: number; model: number; financials: number; journey: number; coach: number; total: number } | null;
   in_marketplace: boolean;
   user_id: string;
   created_at: string;
@@ -322,29 +323,6 @@ export default function IdeaDetailPage() {
     }
   };
 
-  const calculateScoreBreakdown = (totalScore: number) => {
-    const maxes = {
-      validation: 30,
-      businessModel: 20,
-      financialProjections: 15,
-      execution: 20,
-      engagement: 10,
-      consistency: 5,
-    };
-
-    const totalMax = Object.values(maxes).reduce((a, b) => a + b, 0);
-    const ratio = totalScore / totalMax;
-
-    return {
-      validation: Math.round(maxes.validation * ratio),
-      businessModel: Math.round(maxes.businessModel * ratio),
-      financialProjections: Math.round(maxes.financialProjections * ratio),
-      execution: Math.round(maxes.execution * ratio),
-      engagement: Math.round(maxes.engagement * ratio),
-      consistency: Math.round(maxes.consistency * ratio),
-    };
-  };
-
   const roi =
     canvas && canvas.monthly_revenue && canvas.monthly_costs
       ? Math.round(
@@ -386,7 +364,11 @@ export default function IdeaDetailPage() {
       ? idea.solution
       : idea.solution.substring(0, 100) + '...';
 
-  const breakdown = calculateScoreBreakdown(idea.iq_score);
+  // Real components, persisted by recomputeIqScore under the founder's own
+  // full-access session (investors can't read the founder's raw canvas_data to
+  // recompute this themselves — RLS is owner-only, deliberately not loosened).
+  // Null only for ideas that predate this column / were never recomputed.
+  const breakdown = idea.iq_breakdown;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F3EC' }}>
@@ -640,62 +622,63 @@ export default function IdeaDetailPage() {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                     تفصيل درجة بذرة
                   </Typography>
-                  <Box sx={{ overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow sx={{ backgroundColor: '#F7F3EC' }}>
-                          <TableCell sx={{ fontWeight: 600 }}>المكوّن</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>
-                            الدرجة
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>
-                            الحد الأقصى
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>التحقق</TableCell>
-                          <TableCell align="right">{breakdown.validation}</TableCell>
-                          <TableCell align="right">30</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>نموذج العمل</TableCell>
-                          <TableCell align="right">{breakdown.businessModel}</TableCell>
-                          <TableCell align="right">20</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>التوقعات المالية</TableCell>
-                          <TableCell align="right">{breakdown.financialProjections}</TableCell>
-                          <TableCell align="right">15</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>التنفيذ</TableCell>
-                          <TableCell align="right">{breakdown.execution}</TableCell>
-                          <TableCell align="right">20</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>التفاعل</TableCell>
-                          <TableCell align="right">{breakdown.engagement}</TableCell>
-                          <TableCell align="right">10</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell>الاستمرارية</TableCell>
-                          <TableCell align="right">{breakdown.consistency}</TableCell>
-                          <TableCell align="right">5</TableCell>
-                        </TableRow>
-                        <TableRow sx={{ backgroundColor: '#F7F3EC', fontWeight: 600 }}>
-                          <TableCell sx={{ fontWeight: 600 }}>الإجمالي</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>
-                            {idea.iq_score}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 600 }}>
-                            100
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </Box>
+                  {breakdown ? (
+                    <Box sx={{ overflowX: 'auto' }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ backgroundColor: '#F7F3EC' }}>
+                            <TableCell sx={{ fontWeight: 600 }}>المكوّن</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              الدرجة
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              الحد الأقصى
+                            </TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>التحقق من العملاء</TableCell>
+                            <TableCell align="right">{breakdown.validation}</TableCell>
+                            <TableCell align="right">35</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>نموذج العمل</TableCell>
+                            <TableCell align="right">{breakdown.model}</TableCell>
+                            <TableCell align="right">20</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>التوقعات المالية</TableCell>
+                            <TableCell align="right">{breakdown.financials}</TableCell>
+                            <TableCell align="right">15</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>رحلة الـ ٩٠ يوماً</TableCell>
+                            <TableCell align="right">{breakdown.journey}</TableCell>
+                            <TableCell align="right">15</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>تقييم مدرّب الذكاء الاصطناعي</TableCell>
+                            <TableCell align="right">{breakdown.coach}</TableCell>
+                            <TableCell align="right">15</TableCell>
+                          </TableRow>
+                          <TableRow sx={{ backgroundColor: '#F7F3EC', fontWeight: 600 }}>
+                            <TableCell sx={{ fontWeight: 600 }}>الإجمالي</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              {idea.iq_score}
+                            </TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 600 }}>
+                              100
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      تفصيل الدرجة غير متاح بعد لهذه الفكرة.
+                    </Typography>
+                  )}
                 </Card>
               </Grid>
 

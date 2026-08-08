@@ -1,0 +1,13 @@
+-- Fix: IdeaDetailPage (investor-facing) previously fabricated a 6-category score
+-- breakdown by proportionally slicing the total iq_score — invented categories
+-- (execution/engagement/consistency) that don't exist in the real formula.
+--
+-- Investors CANNOT read a founder's raw canvas_data (RLS is owner-only, no
+-- marketplace exception — deliberately not loosened here, that's a privacy call
+-- for the founder's business-model text, not this fix's job). So the real
+-- breakdown can't be recomputed client-side on the investor's session.
+--
+-- Fix: persist the real breakdown (computed by recomputeIqScore, which runs
+-- under the FOUNDER's own full-access session) alongside iq_score. Investors
+-- then read the cached real components — no RLS changes needed.
+ALTER TABLE public.user_ideas ADD COLUMN iq_breakdown JSONB;

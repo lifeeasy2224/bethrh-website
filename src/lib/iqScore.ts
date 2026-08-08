@@ -89,7 +89,7 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
     supabase.from('validation_entries').select('type, sentiment').eq('user_idea_id', ideaId),
     supabase.from('canvas_data').select('*').eq('user_idea_id', ideaId).maybeSingle(),
     supabase.from('journey_tasks').select('id', { count: 'exact', head: true }).eq('user_idea_id', ideaId).eq('is_completed', true),
-    supabase.from('user_ideas').select('iq_score').eq('id', ideaId).maybeSingle(),
+    supabase.from('user_ideas').select('iq_score, iq_breakdown').eq('id', ideaId).maybeSingle(),
   ]);
 
   const canvas = canvasRes.data as Record<string, unknown> | null;
@@ -113,8 +113,14 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
   });
 
   const oldScore = ideaRes.data?.iq_score ?? null;
-  if (oldScore !== breakdown.total) {
-    await supabase.from('user_ideas').update({ iq_score: breakdown.total }).eq('id', ideaId);
+  const oldBreakdown = JSON.stringify(ideaRes.data?.iq_breakdown ?? null);
+  const newBreakdown = JSON.stringify(breakdown);
+  if (oldScore !== breakdown.total || oldBreakdown !== newBreakdown) {
+    // Persist the breakdown alongside the total. Investors can't read a founder's
+    // raw canvas_data (RLS is owner-only, no marketplace exception), so this
+    // cached breakdown — written under the founder's own full-access session —
+    // is how IdeaDetailPage shows real components without fabricating them.
+    await supabase.from('user_ideas').update({ iq_score: breakdown.total, iq_breakdown: breakdown }).eq('id', ideaId);
   }
 
   return { score: breakdown.total, breakdown };
