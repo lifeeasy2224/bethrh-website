@@ -26,6 +26,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { supabase, type ValidationEntry } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
+import { recomputeIqScore } from '../../lib/iqScore';
 
 const ENTRY_TYPES = [
   { value: 'interview', label: '🎤 مقابلة', color: '#1B6B3E' },
@@ -95,11 +96,13 @@ export default function ValidationPage() {
     setSaving(false);
     setToast('سُجّل نشاط التحقق!');
     await loadEntries();
+    if (selectedIdeaId) void recomputeIqScore(selectedIdeaId); // logging a signal moves the score now
   }
 
   async function handleDelete(id: string) {
     await supabase.from('validation_entries').delete().eq('id', id);
     setEntries(prev => prev.filter(e => e.id !== id));
+    if (selectedIdeaId) void recomputeIqScore(selectedIdeaId);
   }
 
   const interviews = entries.filter(e => e.type === 'interview').length;

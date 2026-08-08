@@ -26,6 +26,7 @@ import PublicIcon from '@mui/icons-material/Public';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
+import { recomputeIqScore } from '../../lib/iqScore';
 
 interface PitchDataRow {
   user_idea_id: string;
@@ -52,6 +53,7 @@ export default function PitchPage() {
   const [validationCount, setValidationCount] = useState(0);
   const [pitchData, setPitchData] = useState<PitchDataRow | null>(null);
   const [publishedCount, setPublishedCount] = useState(0);
+  const [freshScore, setFreshScore] = useState<number | null>(null);
 
   const [investmentAmt, setInvestmentAmt] = useState('');
   const [useOfFunds, setUseOfFunds] = useState('');
@@ -84,6 +86,9 @@ export default function PitchPage() {
     setValidationCount(v.count ?? 0);
     setPitchData(p.data as PitchDataRow | null);
     setPublishedCount(pub.count ?? 0);
+    // Refresh the cached IQ score so the publish gate reflects the founder's
+    // actual progress, not whatever was last written on a dashboard visit.
+    setFreshScore((await recomputeIqScore(selectedIdeaId))?.score ?? null);
     if (p.data) {
       setInvestmentAmt(String(p.data.investment_amount ?? ''));
       setUseOfFunds(p.data.use_of_funds ?? '');
@@ -99,7 +104,7 @@ export default function PitchPage() {
 
   useEffect(() => { loadData(); }, [selectedIdeaId]);
 
-  const score = selectedIdea?.iq_score ?? 0;
+  const score = freshScore ?? selectedIdea?.iq_score ?? 0;
   const filledBlocks = canvas
     ? ['key_partners', 'key_activities', 'value_proposition', 'customer_relationships', 'customer_segments', 'key_resources', 'channels', 'cost_structure', 'revenue_streams']
         .filter(k => (canvas as any)[k]?.length >= 20).length

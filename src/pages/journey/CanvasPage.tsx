@@ -26,6 +26,7 @@ import { createElement } from 'react';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
+import { recomputeIqScore } from '../../lib/iqScore';
 
 const BLOCKS = [
   { key: 'key_partners', title: 'الشركاء الرئيسيون', helper: 'من شركاؤك وموردوك الرئيسيون؟' },
@@ -89,6 +90,7 @@ export default function CanvasPage() {
       .maybeSingle();
     if (!error && data) {
       await loadCanvas();
+      void recomputeIqScore(selectedIdeaId); // keep iq_score fresh as the canvas fills
       setToast({ msg: 'تم الحفظ!', sev: 'success' });
     } else {
       setToast({ msg: 'تعذّر الحفظ. حاول مرة أخرى.', sev: 'error' });
@@ -111,7 +113,11 @@ export default function CanvasPage() {
       .upsert(payload, { onConflict: 'user_idea_id' })
       .select('user_idea_id')
       .maybeSingle();
-    if (!error && data) { await loadCanvas(); setToast({ msg: 'حُفظت البيانات المالية!', sev: 'success' }); }
+    if (!error && data) {
+      await loadCanvas();
+      void recomputeIqScore(selectedIdeaId);
+      setToast({ msg: 'حُفظت البيانات المالية!', sev: 'success' });
+    }
     else { setToast({ msg: 'تعذّر حفظ البيانات المالية.', sev: 'error' }); }
   }
 

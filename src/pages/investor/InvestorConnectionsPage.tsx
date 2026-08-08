@@ -59,6 +59,7 @@ interface UserIdea {
   id: string;
   title: string;
   sector: string;
+  iq_score: number;
 }
 
 interface Message {
@@ -131,7 +132,7 @@ export default function InvestorConnectionsPage() {
       if (ideaIds.size > 0) {
         const { data: ideasData, error: ideasError } = await supabase
           .from('user_ideas')
-          .select('id, title, sector')
+          .select('id, title, sector, iq_score')
           .in('id', Array.from(ideaIds));
 
         if (ideasError) throw ideasError;
@@ -161,7 +162,7 @@ export default function InvestorConnectionsPage() {
         connectionsData?.map((conn) => ({
           ...conn,
           idea: ideasMap.get(conn.idea_id),
-          iq_score: 7.5, // Placeholder IQ score
+          iq_score: ideasMap.get(conn.idea_id)?.iq_score ?? 0,
           last_message: messagesMap.get(conn.id),
         })) || [];
 

@@ -42,31 +42,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import FounderSidebar from '../../components/FounderSidebar';
 import { supabase, getStageInfo } from '../../supabase';
+import { recomputeIqScore, TOTAL_JOURNEY_TASKS } from '../../lib/iqScore';
 
 async function fireConfetti() {
   const confetti = (await import('canvas-confetti')).default;
   confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#D4A653', '#0F3D24', '#1B6B3E', '#ffffff'] });
   setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.5 }, colors: ['#D4A653', '#D4A653'] }), 400);
-}
-
-// Total journey tasks = 12 weeks × (1 main + 3 subs) = 48
-const TOTAL_JOURNEY_TASKS = 48;
-
-// IQ score formula matching the spec
-function computeIQScore(params: {
-  validationCount: number;
-  canvasBlocksFilled: number;
-  journeyTasksDone: number;
-  stressTestCompleted: boolean;
-  hasInvestorInterest: boolean;
-}): number {
-  const pts =
-    Math.min(params.validationCount * 2, 20) +
-    Math.min(params.canvasBlocksFilled * 10, 90) +
-    Math.min(params.journeyTasksDone * 5, 60) +
-    (params.stressTestCompleted ? 15 : 0) +
-    (params.hasInvestorInterest ? 20 : 0);
-  return Math.min(pts, 100);
 }
 
 // Stage → path node index (0-based out of 5 nodes)
@@ -161,11 +142,10 @@ export default function FounderDashboard() {
     }
 
     async function loadMetrics() {
-      const [valRes, canvasRes, tasksRes, connRes] = await Promise.all([
+      const [valRes, canvasRes, tasksRes] = await Promise.all([
         supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId),
         supabase.from('canvas_data').select('*').eq('user_idea_id', selectedIdeaId!).maybeSingle(),
         supabase.from('journey_tasks').select('id, task_key, week_number, completed_at').eq('user_idea_id', selectedIdeaId!).eq('is_completed', true),
-        supabase.from('connection_requests').select('id', { count: 'exact' }).eq('idea_id', selectedIdeaId!).eq('status', 'accepted'),
       ]);
 
       const validationCount = valRes.count ?? 0;
@@ -178,15 +158,10 @@ export default function FounderDashboard() {
       const journeyTasksDone = tasksRes.data?.length ?? 0;
       const journeyPct = Math.round((journeyTasksDone / TOTAL_JOURNEY_TASKS) * 100);
 
-      const hasInvestorInterest = (connRes.count ?? 0) > 0;
-      const stressTestCompleted = profile?.stress_test_completed ?? false;
-
-      const iqScore = computeIQScore({ validationCount, canvasBlocksFilled, journeyTasksDone, stressTestCompleted, hasInvestorInterest });
-
-      // Save updated IQ score back to the idea
-      if (selectedIdeaId && selectedIdea && iqScore !== selectedIdea.iq_score) {
-        await supabase.from('user_ideas').update({ iq_score: iqScore }).eq('id', selectedIdeaId);
-      }
+      // The real evidence-weighted score (lib/iqScore.ts) — fetches its own inputs
+      // and persists user_ideas.iq_score only if changed.
+      const scoreRes = await recomputeIqScore(selectedIdeaId!);
+      const iqScore = scoreRes?.score ?? 0;
 
       // Recent activity from validation + tasks (last 4)
       const recentActivity: Array<{ icon: string; text: string; time: string }> = [];

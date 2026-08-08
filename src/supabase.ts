@@ -168,18 +168,6 @@ export function getStageInfo(stage: string) {
   }
 }
 
-export function calcIQScore(idea: UserIdea, validationCount: number, canvasComplete: number): number {
-  let score = 0;
-  if (validationCount >= 5) score += 25;
-  else score += validationCount * 5;
-  score += Math.min(canvasComplete * 0.4, 40);
-  if (idea.problem && idea.solution && idea.target_customer) score += 15;
-  if (idea.differentiator && idea.differentiator.length > 50) score += 10;
-  if (idea.city) score += 5;
-  if (idea.business_name) score += 5;
-  return Math.min(Math.round(score), 100);
-}
-
 export const PLAN_LABELS: Record<string, string> = {
   free: 'مجاني',
   pro: 'برو',

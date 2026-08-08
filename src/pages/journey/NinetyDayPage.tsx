@@ -18,6 +18,7 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import { useReview } from '../../contexts/ReviewContext';
+import { recomputeIqScore } from '../../lib/iqScore';
 
 interface Week {
   num: number;
@@ -84,6 +85,7 @@ export default function NinetyDayPage() {
     } else {
       await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: taskKey, is_completed: newVal, completed_at: now });
     }
+    void recomputeIqScore(selectedIdeaId); // completing a task moves the score now
   }
 
   const totalTasks = WEEKS.reduce((sum, w) => sum + 1 + w.subs.length, 0);
