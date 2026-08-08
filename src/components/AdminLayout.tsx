@@ -130,6 +130,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Contact Pool', path: '/admin/marketing/contacts' },
       { label: 'Suppression List', path: '/admin/marketing/suppression' },
       { label: 'Testimonials', path: '/admin/marketing/testimonials' },
+      { label: 'Success Stories', path: '/admin/marketing/success-stories' },
       { label: 'Automations', path: '/admin/marketing/automations' },
     ],
   },

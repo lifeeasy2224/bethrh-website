@@ -76,6 +76,7 @@ const AdminSubscriptionsPage = lazy(() => import('./pages/admin/AdminSubscriptio
 const AdminAutomationsPage = lazy(() => import('./pages/admin/AdminAutomationsPage'));
 const AdminAutomationForm = lazy(() => import('./pages/admin/AdminAutomationForm'));
 const AdminTestimonialsPage = lazy(() => import('./pages/admin/AdminTestimonialsPage'));
+const AdminSuccessStoriesPage = lazy(() => import('./pages/admin/AdminSuccessStoriesPage'));
 const AdminContactsPage = lazy(() => import('./pages/admin/AdminContactsPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
@@ -673,6 +674,14 @@ export function AppRoutes() {
                 element={
                   <AdminProtectedRoute>
                     <AdminTestimonialsPage />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/marketing/success-stories"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminSuccessStoriesPage />
                   </AdminProtectedRoute>
                 }
               />
