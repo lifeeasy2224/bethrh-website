@@ -10,6 +10,8 @@
 // the canvas/journey). Setting it here would corrupt that metric — it's left at
 // its default (0) and the journey computes the real score later.
 import { supabase } from '../supabase';
+import { assessIdea } from './assessIdea';
+import { recomputeIqScore } from './iqScore';
 
 export const PENDING_IDEA_KEY = 'bethra_pending_idea';
 export const SELECTED_IDEA_KEY = 'bethra_selected_idea_id';
@@ -64,8 +66,10 @@ export async function createUserIdea(
   const ideaId = data.id as string;
 
   if (results) {
-    // Non-fatal: preserve the validation score/verdict against the new idea.
-    void supabase.from('validation_entries').insert({
+    // Non-fatal, but AWAITED (not fire-and-forget): assessIdea below reads
+    // validation_entries, so this must land first or the assessment would see
+    // zero real entries even right after logging one.
+    await supabase.from('validation_entries').insert({
       user_idea_id: ideaId,
       type: 'other',
       notes: `اختبار الفكرة — درجة الذكاء الاصطناعي: ${results.score}/10. ${results.verdict}`,
@@ -73,6 +77,12 @@ export async function createUserIdea(
       sentiment: results.score >= 7 ? 'positive' : results.score >= 5 ? 'neutral' : 'negative',
     });
   }
+
+  // AI-Coach assessment (Phase 2), then derive the real score. A brand-new idea
+  // will score low — honest. Create-path only: Bethra has no re-validate flow;
+  // the dashboard's 14-day staleness refresh handles re-assessment.
+  await assessIdea(ideaId);
+  await recomputeIqScore(ideaId);
 
   try { localStorage.setItem(SELECTED_IDEA_KEY, ideaId); } catch { /* ignore */ }
   return ideaId;

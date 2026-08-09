@@ -5,15 +5,14 @@
 // journey-task toggle, canvas save, re-validate, opening the pitch page, and
 // dashboard load — so the cache can't go stale where it matters.
 //
-// PHASE 1 (deterministic, ported from IdeaIQ's Phase 2 Option A). Five
-// components, caps sum to 100 — but the AI-Coach component is Phase 2 (not yet
-// built in Bethra), so it is hardcoded to 0 here: every idea currently scores
-// out of 85 in practice, exactly like an unassessed idea in IdeaIQ itself.
+// Five components, caps sum to 100 (ported from IdeaIQ's Phase 2 Option A):
 //   Customer validation   35   weighted by evidence STRENGTH × sentiment (not raw count)
 //   Business model         20   canvas blocks filled
 //   Financial projections  15   revenue + costs + break-even entered
 //   90-Day Journey         15   tasks completed / 48
-//   AI-Coach assessment    15   Phase 2 — not built yet; hardcoded 0
+//   AI-Coach assessment    15   cached, set by the assess-idea edge function (Phase 2);
+//                               0 until an idea's first assessment — same as an
+//                               unassessed idea in IdeaIQ itself, not a degraded state
 // The AI stress-test result from /validate is a distinct quality signal and is
 // NEVER mixed into iq_score (that collision previously made the number jump on
 // validation, then drop) — Bethra doesn't even persist it onto user_ideas today,
@@ -89,7 +88,7 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
     supabase.from('validation_entries').select('type, sentiment').eq('user_idea_id', ideaId),
     supabase.from('canvas_data').select('*').eq('user_idea_id', ideaId).maybeSingle(),
     supabase.from('journey_tasks').select('id', { count: 'exact', head: true }).eq('user_idea_id', ideaId).eq('is_completed', true),
-    supabase.from('user_ideas').select('iq_score, iq_breakdown').eq('id', ideaId).maybeSingle(),
+    supabase.from('user_ideas').select('iq_score, iq_breakdown, coach_assessment').eq('id', ideaId).maybeSingle(),
   ]);
 
   const canvas = canvasRes.data as Record<string, unknown> | null;
@@ -109,7 +108,9 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
       breakEvenMonth: Number((canvas?.break_even_month as number | null) ?? 0),
     },
     journeyTasksDone: tasksRes.count ?? 0,
-    coachAssessment: 0, // Phase 2 — user_ideas.coach_assessment doesn't exist yet in Bethra
+    // Read-only cache: this function never computes the AI-Coach component
+    // itself — assessIdea() (Phase 2) sets it server-side; 0 if never assessed.
+    coachAssessment: Number(ideaRes.data?.coach_assessment ?? 0),
   });
 
   const oldScore = ideaRes.data?.iq_score ?? null;

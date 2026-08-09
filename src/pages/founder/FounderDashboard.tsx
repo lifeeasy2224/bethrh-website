@@ -43,6 +43,7 @@ import { useIdea } from '../../contexts/IdeaContext';
 import FounderSidebar from '../../components/FounderSidebar';
 import { supabase, getStageInfo } from '../../supabase';
 import { recomputeIqScore, TOTAL_JOURNEY_TASKS } from '../../lib/iqScore';
+import { assessIdea } from '../../lib/assessIdea';
 
 async function fireConfetti() {
   const confetti = (await import('canvas-confetti')).default;
@@ -141,6 +142,8 @@ export default function FounderDashboard() {
       return;
     }
 
+    let cancelled = false;
+
     async function loadMetrics() {
       const [valRes, canvasRes, tasksRes] = await Promise.all([
         supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId),
@@ -185,9 +188,26 @@ export default function FounderDashboard() {
       // keep insertion order (already sorted by recency from DB)
 
       setMetrics({ iqScore, journeyPct, validationCount, canvasBlocksFilled, journeyTasksDone, recentActivity: recentActivity.slice(0, 4) });
+
+      // Bounded AI-assessment refresh: at most one LLM call per load, and only
+      // when the assessment is missing or >14 days stale. Folds the fresh score
+      // in when it lands. (The primary refresh is on idea creation, in pendingIdea.ts.)
+      const { data: meta } = await supabase.from('user_ideas').select('coach_assessment_at').eq('id', selectedIdeaId!).maybeSingle();
+      if (cancelled) return;
+      const assessedAt = meta?.coach_assessment_at ? new Date(meta.coach_assessment_at as string).getTime() : 0;
+      if (Date.now() - assessedAt > 14 * 24 * 60 * 60 * 1000) {
+        void (async () => {
+          await assessIdea(selectedIdeaId!);
+          const refreshed = await recomputeIqScore(selectedIdeaId!);
+          if (!cancelled && refreshed) {
+            setMetrics(m => ({ ...m, iqScore: refreshed.score }));
+          }
+        })();
+      }
     }
 
     loadMetrics();
+    return () => { cancelled = true; };
   }, [selectedIdeaId, profile]);
 
   // Auto-confetti when stage advances
