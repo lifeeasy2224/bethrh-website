@@ -35,6 +35,7 @@ import ContactsOutlinedIcon from '@mui/icons-material/ContactsOutlined';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import EditNoteIcon from '@mui/icons-material/EditNote';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
 import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
@@ -136,6 +137,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   { id: 'promo-codes', label: 'Promo Codes', icon: LocalOfferOutlinedIcon, path: '/admin/promo-codes' },
   { id: 'content', label: 'Site Content', icon: EditNoteIcon, path: '/admin/content' },
+  { id: 'resources', label: 'Founder Resources', icon: FolderOutlinedIcon, path: '/admin/resources' },
   {
     id: 'support', label: 'Support Tickets', icon: SupportAgentIcon,
     children: [

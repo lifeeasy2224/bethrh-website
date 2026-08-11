@@ -76,6 +76,7 @@ const AdminSubscriptionsPage = lazy(() => import('./pages/admin/AdminSubscriptio
 const AdminAutomationsPage = lazy(() => import('./pages/admin/AdminAutomationsPage'));
 const AdminAutomationForm = lazy(() => import('./pages/admin/AdminAutomationForm'));
 const AdminTestimonialsPage = lazy(() => import('./pages/admin/AdminTestimonialsPage'));
+const AdminResourcesPage = lazy(() => import('./pages/admin/AdminResourcesPage'));
 const AdminSuccessStoriesPage = lazy(() => import('./pages/admin/AdminSuccessStoriesPage'));
 const AdminContactsPage = lazy(() => import('./pages/admin/AdminContactsPage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
@@ -91,6 +92,7 @@ const OnboardingPage = lazy(() => import('./pages/auth/OnboardingPage'));
 const FounderDashboard = lazy(() => import('./pages/founder/FounderDashboard'));
 const AiCoachPage = lazy(() => import('./pages/AiCoachPage'));
 const FounderConnectionsPage = lazy(() => import('./pages/founder/FounderConnectionsPage'));
+const FounderResourcesPage = lazy(() => import('./pages/founder/FounderResourcesPage'));
 
 const JourneyLayout = lazy(() => import('./pages/journey/JourneyLayout'));
 const IdeaPage = lazy(() => import('./pages/journey/IdeaPage'));
@@ -240,6 +242,17 @@ export function AppRoutes() {
                   <ProtectedRoute role="founder">
                     <IdeaProvider>
                       <AiCoachPage />
+                    </IdeaProvider>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/resources"
+                element={
+                  <ProtectedRoute role="founder">
+                    <IdeaProvider>
+                      <FounderResourcesPage />
                     </IdeaProvider>
                   </ProtectedRoute>
                 }
@@ -674,6 +687,14 @@ export function AppRoutes() {
                 element={
                   <AdminProtectedRoute>
                     <AdminTestimonialsPage />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/resources"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminResourcesPage />
                   </AdminProtectedRoute>
                 }
               />

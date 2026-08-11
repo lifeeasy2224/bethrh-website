@@ -20,6 +20,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import MenuIcon from '@mui/icons-material/Menu';
 import HandshakeOutlinedIcon from '@mui/icons-material/HandshakeOutlined';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { PLAN_LABELS } from '../supabase';
@@ -36,6 +37,7 @@ const FOUNDER_NAV = [
   { label: 'مجموعاتي', icon: <GroupsOutlinedIcon />, to: '/groups', dividerBefore: false },
   { label: 'التواصلات', icon: <HandshakeOutlinedIcon />, to: '/connections', dividerBefore: false },
   { label: 'المدرّب الذكي', icon: <SmartToyOutlinedIcon />, to: '/ai-coach', dividerBefore: false },
+  { label: 'موارد الرائد', icon: <FolderOutlinedIcon />, to: '/resources', dividerBefore: false },
 ];
 
 const BOTTOM_NAV = [
