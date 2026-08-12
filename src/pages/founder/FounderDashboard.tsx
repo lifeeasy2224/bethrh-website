@@ -1,49 +1,46 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import CardActionArea from '@mui/material/CardActionArea';
 import Button from '@mui/material/Button';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
-import LinearProgress from '@mui/material/LinearProgress';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import Chip from '@mui/material/Chip';
-import Tooltip from '@mui/material/Tooltip';
-import Grid from '@mui/material/Grid';
+import LinearProgress from '@mui/material/LinearProgress';
+import CircularProgress from '@mui/material/CircularProgress';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
+import Divider from '@mui/material/Divider';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TextField from '@mui/material/TextField';
-import Snackbar from '@mui/material/Snackbar';
-import Alert from '@mui/material/Alert';
-import Divider from '@mui/material/Divider';
 import MenuIcon from '@mui/icons-material/Menu';
 import AddIcon from '@mui/icons-material/Add';
-import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
-import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import FounderSidebar from '../../components/FounderSidebar';
 import { supabase, getStageInfo } from '../../supabase';
-import { recomputeIqScore, TOTAL_JOURNEY_TASKS } from '../../lib/iqScore';
+import { recomputeIqScore, type ScoreBreakdown } from '../../lib/iqScore';
 import { assessIdea } from '../../lib/assessIdea';
+import JourneyOverview from './overview/JourneyOverview';
+import { buildJourney } from './overview/journeyModel';
+
+const ZERO_BREAKDOWN: ScoreBreakdown = { validation: 0, model: 0, financials: 0, journey: 0, coach: 0, total: 0 };
 
 async function fireConfetti() {
   const confetti = (await import('canvas-confetti')).default;
@@ -51,58 +48,24 @@ async function fireConfetti() {
   setTimeout(() => confetti({ particleCount: 80, spread: 50, origin: { y: 0.5 }, colors: ['#D4A653', '#D4A653'] }), 400);
 }
 
-// Stage → path node index (0-based out of 5 nodes)
-function stageToNodeIndex(stage: string): number {
-  if (stage === 'ready') return 3;
-  if (stage === 'growing') return 2;
-  return 1; // seed = at least "Idea" done
-}
-
-function StatCard({ icon, label, value, sub, color = '#1B6B3E' }: { icon: ReactNode; label: string; value: string; sub?: string; color?: string }) {
-  return (
-    <Card sx={{ flex: 1, minWidth: 0 }}>
-      <CardContent sx={{ p: '16px !important' }}>
-        <Stack direction="row" spacing={1.5} alignItems="flex-start">
-          <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
-            {icon}
-          </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="h5" fontWeight={800} lineHeight={1.1}>{value}</Typography>
-            {sub && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{sub}</Typography>}
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{label}</Typography>
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-}
-
-const STAGE_PROGRESS: Record<string, number> = { seed: 25, growing: 60, ready: 90 };
-
-const PATH_NODES = [
-  { label: 'الفكرة', emoji: '💡' },
-  { label: 'تم التحقق', emoji: '✅' },
-  { label: 'أول عرض', emoji: '📋' },
-  { label: 'أول عميل', emoji: '👤' },
-  { label: 'أول دولار', emoji: '💰' },
-];
-
-const PATH_NEXT_STEPS: Record<number, string> = {
-  0: 'أضف فكرتك الأولى لتبدأ رحلتك',
-  1: 'تحدث مع ٥ عملاء للتحقق من فكرتك',
-  2: 'أنشئ عرضك الأول وشاركه مع ٥ عملاء محتملين',
-  3: 'أغلق صفقة أول عميل يدفع',
-  4: 'وصلت — الآن توسّع!',
-};
+// Canvas block keys used to count "filled" blocks for the score/model progress.
+const CANVAS_KEYS = ['key_partners', 'key_activities', 'value_proposition', 'customer_relationships', 'customer_segments', 'key_resources', 'channels', 'cost_structure', 'revenue_streams'];
 
 interface DashboardMetrics {
   iqScore: number;
-  journeyPct: number;
+  breakdown: ScoreBreakdown;
   validationCount: number;
   canvasBlocksFilled: number;
   journeyTasksDone: number;
+  swotExists: boolean;
+  pitchExists: boolean;
   recentActivity: Array<{ icon: string; text: string; time: string }>;
 }
+
+const EMPTY_METRICS: DashboardMetrics = {
+  iqScore: 0, breakdown: ZERO_BREAKDOWN, validationCount: 0, canvasBlocksFilled: 0,
+  journeyTasksDone: 0, swotExists: false, pitchExists: false, recentActivity: [],
+};
 
 export default function FounderDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -117,56 +80,44 @@ export default function FounderDashboard() {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { ideas, selectedIdea, selectedIdeaId, setSelectedIdeaId, loading } = useIdea();
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    iqScore: 0,
-    journeyPct: 0,
-    validationCount: 0,
-    canvasBlocksFilled: 0,
-    journeyTasksDone: 0,
-    recentActivity: [],
-  });
+  const [metrics, setMetrics] = useState<DashboardMetrics>(EMPTY_METRICS);
 
   const firstName = profile?.full_name?.split(' ')[0] ?? 'يا صديقي';
   const plan = profile?.plan ?? 'free';
-  const streak = profile?.current_streak ?? 0;
   const stage = selectedIdea ? getStageInfo(selectedIdea.stage) : null;
-  const progress = selectedIdea ? STAGE_PROGRESS[selectedIdea.stage] ?? 25 : 0;
   const noIdeas = !loading && ideas.length === 0;
-
-  // Current path node index based on stage
-  const currentNodeIndex = selectedIdea ? stageToNodeIndex(selectedIdea.stage) : 0;
 
   useEffect(() => {
     if (!selectedIdeaId) {
-      setMetrics(m => ({ ...m, iqScore: 0, journeyPct: 0, validationCount: 0, canvasBlocksFilled: 0, journeyTasksDone: 0 }));
+      setMetrics(EMPTY_METRICS);
       return;
     }
 
     let cancelled = false;
 
     async function loadMetrics() {
-      const [valRes, canvasRes, tasksRes] = await Promise.all([
-        supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId),
+      // Counts that drive the stop cards come from real rows, plus swot/pitch
+      // existence (new — needed for the SWOT/Pitch stop states the old
+      // dashboard never rendered).
+      const [valRes, canvasRes, tasksRes, swotRes, pitchRes] = await Promise.all([
+        supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId!),
         supabase.from('canvas_data').select('*').eq('user_idea_id', selectedIdeaId!).maybeSingle(),
-        supabase.from('journey_tasks').select('id, task_key, week_number, completed_at').eq('user_idea_id', selectedIdeaId!).eq('is_completed', true),
+        supabase.from('journey_tasks').select('id, task_key, week_number, completed_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId!).eq('is_completed', true),
+        supabase.from('swot_analyses').select('id', { count: 'exact', head: true }).eq('user_idea_id', selectedIdeaId!),
+        supabase.from('pitch_data').select('id', { count: 'exact', head: true }).eq('user_idea_id', selectedIdeaId!),
       ]);
+      if (cancelled) return;
 
       const validationCount = valRes.count ?? 0;
-
-      const CANVAS_KEYS = ['key_partners', 'key_activities', 'value_proposition', 'customer_relationships', 'customer_segments', 'key_resources', 'channels', 'cost_structure', 'revenue_streams'];
       const canvasBlocksFilled = canvasRes.data
         ? CANVAS_KEYS.filter(k => (canvasRes.data as Record<string, string>)[k]?.length >= 20).length
         : 0;
+      const journeyTasksDone = tasksRes.count ?? 0;
+      const swotExists = (swotRes.count ?? 0) > 0;
+      const pitchExists = (pitchRes.count ?? 0) > 0;
 
-      const journeyTasksDone = tasksRes.data?.length ?? 0;
-      const journeyPct = Math.round((journeyTasksDone / TOTAL_JOURNEY_TASKS) * 100);
-
-      // The real evidence-weighted score (lib/iqScore.ts) — fetches its own inputs
-      // and persists user_ideas.iq_score only if changed.
-      const scoreRes = await recomputeIqScore(selectedIdeaId!);
-      const iqScore = scoreRes?.score ?? 0;
-
-      // Recent activity from validation + tasks (last 4)
+      // Recent activity from validation + tasks (last 4) — unchanged from the
+      // previous dashboard, still feeds the kept "Recent activity" card.
       const recentActivity: Array<{ icon: string; text: string; time: string }> = [];
       const formatTime = (iso: string) => {
         const diff = (Date.now() - new Date(iso).getTime()) / 1000;
@@ -175,23 +126,30 @@ export default function FounderDashboard() {
         if (diff < 172800) return 'أمس';
         return `قبل ${Math.round(diff / 86400)} يوم`;
       };
-
       (valRes.data ?? []).slice(0, 2).forEach((v: { type: string; created_at: string }) => {
         const labels: Record<string, string> = { interview: 'سُجّلت مقابلة', signup: 'سُجّل تسجيل اهتمام', preorder: 'سُجّل طلب مسبق', observation: 'سُجّلت ملاحظة', other: 'سُجّل نشاط تحقق' };
         recentActivity.push({ icon: '🎯', text: labels[v.type] ?? 'سُجّل نشاط تحقق', time: formatTime(v.created_at) });
       });
-
       (tasksRes.data ?? []).slice(0, 2).forEach((t: { task_key: string; completed_at: string }) => {
         recentActivity.push({ icon: '✅', text: `اكتملت مهمة — الأسبوع ${(t as unknown as { week_number: number }).week_number ?? ''}`, time: formatTime(t.completed_at) });
       });
 
-      // keep insertion order (already sorted by recency from DB)
+      // ── Phase 1 (preserved verbatim): the real evidence-weighted score —
+      // single source of truth in recomputeIqScore, which also persists
+      // user_ideas.iq_score / iq_breakdown. ──
+      const scoreRes = await recomputeIqScore(selectedIdeaId!);
+      if (cancelled) return;
 
-      setMetrics({ iqScore, journeyPct, validationCount, canvasBlocksFilled, journeyTasksDone, recentActivity: recentActivity.slice(0, 4) });
+      setMetrics({
+        iqScore: scoreRes?.score ?? 0,
+        breakdown: scoreRes?.breakdown ?? ZERO_BREAKDOWN,
+        validationCount, canvasBlocksFilled, journeyTasksDone, swotExists, pitchExists,
+        recentActivity: recentActivity.slice(0, 4),
+      });
 
-      // Bounded AI-assessment refresh: at most one LLM call per load, and only
-      // when the assessment is missing or >14 days stale. Folds the fresh score
-      // in when it lands. (The primary refresh is on idea creation, in pendingIdea.ts.)
+      // ── Phase 2 (preserved verbatim): bounded AI-assessment refresh, at
+      // most one LLM call per load, only when the assessment is missing or
+      // >14 days stale. Folds the fresh score in when it lands. ──
       const { data: meta } = await supabase.from('user_ideas').select('coach_assessment_at').eq('id', selectedIdeaId!).maybeSingle();
       if (cancelled) return;
       const assessedAt = meta?.coach_assessment_at ? new Date(meta.coach_assessment_at as string).getTime() : 0;
@@ -200,23 +158,23 @@ export default function FounderDashboard() {
           await assessIdea(selectedIdeaId!);
           const refreshed = await recomputeIqScore(selectedIdeaId!);
           if (!cancelled && refreshed) {
-            setMetrics(m => ({ ...m, iqScore: refreshed.score }));
+            setMetrics(m => ({ ...m, iqScore: refreshed.score, breakdown: refreshed.breakdown }));
           }
         })();
       }
     }
 
-    loadMetrics();
+    void loadMetrics();
     return () => { cancelled = true; };
   }, [selectedIdeaId, profile]);
 
-  // Auto-confetti when stage advances
+  // Auto-confetti when stage advances.
   useEffect(() => {
     if (!selectedIdea) return;
     const prev = prevStageRef.current;
     prevStageRef.current = selectedIdea.stage;
     if (prev && prev !== selectedIdea.stage) {
-      fireConfetti();
+      void fireConfetti();
       const labels: Record<string, string> = { growing: '🎉 فكرتك تنمو!', ready: '🚀 فكرتك جاهزة للمستثمرين!' };
       if (labels[selectedIdea.stage]) setCelebrationToast(labels[selectedIdea.stage]);
     }
@@ -238,9 +196,54 @@ export default function FounderDashboard() {
     setMilestoneDialog(null);
     setMilestoneNote('');
     setMilestoneAmount('');
-    fireConfetti();
+    void fireConfetti();
     setCelebrationToast(isRevenue ? '🎉 مبروك أول إيراد لك!' : '🎉 أول عميل لك — رائع!');
   }
+
+  // Milestone logging is offered once a founder has traction (growing/ready) —
+  // replaces the old dashboard's "First Dollar" path-widget buttons, which
+  // were dropped along with that widget.
+  const canLogMilestone = !!selectedIdea && (selectedIdea.stage === 'growing' || selectedIdea.stage === 'ready');
+
+  // Active-idea switcher — lives next to "My Ideas" inside the overview, not
+  // in the header, to keep the top of the page uncluttered. Only shown with
+  // 2+ ideas.
+  const ideaSwitcher = ideas.length > 1 ? (
+    <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 260 } }}>
+      <Select
+        value={selectedIdeaId ?? ''}
+        onChange={e => setSelectedIdeaId(e.target.value || null)}
+        sx={{
+          color: '#FFFFFF', bgcolor: '#1B6B3E', fontSize: 13, fontWeight: 600,
+          '& .MuiOutlinedInput-notchedOutline': { borderColor: '#2C5940' },
+          '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#3D7A54' },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#D4A653' },
+          '& .MuiSvgIcon-root': { color: '#8DA697' },
+        }}
+      >
+        {ideas.map(idea => {
+          const s = getStageInfo(idea.stage);
+          return <MenuItem key={idea.id} value={idea.id}>{s.emoji} {idea.title} (الدرجة: {idea.iq_score})</MenuItem>;
+        })}
+      </Select>
+    </FormControl>
+  ) : null;
+
+  const journey = buildJourney({
+    hasIdea: !!selectedIdea,
+    ideaName: selectedIdea?.title ?? 'فكرتك',
+    founderName: profile?.full_name ?? null,
+    stageLabel: stage?.label ?? 'Seed',
+    ideaCreatedAt: selectedIdea?.created_at ?? null,
+    ideasCount: ideas.length,
+    iqScore: metrics.iqScore,
+    scoreBreakdown: metrics.breakdown,
+    validationCount: metrics.validationCount,
+    canvasBlocksFilled: metrics.canvasBlocksFilled,
+    journeyTasksDone: metrics.journeyTasksDone,
+    swotExists: metrics.swotExists,
+    pitchExists: metrics.pitchExists,
+  });
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'grey.50' }}>
@@ -282,366 +285,158 @@ export default function FounderDashboard() {
           </Toolbar>
         </AppBar>
 
-        <Box sx={{ flex: 1, p: { xs: 2, sm: 3 }, maxWidth: 1200, mx: 'auto', width: '100%' }}>
-
-          {/* Welcome */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={2} sx={{ mb: 3 }}>
+        {/* Full-width content: the journey map goes full-bleed across the whole
+            content area (no maxWidth cap). The header and the cards below carry
+            their own inset padding, matched to the map's own padding so they
+            line up with its content edge. */}
+        <Box sx={{ flex: 1, width: '100%', pb: { xs: 2, sm: 3 } }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" spacing={2} sx={{ px: { xs: 2.5, sm: 5, md: 7 }, pt: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 2.5 } }}>
             <Box>
               <Typography variant="h4" fontWeight={800}>أهلاً بعودتك يا {firstName}!</Typography>
-              <Typography color="text.secondary" sx={{ mt: 0.5 }}>تابع رحلتك الريادية خطوة بخطوة.</Typography>
+              <Typography color="text.secondary" sx={{ mt: 0.5 }}>رحلتك — محطة تلو الأخرى.</Typography>
             </Box>
-            <Button variant="contained" startIcon={<AddIcon />} component={Link} to="/journey?new=true" sx={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <Button variant="contained" startIcon={<AddIcon />} component={Link} to="/journey?new=true" sx={{ whiteSpace: 'nowrap', flexShrink: 0, alignSelf: { xs: 'flex-start', sm: 'auto' } }}>
               أضف فكرة جديدة
             </Button>
           </Stack>
 
-          {/* Journey Progress Card */}
-          <Card sx={{ mb: 3, background: selectedIdea ? 'linear-gradient(135deg, #0F3D24 0%, #1B6B3E 60%, #D08A28 100%)' : 'white' }}>
-            <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-              {selectedIdea ? (
-                <>
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                    <Typography variant="h6" fontWeight={700} sx={{ color: 'white' }}>
-                      أنت في مرحلة <strong>{stage?.label}</strong> {stage?.emoji}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                    {['🌱 بذرة', '🌿 تنمو', '🍎 جاهزة'].map((s, i) => (
-                      <Typography key={i} variant="caption" sx={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{s}</Typography>
-                    ))}
-                  </Stack>
-                  <LinearProgress
-                    variant="determinate"
-                    value={progress}
-                    sx={{
-                      height: 10, borderRadius: 5,
-                      bgcolor: 'rgba(255,255,255,0.2)',
-                      '& .MuiLinearProgress-bar': { bgcolor: 'white', borderRadius: 5 },
-                    }}
-                  />
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', mt: 0.5, display: 'block' }}>
-                    درجة بذرة: {metrics.iqScore}/100 · اكتمل {metrics.journeyTasksDone}/{TOTAL_JOURNEY_TASKS} من مهام الرحلة
-                  </Typography>
-                </>
-              ) : noIdeas ? (
-                <Box sx={{ textAlign: 'center', py: 3 }}>
-                  <Typography variant="h5" fontWeight={700} gutterBottom>أهلاً بك في بذرة! 🎉</Typography>
-                  <Typography color="text.secondary" sx={{ mb: 2 }}>أضف فكرتك الأولى لتبدأ رحلتك الريادية.</Typography>
-                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
-                    <Button variant="contained" startIcon={<AddIcon />} component={Link} to="/journey?new=true">أضف فكرتي</Button>
-                    <Button variant="outlined" component={Link} to="/ideas-library">تصفّح مكتبة الأفكار</Button>
-                  </Stack>
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 2 }}>
-                  <Typography color="text.secondary">اختر فكرة بالأسفل لترى تقدم رحلتك.</Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Stats */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard icon={<LightbulbOutlinedIcon />} label="الأفكار" value={String(ideas.length)} sub={ideas.length === 0 ? 'أضف الأولى!' : undefined} color="#1B6B3E" />
-            </Grid>
-            <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard icon={<TrendingUpIcon />} label="درجة بذرة" value={selectedIdea ? `${metrics.iqScore}/100` : '—'} sub={stage?.label} color="#1B6B3E" />
-            </Grid>
-            <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard icon={<LocalFireDepartmentIcon />} label="سلسلة الأيام" value={String(streak)} sub={streak === 1 ? 'يوم' : 'أيام'} color="#D4A653" />
-            </Grid>
-            <Grid size={{ xs: 6, md: 3 }}>
-              <StatCard icon={<CalendarMonthOutlinedIcon />} label="الرحلة" value={selectedIdea ? `٪${metrics.journeyPct}` : '—'} sub="مكتملة" color="#D08A28" />
-            </Grid>
-          </Grid>
-
-          {/* First Dollar Progress Widget */}
-          <Box sx={{
-            mt: 3,
-            bgcolor: '#0F3D24',
-            border: '1px solid rgba(212,166,83,0.2)',
-            borderRadius: '12px',
-            p: 3,
-          }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2.5 }}>
-              <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '1rem', color: 'white' }}>
-                مسارك نحو أول دولار
-              </Typography>
-              <Typography component={Link} to="/journey/idea" sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 400, fontSize: '0.875rem', color: '#D4A653', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
-                عرض الرحلة ←
-              </Typography>
-            </Stack>
-
-            {/* Progress nodes — driven by currentNodeIndex */}
-            <Box sx={{ position: 'relative', px: 1, mb: 2 }}>
-              <Box sx={{ position: 'absolute', top: 17, left: 'calc(10% + 18px)', right: 'calc(10% + 18px)', height: '2px', display: 'flex' }}>
-                {[0, 1, 2, 3].map(i => (
-                  <Box key={i} sx={{
-                    flex: 1, height: '2px',
-                    bgcolor: i < currentNodeIndex - 1 ? '#D4A653' : 'transparent',
-                    backgroundImage: i < currentNodeIndex - 1 ? 'none'
-                      : i === currentNodeIndex - 1 ? 'repeating-linear-gradient(to right, #D4A653 0, #D4A653 6px, transparent 6px, transparent 10px)'
-                        : 'repeating-linear-gradient(to right, #8A8070 0, #8A8070 6px, transparent 6px, transparent 10px)',
-                  }} />
-                ))}
-              </Box>
-              <Stack direction="row" justifyContent="space-between">
-                {PATH_NODES.map((node, idx) => {
-                  const state = idx < currentNodeIndex ? 'done' : idx === currentNodeIndex ? 'current' : 'upcoming';
-                  return (
-                    <Box key={node.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '20%' }}>
-                      <Box sx={{
-                        width: 36, height: 36, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '1rem',
-                        bgcolor: state === 'done' ? '#D4A653' : '#0F3D24',
-                        border: state === 'done' ? '2px solid #D4A653' : state === 'current' ? '2px solid #D4A653' : '2px dashed #8A8070',
-                        zIndex: 1, position: 'relative',
-                        ...(state === 'current' && {
-                          animation: 'pulseGold 1.8s ease-in-out infinite',
-                          '@keyframes pulseGold': {
-                            '0%, 100%': { boxShadow: '0 0 0 0 rgba(212,166,83,0.5)' },
-                            '50%': { boxShadow: '0 0 0 6px rgba(212,166,83,0)' },
-                          },
-                        }),
-                      }}>
-                        {node.emoji}
-                      </Box>
-                      <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 300, fontSize: '0.6875rem', color: 'rgba(255,255,255,0.7)', mt: 0.75, textAlign: 'center', lineHeight: 1.3 }}>
-                        {node.label}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Stack>
-            </Box>
-
-            {/* Status row */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={0.5} alignItems={{ sm: 'center' }}>
-              <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 400, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)' }}>
-                📍 <strong>مرحلتك الحالية: {PATH_NODES[currentNodeIndex]?.label ?? 'الفكرة'}</strong>
-              </Typography>
-              <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 400, fontSize: '0.875rem', color: 'rgba(255,255,255,0.8)', display: { xs: 'block', sm: 'inline' } }}>
-                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>&nbsp;·&nbsp;</Box>
-                التالي: {PATH_NEXT_STEPS[currentNodeIndex] ?? ''}
-              </Typography>
-            </Stack>
-
-            {/* Manual milestone buttons for First Customer + First $ */}
-            {selectedIdea && currentNodeIndex >= 2 && (
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mt: 2.5 }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setMilestoneDialog('customer')}
-                  sx={{ borderColor: '#D4A653', color: '#D4A653', '&:hover': { bgcolor: 'rgba(212,166,83,0.1)', borderColor: '#D4A653' }, fontWeight: 700, fontSize: '0.8rem' }}
-                >
-                  👤 حصلت على أول عميل!
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setMilestoneDialog('revenue')}
-                  sx={{ borderColor: '#D4A653', color: '#D4A653', '&:hover': { bgcolor: 'rgba(212,166,83,0.1)', borderColor: '#D4A653' }, fontWeight: 700, fontSize: '0.8rem' }}
-                >
-                  💰 كسبت أول دولار!
-                </Button>
-              </Stack>
-            )}
-          </Box>
-
-          <Grid container spacing={3}>
-            {/* Left: Idea selector + quick actions */}
-            <Grid size={{ xs: 12, md: 8 }}>
-
-              {/* Idea selector */}
-              {ideas.length > 0 && (
-                <Card sx={{ mb: 3 }}>
-                  <CardContent sx={{ p: 2 }}>
-                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>الفكرة النشطة</Typography>
-                    <FormControl fullWidth size="small">
-                      <Select
-                        value={selectedIdeaId ?? ''}
-                        onChange={e => setSelectedIdeaId(e.target.value || null)}
-                        displayEmpty
-                        sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'divider' } }}
-                      >
-                        <MenuItem value=""><em>— اختر فكرة —</em></MenuItem>
-                        {ideas.map(idea => {
-                          const s = getStageInfo(idea.stage);
-                          return (
-                            <MenuItem key={idea.id} value={idea.id}>
-                              {s.emoji} {idea.title} (الدرجة: {idea.iq_score})
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Quick action buttons */}
-              <Card sx={{ mb: 3 }}>
-                <CardContent sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>إجراءات سريعة</Typography>
-                  <Grid container spacing={2}>
-                    {[
-                      { icon: <Box sx={{ fontSize: '1.75rem', lineHeight: 1 }}>🎯</Box>, label: 'تركيز هذا الأسبوع', desc: 'مهامك ذات الأولوية ٢-٣ — تجاهل الضجيج', to: selectedIdeaId ? `/journey/90-day?idea=${selectedIdeaId}` : '/journey', color: '#D4A653', bg: '#0F3D24', goldBorder: true },
-                      { icon: <FactCheckOutlinedIcon sx={{ fontSize: 28 }} />, label: 'التحقق', desc: 'سجّل المقابلات والتسجيلات والطلبات المسبقة', to: selectedIdeaId ? `/journey/validation?idea=${selectedIdeaId}` : '#', color: '#1B6B3E', bg: '#DEEBE2' },
-                      { icon: <RocketLaunchIcon sx={{ fontSize: 28 }} />, label: 'العرض التمويلي', desc: 'ولّد عرضك الجاهز للمستثمرين', to: selectedIdeaId ? `/journey/pitch?idea=${selectedIdeaId}` : '#', color: '#D08A28', bg: '#FAF5E9' },
-                      { icon: <CalendarMonthOutlinedIcon sx={{ fontSize: 28 }} />, label: 'رحلة الـ ٩٠ يوماً', desc: 'خطة تنفيذ أسبوعاً بأسبوع', to: selectedIdeaId ? `/journey/90-day?idea=${selectedIdeaId}` : '#', color: '#1B6B3E', bg: '#DEEBE2' },
-                    ].map(a => (
-                      <Grid size={{ xs: 12, sm: 3 }} key={a.label}>
-                        <Tooltip title={!selectedIdeaId && a.to === '#' ? 'اختر فكرة أولاً' : ''} arrow>
-                          <span style={{ display: 'block', height: '100%' }}>
-                            <Card
-                              component={Link}
-                              to={a.to === '#' && !selectedIdeaId ? '#' : a.to}
-                              sx={{
-                                textDecoration: 'none', height: '100%',
-                                opacity: a.to === '#' && !selectedIdeaId ? 0.5 : 1,
-                                cursor: a.to === '#' && !selectedIdeaId ? 'not-allowed' : 'pointer',
-                                borderLeft: (a as { goldBorder?: boolean }).goldBorder ? '4px solid #D4A653' : undefined,
-                                '&:hover': a.to === '#' && !selectedIdeaId ? {} : { boxShadow: 3, transform: 'translateY(-2px)' },
-                                transition: 'all 150ms ease',
-                                pointerEvents: a.to === '#' && !selectedIdeaId ? 'none' : 'auto',
-                              }}
-                            >
-                              <CardContent sx={{ p: 2, textAlign: 'center' }}>
-                                <Box sx={{ width: 52, height: 52, borderRadius: 2, bgcolor: a.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: a.color, mx: 'auto', mb: 1 }}>
-                                  {a.icon}
-                                </Box>
-                                <Typography variant="body2" fontWeight={700}>{a.label}</Typography>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>{a.desc}</Typography>
-                                <ArrowForwardIcon sx={{ fontSize: 14, color: 'text.disabled', mt: 0.5 }} />
-                              </CardContent>
-                            </Card>
-                          </span>
-                        </Tooltip>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </CardContent>
-              </Card>
-
-              {/* Ideas list */}
-              <Box>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
-                  <Typography variant="h6" fontWeight={700}>أفكاري</Typography>
-                  <Button component={Link} to="/journey" endIcon={<ArrowForwardIcon />} size="small">عرض الكل</Button>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}><CircularProgress /></Box>
+          ) : noIdeas ? (
+            <Box sx={{ maxWidth: 640, mx: 'auto', px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 4 } }}>
+              <Card sx={{ textAlign: 'center', p: { xs: 4, sm: 6 }, border: '2px dashed', borderColor: 'divider', boxShadow: 'none' }}>
+                <LightbulbOutlinedIcon sx={{ fontSize: 44, color: 'text.disabled', mb: 1.5 }} />
+                <Typography variant="h5" fontWeight={800} gutterBottom>أهلاً بك في بذرة! 🎉</Typography>
+                <Typography color="text.secondary" sx={{ mb: 3 }}>أضف فكرتك الأولى لتبدأ رحلتك الريادية.</Typography>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center">
+                  <Button variant="contained" startIcon={<AddIcon />} component={Link} to="/journey?new=true">أضف فكرتي</Button>
+                  <Button variant="outlined" component={Link} to="/ideas-library">تصفّح مكتبة الأفكار</Button>
                 </Stack>
+              </Card>
+            </Box>
+          ) : !selectedIdea ? (
+            <Box sx={{ maxWidth: 640, mx: 'auto', px: { xs: 2, sm: 3 }, pt: { xs: 2, sm: 4 } }}>
+              <Card sx={{ textAlign: 'center', p: 5, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                <Typography color="text.secondary">اختر فكرة بالأعلى لترى رحلتك.</Typography>
+              </Card>
+            </Box>
+          ) : (
+            <>
+              <JourneyOverview
+                journey={journey}
+                ideaSwitcher={ideaSwitcher}
+                onOpenRoute={route => navigate(route)}
+                onAskCoach={() => navigate('/ai-coach')}
+              />
 
-                {noIdeas ? (
-                  <Card sx={{ textAlign: 'center', p: 4, border: '2px dashed', borderColor: 'divider', boxShadow: 'none' }}>
-                    <LightbulbOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
-                    <Typography color="text.secondary" variant="body2" gutterBottom>لم تضف أي أفكار بعد.</Typography>
-                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} justifyContent="center" sx={{ mt: 2 }}>
-                      <Button component={Link} to="/journey?new=true" variant="contained" size="small" startIcon={<AddIcon />}>أضف فكرة جديدة</Button>
-                      <Button component={Link} to="/ideas-library" variant="outlined" size="small">تصفّح المكتبة</Button>
+              {canLogMilestone && (
+                <Box sx={{ px: { xs: 2.5, sm: 5, md: 7 } }}>
+                  <Card sx={{ mt: 2, p: 2, boxShadow: 'none', border: '1px solid', borderColor: 'divider' }}>
+                    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} alignItems={{ sm: 'center' }} justifyContent="space-between">
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={700}>حققت إنجازاً؟</Typography>
+                        <Typography variant="caption" color="text.secondary">سجّل إنجازاً حقيقياً — يرفع مرحلتك.</Typography>
+                      </Box>
+                      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                        <Button size="small" variant="outlined" onClick={() => setMilestoneDialog('customer')}>👤 أول عميل</Button>
+                        <Button size="small" variant="outlined" onClick={() => setMilestoneDialog('revenue')}>💰 أول دولار</Button>
+                      </Stack>
                     </Stack>
                   </Card>
-                ) : (
-                  <Stack spacing={1.5}>
-                    {ideas.slice(0, 3).map(idea => {
-                      const s = getStageInfo(idea.stage);
-                      return (
-                        <Card
-                          key={idea.id}
-                          component={Link}
-                          to={`/journey?idea=${idea.id}`}
-                          onClick={() => setSelectedIdeaId(idea.id)}
-                          sx={{ textDecoration: 'none', transition: 'all 150ms ease', '&:hover': { boxShadow: 3 }, border: selectedIdeaId === idea.id ? '2px solid' : '1px solid', borderColor: selectedIdeaId === idea.id ? 'primary.main' : 'divider' }}
-                        >
-                          <CardContent sx={{ p: '14px !important' }}>
-                            <Stack direction="row" spacing={2} alignItems="center">
-                              <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
-                                {s.emoji}
-                              </Box>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="body2" fontWeight={700} noWrap>{idea.title}</Typography>
-                                <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-                                  <Chip label={idea.sector} size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
-                                  <Typography variant="caption" color="text.secondary">{s.label}</Typography>
-                                </Stack>
-                              </Box>
-                              <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
-                                <Typography variant="body2" fontWeight={800} color={idea.iq_score >= 80 ? 'success.main' : idea.iq_score >= 50 ? 'primary.main' : 'warning.main'}>
-                                  {idea.iq_score}/100
-                                </Typography>
-                                <LinearProgress variant="determinate" value={idea.iq_score} sx={{ width: 60, height: 4, borderRadius: 2, mt: 0.5, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: idea.iq_score >= 80 ? '#2A8A52' : idea.iq_score >= 50 ? '#1B6B3E' : '#D4A653' } }} />
-                              </Box>
-                            </Stack>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </Stack>
-                )}
-              </Box>
-            </Grid>
+                </Box>
+              )}
 
-            {/* Right column */}
-            <Grid size={{ xs: 12, md: 4 }}>
-              {/* AI Coach shortcut */}
-              <Card sx={{ mb: 2 }}>
-                <CardActionArea component={Link} to="/ai-coach" sx={{ p: 2.5 }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Box sx={{ width: 48, height: 48, borderRadius: 2, bgcolor: '#F0F5F1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <SmartToyOutlinedIcon sx={{ color: 'secondary.main', fontSize: 26 }} />
-                    </Box>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" fontWeight={700}>المدرّب الذكي</Typography>
-                      <Typography variant="caption" color="text.secondary">اسألني أي شيء عن مشروعك</Typography>
-                    </Box>
-                    <ArrowForwardIcon sx={{ color: 'text.disabled', fontSize: 16 }} />
-                  </Stack>
-                </CardActionArea>
-              </Card>
-
-              {/* Recent activity */}
-              <Card>
-                <CardContent sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>النشاط الأخير</Typography>
-                  {noIdeas || metrics.recentActivity.length === 0 ? (
-                    <Typography variant="body2" color="text.secondary">لا نشاط بعد. ابدأ رحلتك!</Typography>
-                  ) : (
-                    <Stack spacing={0}>
-                      {metrics.recentActivity.map((item, i) => (
-                        <Box key={i} sx={{ py: 1, borderBottom: i < metrics.recentActivity.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'grey.50' }, borderRadius: 1, px: 0.5 }}>
-                          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                            <Typography variant="caption" sx={{ flex: 1 }}>
-                              {item.icon} {item.text}
-                            </Typography>
-                            <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>{item.time}</Typography>
+              {/* Condensed ideas-list (kept, Decision 3) */}
+              <Box sx={{ px: { xs: 2.5, sm: 5, md: 7 }, mt: 3 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+                  <Typography variant="h6" fontWeight={700}>أفكاري</Typography>
+                  <Button component={Link} to="/journey" endIcon={<ArrowBackIcon />} size="small">عرض الكل</Button>
+                </Stack>
+                <Stack spacing={1.5} sx={{ maxWidth: 720 }}>
+                  {ideas.slice(0, 3).map(idea => {
+                    const s = getStageInfo(idea.stage);
+                    return (
+                      <Card
+                        key={idea.id}
+                        component={Link}
+                        to={`/journey?idea=${idea.id}`}
+                        onClick={() => setSelectedIdeaId(idea.id)}
+                        sx={{ textDecoration: 'none', transition: 'all 150ms ease', '&:hover': { boxShadow: 3 }, border: selectedIdeaId === idea.id ? '2px solid' : '1px solid', borderColor: selectedIdeaId === idea.id ? 'primary.main' : 'divider' }}
+                      >
+                        <CardContent sx={{ p: '14px !important' }}>
+                          <Stack direction="row" spacing={2} alignItems="center">
+                            <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', flexShrink: 0 }}>
+                              {s.emoji}
+                            </Box>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" fontWeight={700} noWrap>{idea.title}</Typography>
+                              <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                                <Chip label={idea.sector} size="small" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                <Typography variant="caption" color="text.secondary">{s.label}</Typography>
+                              </Stack>
+                            </Box>
+                            <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                              <Typography variant="body2" fontWeight={800} color={idea.iq_score >= 80 ? 'success.main' : idea.iq_score >= 50 ? 'primary.main' : 'warning.main'}>
+                                {idea.iq_score}/100
+                              </Typography>
+                              <LinearProgress variant="determinate" value={idea.iq_score} sx={{ width: 60, height: 4, borderRadius: 2, mt: 0.5, bgcolor: 'grey.100', '& .MuiLinearProgress-bar': { bgcolor: idea.iq_score >= 80 ? '#2A8A52' : idea.iq_score >= 50 ? '#1B6B3E' : '#D4A653' } }} />
+                            </Box>
                           </Stack>
-                        </Box>
-                      ))}
-                    </Stack>
-                  )}
-                </CardContent>
-              </Card>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </Stack>
+              </Box>
 
-              {/* Upgrade CTA for free users */}
-              {plan === 'free' && (
-                <Card sx={{ mt: 2, background: 'linear-gradient(135deg, #1B6B3E 0%, #D08A28 100%)', border: 'none' }}>
-                  <CardContent sx={{ p: 2.5 }}>
-                    <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                      <RocketLaunchIcon sx={{ color: 'white', fontSize: 20 }} />
-                      <Typography variant="body2" fontWeight={700} sx={{ color: 'white' }}>افتح الرحلة كاملة</Typography>
-                    </Stack>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', display: 'block', mb: 2 }}>
-                      المخطط والتحقق ورحلة الـ ٩٠ يوماً والمدرّب الذكي والمجموعات — كلها في خطة برو.
-                    </Typography>
-                    <Button component={Link} to="/pricing" variant="contained" size="small" fullWidth sx={{ bgcolor: 'white', color: '#1B6B3E', fontWeight: 700, '&:hover': { bgcolor: 'grey.100' } }}>
-                      رقِّ — $9/شهر ←
-                    </Button>
+              {/* Recent-activity feed (kept, Decision 3) */}
+              <Box sx={{ px: { xs: 2.5, sm: 5, md: 7 }, mt: 3, maxWidth: 720 }}>
+                <Card>
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>النشاط الأخير</Typography>
+                    {metrics.recentActivity.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">لا نشاط بعد. ابدأ رحلتك!</Typography>
+                    ) : (
+                      <Stack spacing={0}>
+                        {metrics.recentActivity.map((item, i) => (
+                          <Box key={i} sx={{ py: 1, borderBottom: i < metrics.recentActivity.length - 1 ? '1px solid' : 'none', borderColor: 'divider', '&:hover': { bgcolor: 'grey.50' }, borderRadius: 1, px: 0.5 }}>
+                            <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                              <Typography variant="caption" sx={{ flex: 1 }}>
+                                {item.icon} {item.text}
+                              </Typography>
+                              <Typography variant="caption" color="text.disabled" sx={{ flexShrink: 0 }}>{item.time}</Typography>
+                            </Stack>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
                   </CardContent>
                 </Card>
+              </Box>
+
+              {/* Free-plan upgrade nudge — not addressed by the locked decisions;
+                  kept as the dashboard's only upgrade nudge since Decision 1
+                  removed the in-map "all stops locked" upsell. */}
+              {plan === 'free' && (
+                <Box sx={{ px: { xs: 2.5, sm: 5, md: 7 }, mt: 3, maxWidth: 720 }}>
+                  <Card sx={{ background: 'linear-gradient(135deg, #1B6B3E 0%, #D08A28 100%)', border: 'none' }}>
+                    <CardContent sx={{ p: 2.5 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+                        <RocketLaunchIcon sx={{ color: 'white', fontSize: 20 }} />
+                        <Typography variant="body2" fontWeight={700} sx={{ color: 'white' }}>افتح الرحلة كاملة</Typography>
+                      </Stack>
+                      <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.85)', display: 'block', mb: 2 }}>
+                        المخطط والتحقق ورحلة الـ٩٠ يوماً والمدرّب الذكي والمجموعات — كلها في خطة برو.
+                      </Typography>
+                      <Button component={Link} to="/pricing" variant="contained" size="small" sx={{ bgcolor: 'white', color: '#1B6B3E', fontWeight: 700, '&:hover': { bgcolor: 'grey.100' } }}>
+                        رقِّ — $9/شهر ←
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </Box>
               )}
-            </Grid>
-          </Grid>
+            </>
+          )}
         </Box>
       </Box>
 
