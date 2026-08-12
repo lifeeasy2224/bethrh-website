@@ -48,6 +48,12 @@ Deno.serve(async (req: Request) => {
     if (!['monthly', 'annual'].includes(billing)) return jsonRes({ error: 'Invalid billing cycle' }, 400);
 
     // ── Validate promo code if provided ─────────────────────────────────────────
+    // Logged unconditionally (including "(none)") so a promo that validated
+    // client-side but arrived falsy here — the diagnosed silent-fallthrough
+    // failure mode — is visible in function logs instead of indistinguishable
+    // from a normal no-promo checkout.
+    console.log('stripe-checkout: promo_code received =', promo_code || '(none)', 'for user', user.id);
+
     let discountPct = 0;
     let promoCodeId: string | null = null;
 

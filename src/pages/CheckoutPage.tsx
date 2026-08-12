@@ -113,8 +113,10 @@ export default function CheckoutPage() {
     ? Math.round(totalBilled * (1 - promoApplied.discountPct / 100) * 100) / 100
     : totalBilled;
 
-  async function applyPromo() {
-    const code = promoInput.trim().toUpperCase();
+  // Shared by the "طبّق" button and the bfcache re-validation below — both need
+  // the exact same validate-and-set logic, just fed a different source code.
+  async function validateAndApplyCode(rawCode: string) {
+    const code = rawCode.trim().toUpperCase();
     if (!code) return;
     setPromoLoading(true);
     setPromoError('');
@@ -136,15 +138,46 @@ export default function CheckoutPage() {
     setPromoApplied({ code: data.code as string, discountPct: data.discount_pct as number, label: `خصم ${data.discount_pct}٪` });
   }
 
+  async function applyPromo() {
+    await validateAndApplyCode(promoInput);
+  }
+
   function removePromo() {
     setPromoApplied(null);
     setPromoInput('');
     setPromoError('');
   }
 
+  // bfcache resilience: if this page is restored from the back-forward cache
+  // (e.g. the founder navigated away and back), the DOM can still show a
+  // stale "promo applied" chip while React state doesn't match what a fresh
+  // mount would have — this was the diagnosed root cause of the promo
+  // silently not reaching checkout. Re-validate against the live DB whenever
+  // a persisted pageshow fires with a promo still marked as applied.
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted && promoApplied) {
+        void validateAndApplyCode(promoApplied.code);
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [promoApplied]);
+
   async function handleCheckout() {
-    setLoading(true);
     setError('');
+
+    // Guard: the UI shows a promo as applied, but its code would serialize
+    // falsy on submit — this is the exact failure mode that let a validated
+    // promo silently fall through to a full-price Stripe session. Stop and
+    // surface a clear error instead of charging full price silently.
+    if (promoApplied && !(promoApplied.code && promoApplied.code.trim())) {
+      setError('حدث خطأ في كود الخصم. يرجى إعادة إدخاله قبل المتابعة.');
+      setPromoApplied(null);
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
