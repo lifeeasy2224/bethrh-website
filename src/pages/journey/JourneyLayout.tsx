@@ -28,6 +28,7 @@ const TABS = [
   { label: 'SWOT', path: '/journey/swot' },
   { label: 'العرض التمويلي', path: '/journey/pitch' },
   { label: 'رحلة الـ ٩٠ يوماً', path: '/journey/90-day' },
+  { label: 'المستندات', path: '/journey/documents' },
 ];
 
 export default function JourneyLayout() {

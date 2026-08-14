@@ -101,6 +101,7 @@ const CanvasPage = lazy(() => import('./pages/journey/CanvasPage'));
 const SwotPage = lazy(() => import('./pages/journey/SwotPage'));
 const PitchPage = lazy(() => import('./pages/journey/PitchPage'));
 const NinetyDayPage = lazy(() => import('./pages/journey/NinetyDayPage'));
+const DocumentsPage = lazy(() => import('./pages/journey/DocumentsPage'));
 
 const GroupsPage = lazy(() => import('./pages/groups/GroupsPage'));
 const GroupDetailPage = lazy(() => import('./pages/groups/GroupDetailPage'));
@@ -275,7 +276,7 @@ export function AppRoutes() {
                 <Route path="swot" element={<SwotPage />} />
                 <Route path="pitch" element={<PitchPage />} />
                 <Route path="90-day" element={<NinetyDayPage />} />
-              </Route>
+                <Route path="documents" element={<DocumentsPage />} />
 
               {/* Groups routes */}
               <Route
