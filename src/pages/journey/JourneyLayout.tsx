@@ -24,10 +24,10 @@ import { getStageInfo } from '../../supabase';
 const TABS = [
   { label: 'أفكاري', path: '/journey' },
   { label: 'التحقق', path: '/journey/validation' },
-  { label: 'المخطط', path: '/journey/canvas' },
-  { label: 'SWOT', path: '/journey/swot' },
-  { label: 'العرض التمويلي', path: '/journey/pitch' },
   { label: 'رحلة الـ ٩٠ يوماً', path: '/journey/90-day' },
+  { label: 'SWOT', path: '/journey/swot' },
+  { label: 'المخطط', path: '/journey/canvas' },
+  { label: 'العرض التمويلي', path: '/journey/pitch' },
   { label: 'المستندات', path: '/journey/documents' },
 ];
 
