@@ -277,6 +277,7 @@ export function AppRoutes() {
                 <Route path="pitch" element={<PitchPage />} />
                 <Route path="90-day" element={<NinetyDayPage />} />
                 <Route path="documents" element={<DocumentsPage />} />
+              </Route>
 
               {/* Groups routes */}
               <Route
