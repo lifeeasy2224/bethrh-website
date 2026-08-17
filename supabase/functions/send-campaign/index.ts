@@ -38,34 +38,10 @@ function replacePlaceholders(template: string, vars: Record<string, string>): st
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
 }
 
-// §10b — mirrors admin-db/admin-auth's resolveSession: valid token, past 2FA,
-// not expired. Returns the admin_users record (or null). Also slides the 30-min
-// session window on success, matching the rest of the admin console.
-async function resolveSession(
-  supabase: ReturnType<typeof createClient>,
-  token: string,
-) {
-  if (!token) return null;
-  const { data } = await supabase
-    .from("admin_sessions")
-    .select("*, admin_users(*)")
-    .eq("token", token)
-    .eq("is_pending_2fa", false)
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
-  if (!data) return null;
-  await supabase.from("admin_sessions").update({
-    last_active: new Date().toISOString(),
-    expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-  }).eq("id", data.id);
-  return data.admin_users as Record<string, unknown>;
-}
-
 // ── Segment rule evaluation ──────────────────────────────────────────────────
-// Ported verbatim from src/pages/admin/crmSegmentEngine.ts so a server-side send
-// matches the admin console's audience preview exactly. Smart-segment rules are
-// combined with AND (marketing_segments has no logic column; the UI defaults to
-// AND). Evaluated against the enriched_users view (profiles + user_ideas aggs).
+// Ported from the admin CRM segment engine so a server-side send matches the
+// admin console's audience preview exactly. Smart-segment rules are combined
+// with AND, evaluated against the enriched_users view.
 interface SegmentRule { field: string; operator: string; value: unknown; }
 
 interface EnrichedUser {
@@ -158,17 +134,10 @@ function evaluateRule(user: EnrichedUser, rule: SegmentRule): boolean {
 }
 
 function applyRules(users: EnrichedUser[], rules: SegmentRule[]): EnrichedUser[] {
-  if (!rules?.length) return users; // empty ruleset (e.g. "All Users") matches everyone
+  if (!rules?.length) return users;
   return users.filter((u) => rules.every((r) => evaluateRule(u, r)));
 }
 
-// Resolve the recipient list for a campaign's segment.
-//  - smart segments: evaluate rules server-side over enriched_users (was: send to
-//    ALL users regardless of rules — a mass mis-send risk).
-//  - manual segments: registered members (segment_members) PLUS the uploaded
-//    contact pool (crm_contacts by segment_id — previously never emailed).
-// Deduplicated by lowercased email (a contact who is also a registered user is
-// emailed once, keeping the registered user_id).
 async function getRecipients(
   supabase: ReturnType<typeof createClient>,
   segmentId: string | null,
@@ -184,7 +153,6 @@ async function getRecipients(
 
   const rules = (seg.rules ?? []) as SegmentRule[];
 
-  // user_id -> email for registered users
   const { data: { users } } = await supabase.auth.admin.listUsers({ perPage: 1000 });
   const authUsers: AuthUser[] = users ?? [];
   const emailById = new Map<string, string>();
@@ -213,8 +181,6 @@ async function getRecipients(
       }
     }
 
-    // Uploaded contact pool via the contact_segments junction — supports a
-    // contact belonging to multiple segments (was: crm_contacts.segment_id only).
     const { data: memberships } = await supabase
       .from("contact_segments")
       .select("crm_contacts(email, full_name)")
@@ -224,7 +190,6 @@ async function getRecipients(
       if (c?.email) out.push({ user_id: null, email: c.email, full_name: c.full_name ?? null });
     }
   } else {
-    // Smart segment — evaluate rules server-side (P2.1)
     const { data: enriched } = await supabase.from("enriched_users").select("*");
     const matched = applyRules(((enriched ?? []) as EnrichedUser[]), rules);
     for (const u of matched) {
@@ -233,7 +198,6 @@ async function getRecipients(
     }
   }
 
-  // Dedup by lowercased email (registered members are pushed before contacts).
   const seen = new Set<string>();
   const recipients: Recipient[] = [];
   for (const r of out) {
@@ -253,6 +217,7 @@ Deno.serve(async (req: Request) => {
 
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   if (!RESEND_API_KEY) {
@@ -261,30 +226,33 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Admin guard — the live admin console authenticates users via Supabase auth
+  // with the JWT claim app_metadata.role === 'admin' (NOT the legacy
+  // admin_sessions model). This function runs with the service-role key, so it
+  // must verify the CALLER is such an admin before sending a single email.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+  const { data: { user }, error: userErr } = await userClient.auth.getUser();
+  const role = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
+  if (userErr || !user || role !== "admin") {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const adminUserId = user.id;
+
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  const { campaign_id, session_token } = await req.json() as {
-    campaign_id: string;
-    session_token?: string;
-  };
+  const { campaign_id } = await req.json() as { campaign_id: string };
   if (!campaign_id) {
     return new Response(JSON.stringify({ error: "campaign_id required" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // §10b — verify the admin session server-side before touching any data or
-  // sending a single email. This function runs with the service-role key, so
-  // without this guard anyone holding the public anon key could trigger a send.
-  const admin = await resolveSession(supabase, session_token ?? "");
-  if (!admin) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-  const adminUserId = admin.id as string;
-
-  // Load campaign
   const { data: campaign } = await supabase
     .from("marketing_campaigns")
     .select("id,name,subject,body_html,from_name,from_email,reply_to,segment_id,ab_enabled,ab_variants")
@@ -297,19 +265,15 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Load suppression list
   const { data: suppList } = await supabase.from("email_suppression_list").select("email");
   const suppressed = new Set(((suppList ?? []) as SuppressionRow[]).map((s) => s.email.toLowerCase()));
 
-  // Get recipients — smart segments evaluated server-side; manual segments include
-  // registered members + uploaded crm_contacts; deduped by email.
   const { recipients, ruleCount, segmentType } = await getRecipients(supabase, campaign.segment_id);
   const eligible = recipients.filter((r) => !suppressed.has(r.email.toLowerCase()));
 
   let sentCount = 0;
 
   for (const recipient of eligible) {
-    // Determine A/B variant subject
     let subject = campaign.subject;
     let abVariant: string | null = null;
 
@@ -340,13 +304,16 @@ Deno.serve(async (req: Request) => {
     };
 
     const personalizedSubject = replacePlaceholders(subject, vars);
+    // Single compliant footer (RTL): honest reason line, one working unsubscribe
+    // link (→ bethra.co), and the physical mailing address. Campaign bodies must
+    // not include their own footer/address.
     const bodyWithUnsubscribe = campaign.body_html +
-      `\n<p dir="rtl" style="font-size:11px;color:#94a3b8;text-align:center;margin-top:32px;">` +
-      `تصلك هذه الرسالة لأنك مشترك في بذرة. ` +
-      `<a href="${unsubscribeUrl}" style="color:#94a3b8;">إلغاء الاشتراك</a></p>`;
+      `\n<p dir="rtl" style="font-size:11px;color:#94a3b8;text-align:center;line-height:1.7;margin-top:32px;">` +
+      `وصلتك هذه الرسالة من بذرة (Life Easy LLC). إن كنت تفضّل عدم استقبال رسائلنا، ` +
+      `<a href="${unsubscribeUrl}" style="color:#94a3b8;text-decoration:underline;">يمكنك إلغاء الاشتراك من هنا</a>.<br>` +
+      `Life Easy LLC · 44887 W Bahia Dr · Maricopa, AZ 85139</p>`;
     const personalizedBody = replacePlaceholders(bodyWithUnsubscribe, vars);
 
-    // Strip HTML tags to create plain text version
     const stripHtml = (html: string) => html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
     const textBody = stripHtml(personalizedBody);
 
@@ -382,7 +349,6 @@ Deno.serve(async (req: Request) => {
     if (res.ok) sentCount++;
   }
 
-  // Update campaign stats
   await supabase.from("marketing_campaigns").update({
     status: "sent",
     sent_at: new Date().toISOString(),
@@ -390,7 +356,7 @@ Deno.serve(async (req: Request) => {
     sent_count: sentCount,
   }).eq("id", campaign_id);
 
-  // §10b — audit trail: record which admin triggered this send.
+  // Audit trail: record which admin (auth user) triggered the send. Best-effort.
   await supabase.from("admin_action_log").insert({
     admin_user_id: adminUserId,
     action: "send_campaign",
