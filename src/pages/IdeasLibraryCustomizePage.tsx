@@ -97,18 +97,6 @@ export default function IdeasLibraryCustomizePage() {
       setSubmitting(true);
       setError(null);
 
-      // Re-check availability with a fresh read
-      const { data: fresh } = await supabase
-        .from('library_ideas')
-        .select('spots_taken, spots_total')
-        .eq('id', idea.id)
-        .maybeSingle();
-
-      if (!fresh || fresh.spots_taken >= fresh.spots_total) {
-        setError('عذراً، اكتملت المقاعد للتو. اختر فكرة أخرى.');
-        return;
-      }
-
       // Create the user_idea from library idea
       const { data: newIdea, error: ideaError } = await supabase
         .from('user_ideas')
@@ -343,9 +331,6 @@ export default function IdeasLibraryCustomizePage() {
 
                     <Grid container spacing={2}>
                       {[
-                        { label: 'تكلفة البدء', value: `$${(idea.initial_investment_min / 1000).toFixed(0)}K–$${(idea.initial_investment_max / 1000).toFixed(0)}K` },
-                        { label: 'نطاق العائد', value: `${idea.est_roi_min}–${idea.est_roi_max}%` },
-                        { label: 'نقطة التعادل', value: `${idea.break_even_months} شهراً` },
                         { label: 'مدة الإطلاق', value: `${idea.time_to_launch_weeks} أسبوعاً` },
                       ].map(({ label, value }) => (
                         <Grid size={{ xs: 6 }} key={label}>
@@ -457,7 +442,6 @@ export default function IdeasLibraryCustomizePage() {
                     { label: 'الفكرة', value: idea.title },
                     { label: 'اسم مشروعك', value: businessName || '(اسم الفكرة الأصلي)' },
                     { label: 'مدينتك', value: city || '(غير محددة)' },
-                    { label: 'المقاعد المتبقية بعد الحجز', value: `${idea.spots_total - idea.spots_taken - 1} من ${idea.spots_total}` },
                   ].map(({ label, value }) => (
                     <Stack key={label} direction="row" justifyContent="space-between" alignItems="flex-start">
                       <Typography variant="body2" color="text.secondary">{label}</Typography>

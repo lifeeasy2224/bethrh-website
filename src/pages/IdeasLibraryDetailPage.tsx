@@ -15,7 +15,6 @@ import Skeleton from '@mui/material/Skeleton';
 import Breadcrumbs from '@mui/material/Breadcrumbs';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
 import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -58,27 +57,6 @@ const SECTOR_AR: Record<string, string> = {
   Services: 'الخدمات',
   Sustainability: 'الاستدامة',
 };
-
-function StatCard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
-  return (
-    <Card variant="outlined" sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 2.5 }}>
-        <Box sx={{ color: 'primary.main', mb: 1 }}>{icon}</Box>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {label}
-        </Typography>
-        <Typography variant="h6" sx={{ fontWeight: 700, mt: 0.25 }}>
-          {value}
-        </Typography>
-        {sub && (
-          <Typography variant="caption" color="text.secondary">
-            {sub}
-          </Typography>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 function Section({ title, icon, children }: { title: string; icon?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -368,10 +346,6 @@ export default function IdeasLibraryDetailPage() {
                       <Typography variant="caption" color="text.secondary">مدة الإطلاق</Typography>
                       <Typography variant="caption" fontWeight={700}>{idea.time_to_launch_weeks}–{idea.time_to_launch_weeks + 4} أسبوعاً</Typography>
                     </Stack>
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="caption" color="text.secondary">نقطة التعادل</Typography>
-                      <Typography variant="caption" fontWeight={700}>{idea.break_even_months} شهراً</Typography>
-                    </Stack>
                   </Stack>
                 </CardContent>
               </Card>
@@ -385,18 +359,10 @@ export default function IdeasLibraryDetailPage() {
         <Container maxWidth="lg">
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 8 }}>
-              {/* Financials — break-even estimate only; founders model revenue/costs with real tools */}
               <Section title="لمحة مالية" icon={<AttachMoneyIcon />}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6, sm: 3 }}>
-                    <StatCard
-                      icon={<TimerOutlinedIcon />}
-                      label="نقطة التعادل"
-                      value={`${idea.break_even_months} شهر`}
-                      sub="تقديري"
-                    />
-                  </Grid>
-                </Grid>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  استخدم أدوات بذرة لبناء تقديراتك المالية الخاصة.
+                </Typography>
                 <Box sx={{ mt: 3, p: 2.5, bgcolor: '#F7F3EC', borderRadius: 2 }}>
                   <Typography variant="body2" sx={{ mb: 1.5, color: 'text.primary', lineHeight: 1.8 }}>
                     الأرقام المالية تعتمد على سوقك الفعلي وتنفيذك. استخدم أدوات البناء المالي لنمذجة إيراداتك وتكاليفك الخاصة:
