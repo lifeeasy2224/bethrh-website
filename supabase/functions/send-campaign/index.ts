@@ -38,6 +38,27 @@ function replacePlaceholders(template: string, vars: Record<string, string>): st
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? "");
 }
 
+// Legacy admin_sessions guard (the CURRENT live Vite admin console authenticates
+// this way: an opaque session_token, past 2FA, not expired). Kept alongside the
+// newer Supabase-JWT + app_metadata.role='admin' path so BOTH the live Vite admin
+// and a future Next.js admin can trigger sends. Returns the admin_users row or null.
+async function resolveSession(supabase: ReturnType<typeof createClient>, token: string) {
+  if (!token) return null;
+  const { data } = await supabase
+    .from("admin_sessions")
+    .select("*, admin_users(*)")
+    .eq("token", token)
+    .eq("is_pending_2fa", false)
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+  if (!data) return null;
+  await supabase.from("admin_sessions").update({
+    last_active: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+  }).eq("id", data.id);
+  return data.admin_users as Record<string, unknown>;
+}
+
 // ── Segment rule evaluation ──────────────────────────────────────────────────
 // Ported from the admin CRM segment engine so a server-side send matches the
 // admin console's audience preview exactly. Smart-segment rules are combined
@@ -226,27 +247,35 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // Admin guard — the live admin console authenticates users via Supabase auth
-  // with the JWT claim app_metadata.role === 'admin' (NOT the legacy
-  // admin_sessions model). This function runs with the service-role key, so it
-  // must verify the CALLER is such an admin before sending a single email.
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const token = authHeader.replace(/^Bearer\s+/i, "");
-  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const { data: { user }, error: userErr } = await userClient.auth.getUser();
-  const role = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-  if (userErr || !user || role !== "admin") {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  const { campaign_id, session_token } = await req.json() as {
+    campaign_id: string;
+    session_token?: string;
+  };
+
+  // Admin guard — accept EITHER the legacy admin_sessions token (current live
+  // Vite admin) OR a Supabase JWT with app_metadata.role='admin' (future Next.js
+  // admin). Runs with the service-role key, so an unauthenticated caller must
+  // never reach the send loop.
+  let adminUserId: string | null = null;
+  const legacyAdmin = await resolveSession(supabase, session_token ?? "");
+  if (legacyAdmin) {
+    adminUserId = legacyAdmin.id as string;
+  } else {
+    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+    });
+    const { data: { user } } = await userClient.auth.getUser();
+    const role = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
+    if (user && role === "admin") adminUserId = user.id;
+  }
+  if (!adminUserId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-  const adminUserId = user.id;
-
-  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  const { campaign_id } = await req.json() as { campaign_id: string };
   if (!campaign_id) {
     return new Response(JSON.stringify({ error: "campaign_id required" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
