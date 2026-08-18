@@ -51,16 +51,8 @@ interface IdeaForm {
   best_markets: string;
   quick_start_steps: string;
   financial_estimates: string;
-  est_roi_min: number;
-  est_roi_max: number;
-  break_even_months: number;
-  initial_investment_min: number;
-  initial_investment_max: number;
-  monthly_revenue_y1_min: number;
-  monthly_revenue_y1_max: number;
   difficulty: 'easy' | 'medium' | 'hard';
   time_to_launch_weeks: number;
-  spots_total: number;
   is_published: boolean;
   is_featured: boolean;
   tags: string[];
@@ -72,10 +64,7 @@ const EMPTY: IdeaForm = {
   problem: '', solution: '', target_market: '', revenue_model: '',
   why_now: '', biggest_challenge: '', best_markets: '',
   quick_start_steps: '', financial_estimates: '',
-  est_roi_min: 0, est_roi_max: 0, break_even_months: 12,
-  initial_investment_min: 0, initial_investment_max: 0,
-  monthly_revenue_y1_min: 0, monthly_revenue_y1_max: 0,
-  difficulty: 'medium', time_to_launch_weeks: 8, spots_total: 3,
+  difficulty: 'medium', time_to_launch_weeks: 8,
   is_published: false, is_featured: false,
   tags: [], tags_input: '',
 };
@@ -213,16 +202,8 @@ export default function AdminIdeasFormPage() {
         best_markets: String(idea.best_markets ?? ''),
         quick_start_steps: String(idea.quick_start_steps ?? ''),
         financial_estimates: String(idea.financial_estimates ?? ''),
-        est_roi_min: Number(idea.est_roi_min) || 0,
-        est_roi_max: Number(idea.est_roi_max) || 0,
-        break_even_months: Number(idea.break_even_months) || 12,
-        initial_investment_min: Number(idea.initial_investment_min) || 0,
-        initial_investment_max: Number(idea.initial_investment_max) || 0,
-        monthly_revenue_y1_min: Number(idea.monthly_revenue_y1_min) || 0,
-        monthly_revenue_y1_max: Number(idea.monthly_revenue_y1_max) || 0,
         difficulty: (['easy', 'medium', 'hard'].includes(String(idea.difficulty)) ? idea.difficulty : 'medium') as 'easy' | 'medium' | 'hard',
         time_to_launch_weeks: Number(idea.time_to_launch_weeks) || 8,
-        spots_total: Number(idea.spots_total) || 3,
         is_published: Boolean(idea.is_published),
         is_featured: Boolean(idea.is_featured),
         tags: Array.isArray(idea.tags) ? (idea.tags as string[]) : [],
@@ -265,16 +246,8 @@ export default function AdminIdeasFormPage() {
       why_now: form.why_now, biggest_challenge: form.biggest_challenge,
       best_markets: form.best_markets, quick_start_steps: form.quick_start_steps,
       financial_estimates: form.financial_estimates,
-      est_roi_min: Number(form.est_roi_min) || 0,
-      est_roi_max: Number(form.est_roi_max) || 0,
-      break_even_months: Number(form.break_even_months) || 12,
-      initial_investment_min: Number(form.initial_investment_min) || 0,
-      initial_investment_max: Number(form.initial_investment_max) || 0,
-      monthly_revenue_y1_min: Number(form.monthly_revenue_y1_min) || 0,
-      monthly_revenue_y1_max: Number(form.monthly_revenue_y1_max) || 0,
       difficulty: form.difficulty,
       time_to_launch_weeks: Number(form.time_to_launch_weeks) || 8,
-      spots_total: Number(form.spots_total) || 3,
       is_published: form.is_published,
       is_featured: form.is_featured,
       tags,
@@ -384,7 +357,7 @@ export default function AdminIdeasFormPage() {
               </FormControl>
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
-              <TextField label="Spots Total" type="number" value={form.spots_total} onChange={tf('spots_total')} fullWidth />
+              <TextField label="Time to Launch (weeks)" type="number" value={form.time_to_launch_weeks} onChange={tf('time_to_launch_weeks')} fullWidth />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField label="Tagline" value={form.tagline} onChange={tf('tagline')} fullWidth helperText="One-line pitch (shown in cards)" />
@@ -417,26 +390,6 @@ export default function AdminIdeasFormPage() {
             <RichTextEditor label="Quick Start Steps" value={form.quick_start_steps} onChange={v => set('quick_start_steps', v)} />
             <RichTextEditor label="Financial Estimates" value={form.financial_estimates} onChange={v => set('financial_estimates', v)} />
           </Stack>
-        </Section>
-
-        {/* Financials */}
-        <Section title="Financials">
-          <Grid container spacing={2.5}>
-            {([
-              { label: 'ROI Min %', key: 'est_roi_min' },
-              { label: 'ROI Max %', key: 'est_roi_max' },
-              { label: 'Break-even (months)', key: 'break_even_months' },
-              { label: 'Time to Launch (weeks)', key: 'time_to_launch_weeks' },
-              { label: 'Investment Min $', key: 'initial_investment_min' },
-              { label: 'Investment Max $', key: 'initial_investment_max' },
-              { label: 'Y1 Monthly Rev Min $', key: 'monthly_revenue_y1_min' },
-              { label: 'Y1 Monthly Rev Max $', key: 'monthly_revenue_y1_max' },
-            ] as { label: string; key: keyof IdeaForm }[]).map(({ label, key }) => (
-              <Grid size={{ xs: 6, sm: 3 }} key={key}>
-                <TextField label={label} type="number" value={form[key]} onChange={tf(key)} fullWidth />
-              </Grid>
-            ))}
-          </Grid>
         </Section>
 
         {/* Tags */}
