@@ -55,6 +55,8 @@ export default function NinetyDayPage() {
   const { triggerReview } = useReview();
   const [tasks, setTasks] = useState<TaskMap>({});
   const [toast, setToast] = useState<string | null>(null);
+  const [recommendedWeeks, setRecommendedWeeks] = useState<number[]>([]);
+  const [rationale, setRationale] = useState<string>('');
 
   const plan = profile?.plan ?? 'free';
   const canAccess = plan !== 'free';
@@ -68,6 +70,21 @@ export default function NinetyDayPage() {
       map[t.week_number][t.task_key] = !!t.is_completed || !!t.completed_at;
     });
     setTasks(map);
+
+    // Adaptive unlock layer — non-destructive, only ever adds early unlocks on
+    // top of the fixed sequential backbone above. Best-effort: a failure here
+    // just means no early unlocks this load, never a broken page.
+    try {
+      const { data: plan, error } = await supabase.functions.invoke('journey-plan', {
+        body: { idea_id: selectedIdeaId },
+      });
+      if (error) throw error;
+      setRecommendedWeeks(Array.isArray(plan?.recommended_weeks) ? plan.recommended_weeks : []);
+      setRationale(typeof plan?.rationale === 'string' ? plan.rationale : '');
+    } catch {
+      setRecommendedWeeks([]);
+      setRationale('');
+    }
   }
 
   useEffect(() => { if (user && selectedIdeaId) loadTasks(); }, [selectedIdeaId, user]);
@@ -104,11 +121,26 @@ export default function NinetyDayPage() {
     }
   }, [overallPct, totalTasks, selectedIdeaId]);
 
-  function isWeekUnlocked(w: Week): boolean {
+  // The fixed sequential backbone — unchanged from before the adaptive layer.
+  function isSequentiallyUnlocked(w: Week): boolean {
     if (w.num === 1) return true;
     const prev = tasks[w.num - 1] ?? {};
     return !!prev['main'];
   }
+
+  // journey-plan only ADDS early unlocks on top of the sequential backbone —
+  // it never locks a week that the sequential rule would have opened.
+  function isAdaptivelyUnlocked(w: Week): boolean {
+    return recommendedWeeks.includes(w.num);
+  }
+
+  function isWeekUnlocked(w: Week): boolean {
+    return isSequentiallyUnlocked(w) || isAdaptivelyUnlocked(w);
+  }
+
+  // Weeks the adaptive layer actually changed — i.e. recommended by journey-plan
+  // but not already open via the sequential rule. Empty means it changed nothing.
+  const adaptiveExtraWeeks = WEEKS.filter(w => isAdaptivelyUnlocked(w) && !isSequentiallyUnlocked(w)).map(w => w.num);
 
   function getWeekStatus(w: Week): 'complete' | 'in_progress' | 'locked' | 'upcoming' {
     if (!isWeekUnlocked(w)) return 'locked';
@@ -180,13 +212,20 @@ export default function NinetyDayPage() {
         </CardContent>
       </Card>
 
+      {adaptiveExtraWeeks.length > 0 && rationale && (
+        <Alert severity="info" sx={{ mb: 2 }}>{rationale}</Alert>
+      )}
+
       {/* Weeks */}
       <Stack spacing={2}>
         {WEEKS.map(week => {
           const status = getWeekStatus(week);
           const wt = tasks[week.num] ?? {};
           const isLocked = status === 'locked';
-          const borderColor = { complete: '#2A8A52', in_progress: '#1B6B3E', locked: '#E8E4DC', upcoming: '#E8E4DC' }[status];
+          const isAdaptive = adaptiveExtraWeeks.includes(week.num);
+          const borderColor = isAdaptive && status === 'upcoming'
+            ? '#D4A653'
+            : { complete: '#2A8A52', in_progress: '#1B6B3E', locked: '#E8E4DC', upcoming: '#E8E4DC' }[status];
           const badge = { complete: '✅ مكتمل', in_progress: '🔄 قيد التنفيذ', locked: '🔒 مقفل', upcoming: '⬜ قادم' }[status];
 
           return (
@@ -197,6 +236,9 @@ export default function NinetyDayPage() {
                     <Stack direction="row" spacing={1} alignItems="center">
                       <Chip label={`الأسبوع ${week.num}`} size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: `${PHASE_COLORS[week.phase - 1]}18`, color: PHASE_COLORS[week.phase - 1], fontWeight: 700 }} />
                       <Chip label={badge} size="small" sx={{ height: 20, fontSize: '0.7rem' }} />
+                      {isAdaptive && (
+                        <Chip label="فُتح مبكراً" size="small" sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#D4A65322', color: '#8A6D2F', fontWeight: 700 }} />
+                      )}
                     </Stack>
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 0.75 }}>{week.title}</Typography>
                   </Box>
