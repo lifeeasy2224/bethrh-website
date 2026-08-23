@@ -30,12 +30,13 @@ import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import FounderSidebar from '../../components/FounderSidebar';
 import { supabase, getStageInfo } from '../../supabase';
-import { recomputeIqScore, type ScoreBreakdown } from '../../lib/iqScore';
+import { recomputeIqScore, TAKEOFF_THRESHOLD, type ScoreBreakdown } from '../../lib/iqScore';
 import { assessIdea } from '../../lib/assessIdea';
 import JourneyOverview from './overview/JourneyOverview';
 import { buildJourney } from './overview/journeyModel';
@@ -76,6 +77,8 @@ export default function FounderDashboard() {
   const [milestoneAmount, setMilestoneAmount] = useState('');
   const [savingMilestone, setSavingMilestone] = useState(false);
   const [celebrationToast, setCelebrationToast] = useState<string | null>(null);
+  const [takeoffOpen, setTakeoffOpen] = useState(false);
+  const takeoffShownRef = useRef(false);
   const prevStageRef = useRef<string | null>(null);
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
@@ -134,6 +137,19 @@ export default function FounderDashboard() {
         recentActivity.push({ icon: '✅', text: `اكتملت مهمة — الأسبوع ${(t as unknown as { week_number: number }).week_number ?? ''}`, time: formatTime(t.completed_at) });
       });
 
+      takeoffShownRef.current = false; // allow the moment for whichever idea just loaded
+
+      // One-time "ready to take off" moment: recomputeIqScore flags takeoffReady
+      // on the founder's first crossing of TAKEOFF_THRESHOLD that hasn't been
+      // celebrated yet. The dialog itself writes takeoff_celebrated_at on dismiss,
+      // so it only shows once even across remounts.
+      function celebrateTakeoffIfReady(res: Awaited<ReturnType<typeof recomputeIqScore>>) {
+        if (cancelled || !res?.takeoffReady || takeoffShownRef.current) return;
+        takeoffShownRef.current = true;
+        setTakeoffOpen(true);
+        void fireConfetti();
+      }
+
       // ── Phase 1 (preserved verbatim): the real evidence-weighted score —
       // single source of truth in recomputeIqScore, which also persists
       // user_ideas.iq_score / iq_breakdown. ──
@@ -146,6 +162,7 @@ export default function FounderDashboard() {
         validationCount, canvasBlocksFilled, journeyTasksDone, swotExists, pitchExists,
         recentActivity: recentActivity.slice(0, 4),
       });
+      celebrateTakeoffIfReady(scoreRes);
 
       // ── Phase 2 (preserved verbatim): bounded AI-assessment refresh, at
       // most one LLM call per load, only when the assessment is missing or
@@ -159,6 +176,7 @@ export default function FounderDashboard() {
           const refreshed = await recomputeIqScore(selectedIdeaId!);
           if (!cancelled && refreshed) {
             setMetrics(m => ({ ...m, iqScore: refreshed.score, breakdown: refreshed.breakdown }));
+            celebrateTakeoffIfReady(refreshed); // coach refresh can push it over the threshold
           }
         })();
       }
@@ -199,6 +217,20 @@ export default function FounderDashboard() {
     void fireConfetti();
     setCelebrationToast(isRevenue ? '🎉 مبروك أول إيراد لك!' : '🎉 أول عميل لك — رائع!');
   }
+
+  async function handleDismissTakeoff() {
+    setTakeoffOpen(false);
+    if (!selectedIdeaId) return;
+    await supabase.from('user_ideas').update({ takeoff_celebrated_at: new Date().toISOString() }).eq('id', selectedIdeaId);
+  }
+
+  // Real evidence behind the take-off moment — only what actually contributed.
+  const takeoffEvidence: string[] = [];
+  if (metrics.validationCount > 0) takeoffEvidence.push(`${metrics.validationCount} ${metrics.validationCount === 1 ? 'إشارة تحقق حقيقية' : 'إشارات تحقق حقيقية'} مسجّلة`);
+  if (metrics.canvasBlocksFilled > 0) takeoffEvidence.push(`مخطط النموذج التجاري — ${metrics.canvasBlocksFilled}/9 مربعات معبّأة`);
+  if (metrics.breakdown.financials > 0) takeoffEvidence.push('التوقعات المالية مُعدّة');
+  if (metrics.journeyTasksDone > 0) takeoffEvidence.push(`${metrics.journeyTasksDone}/48 مهمة من رحلة الـ ٩٠ يوماً مكتملة`);
+  if (metrics.breakdown.coach > 0) takeoffEvidence.push('تقييم المدرّب الذكي اجتاز الحد');
 
   // Milestone logging is offered once a founder has traction (growing/ready) —
   // replaces the old dashboard's "First Dollar" path-widget buttons, which
@@ -477,6 +509,41 @@ export default function FounderDashboard() {
           <Button onClick={() => setMilestoneDialog(null)} color="inherit">إلغاء</Button>
           <Button variant="contained" onClick={handleMilestoneSave} disabled={savingMilestone}>
             {savingMilestone ? 'جارٍ الحفظ…' : 'احتفل! 🎉'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* One-time "ready to take off" moment — fires once when the idea first crosses TAKEOFF_THRESHOLD. */}
+      <Dialog open={takeoffOpen} onClose={handleDismissTakeoff} maxWidth="xs" fullWidth
+        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}>
+        <Box sx={{ bgcolor: '#0F3D24', color: '#fff', textAlign: 'center', px: 4, pt: 4, pb: 3 }}>
+          <RocketLaunchIcon sx={{ fontSize: 52, color: '#D4A653' }} />
+          <Typography sx={{ mt: 1, fontWeight: 800, fontSize: '1.5rem' }}>فكرتك جاهزة للانطلاق! 🚀</Typography>
+          <Typography sx={{ color: 'rgba(255,255,255,0.75)', mt: 0.5, fontSize: '0.9rem' }}>
+            "{selectedIdea?.title}" تجاوزت للتو خط الجاهزية ({TAKEOFF_THRESHOLD}/100).
+          </Typography>
+          <Box sx={{ mt: 2, display: 'inline-flex', alignItems: 'baseline', gap: 0.5 }}>
+            <Typography sx={{ fontWeight: 900, fontSize: '3rem', color: '#D4A653', lineHeight: 1 }}>{metrics.iqScore}</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>/100</Typography>
+          </Box>
+        </Box>
+        <DialogContent sx={{ p: 3 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.75rem', color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 0.5, mb: 1.5 }}>
+            العمل الحقيقي وراءها
+          </Typography>
+          <Stack spacing={1}>
+            {takeoffEvidence.map((e, i) => (
+              <Stack key={i} direction="row" spacing={1} alignItems="center">
+                <CheckCircleIcon sx={{ fontSize: 18, color: 'success.main' }} />
+                <Typography variant="body2">{e}</Typography>
+              </Stack>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={handleDismissTakeoff} color="inherit">أكمل البناء</Button>
+          <Button variant="contained" component={Link} to="/journey/pitch" onClick={handleDismissTakeoff} startIcon={<RocketLaunchIcon />}>
+            اعرضها على المستثمرين
           </Button>
         </DialogActions>
       </Dialog>

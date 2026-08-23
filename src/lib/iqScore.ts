@@ -85,14 +85,14 @@ export function computeIqScore(p: IqScoreInputs): number {
 // the marketplace-publish threshold used elsewhere in the app).
 export const TAKEOFF_THRESHOLD = 80;
 
-export async function recomputeIqScore(ideaId: string): Promise<{ score: number; breakdown: ScoreBreakdown } | null> {
+export async function recomputeIqScore(ideaId: string): Promise<{ score: number; breakdown: ScoreBreakdown; takeoffReady: boolean } | null> {
   if (!ideaId) return null;
 
   const [valRes, canvasRes, tasksRes, ideaRes] = await Promise.all([
     supabase.from('validation_entries').select('type, sentiment, amount').eq('user_idea_id', ideaId),
     supabase.from('canvas_data').select('*').eq('user_idea_id', ideaId).maybeSingle(),
     supabase.from('journey_tasks').select('id', { count: 'exact', head: true }).eq('user_idea_id', ideaId).eq('is_completed', true),
-    supabase.from('user_ideas').select('iq_score, iq_breakdown, coach_assessment').eq('id', ideaId).maybeSingle(),
+    supabase.from('user_ideas').select('iq_score, iq_breakdown, coach_assessment, takeoff_ready_at, takeoff_celebrated_at').eq('id', ideaId).maybeSingle(),
   ]);
 
   const canvas = canvasRes.data as Record<string, unknown> | null;
@@ -120,13 +120,33 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
   const oldScore = ideaRes.data?.iq_score ?? null;
   const oldBreakdown = JSON.stringify(ideaRes.data?.iq_breakdown ?? null);
   const newBreakdown = JSON.stringify(breakdown);
+  const readyAt = ideaRes.data?.takeoff_ready_at ?? null;
+  const celebratedAt = ideaRes.data?.takeoff_celebrated_at ?? null;
+
+  // Genuine first crossing: was below the threshold, is now at/above it. Ideas
+  // that were already >= threshold never qualify (no retroactive firing).
+  const crossed = (oldScore ?? 0) < TAKEOFF_THRESHOLD && breakdown.total >= TAKEOFF_THRESHOLD;
+
+  const patch: Record<string, unknown> = {};
   if (oldScore !== breakdown.total || oldBreakdown !== newBreakdown) {
     // Persist the breakdown alongside the total. Investors can't read a founder's
     // raw canvas_data (RLS is owner-only, no marketplace exception), so this
     // cached breakdown — written under the founder's own full-access session —
     // is how IdeaDetailPage shows real components without fabricating them.
-    await supabase.from('user_ideas').update({ iq_score: breakdown.total, iq_breakdown: breakdown }).eq('id', ideaId);
+    patch.iq_score = breakdown.total;
+    patch.iq_breakdown = breakdown;
+  }
+  // Stamp the pending take-off exactly once, only on the first crossing.
+  let readyNow = readyAt;
+  if (crossed && !readyAt && !celebratedAt) {
+    readyNow = new Date().toISOString();
+    patch.takeoff_ready_at = readyNow;
+  }
+  if (Object.keys(patch).length > 0) {
+    await supabase.from('user_ideas').update(patch).eq('id', ideaId);
   }
 
-  return { score: breakdown.total, breakdown };
+  // There's a take-off moment to show iff it's flagged ready and not yet celebrated.
+  const takeoffReady = !!readyNow && !celebratedAt;
+  return { score: breakdown.total, breakdown, takeoffReady };
 }
