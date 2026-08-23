@@ -254,27 +254,37 @@ Deno.serve(async (req: Request) => {
     session_token?: string;
   };
 
-  // Admin guard — accept EITHER the legacy admin_sessions token (current live
-  // Vite admin) OR a Supabase JWT with app_metadata.role='admin' (future Next.js
-  // admin). Runs with the service-role key, so an unauthenticated caller must
-  // never reach the send loop.
+  // Admin guard — accept the legacy admin_sessions token (current live Vite
+  // admin), a Supabase JWT with app_metadata.role='admin' (future Next.js
+  // admin), OR the shared cron bearer secret (process-scheduled-campaigns —
+  // same system-caller pattern as cleanup-expired-documents' checkCronAuth,
+  // but on a dedicated header since Authorization is already used above for
+  // the admin-JWT path). Runs with the service-role key, so an unauthenticated
+  // caller must never reach the send loop.
   let adminUserId: string | null = null;
-  const legacyAdmin = await resolveSession(supabase, session_token ?? "");
-  if (legacyAdmin) {
-    adminUserId = legacyAdmin.id as string;
+  let isCronCall = false;
+  const cronToken = req.headers.get("x-cron-token") ?? "";
+  const expectedCronToken = Deno.env.get("CRON_BEARER_TOKEN");
+  if (expectedCronToken && cronToken === expectedCronToken) {
+    isCronCall = true;
   } else {
-    const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
-    });
-    const { data: { user } } = await userClient.auth.getUser();
-    const role = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
-    if (user && role === "admin") adminUserId = user.id;
-  }
-  if (!adminUserId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const legacyAdmin = await resolveSession(supabase, session_token ?? "");
+    if (legacyAdmin) {
+      adminUserId = legacyAdmin.id as string;
+    } else {
+      const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+      const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${bearer}` } },
+      });
+      const { data: { user } } = await userClient.auth.getUser();
+      const role = (user?.app_metadata as Record<string, unknown> | undefined)?.role;
+      if (user && role === "admin") adminUserId = user.id;
+    }
+    if (!adminUserId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   }
   if (!campaign_id) {
     return new Response(JSON.stringify({ error: "campaign_id required" }), {
@@ -385,10 +395,11 @@ Deno.serve(async (req: Request) => {
     sent_count: sentCount,
   }).eq("id", campaign_id);
 
-  // Audit trail: record which admin (auth user) triggered the send. Best-effort.
+  // Audit trail: record which admin (auth user) triggered the send, or that it
+  // was a scheduled/cron-triggered send (admin_user_id null). Best-effort.
   await supabase.from("admin_action_log").insert({
     admin_user_id: adminUserId,
-    action: "send_campaign",
+    action: isCronCall ? "send_campaign_scheduled" : "send_campaign",
     metadata: {
       campaign_id,
       segment_type: segmentType,
