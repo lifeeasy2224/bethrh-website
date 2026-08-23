@@ -26,6 +26,9 @@ import PublicIcon from '@mui/icons-material/Public';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import CircularProgress from '@mui/material/CircularProgress';
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
+import Tooltip from '@mui/material/Tooltip';
+import { createElement } from 'react';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
@@ -96,6 +99,7 @@ export default function PitchPage() {
   const [draftResult, setDraftResult] = useState<PitchDraftResult | null>(null);
   const [draftApplying, setDraftApplying] = useState(false);
   const [draftApplied, setDraftApplied] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   const plan = profile?.plan ?? 'free';
   const canAccess = plan === 'growth' || plan === 'launch' || plan === 'family';
@@ -220,6 +224,52 @@ export default function PitchPage() {
     setDraftResult(null);
   }
 
+  const pitchGenerated = generated || !!pitchData?.last_generated_at;
+  const exportBlockedReason = !pitchGenerated
+    ? 'ولّد العرض أولاً قبل التصدير'
+    : '';
+
+  async function downloadPdf() {
+    if (!selectedIdea || exportBlockedReason) return;
+    setGeneratingPdf(true);
+    try {
+      const [{ pdf }, { default: PitchPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('../../components/PitchPdfDocument'),
+      ]);
+      const date = new Date().toLocaleDateString('ar', { year: 'numeric', month: 'long', day: 'numeric' });
+      const blob = await pdf(
+        createElement(PitchPdfDocument, {
+          pitch: {
+            elevator_pitch: elevatorPitch,
+            pitch_problem: pitchProblem,
+            pitch_solution: pitchSolution,
+            target_market: targetMarket,
+            revenue_model: revenueModel,
+            break_even_summary: breakEvenSummary,
+            investment_amount: parseFloat(investmentAmt) || null,
+            use_of_funds: useOfFunds,
+          },
+          ideaName: selectedIdea.title,
+          founderName: profile?.full_name ?? 'رائد الأعمال',
+          date,
+        }) as any
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const safeName = selectedIdea.title.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_');
+      const dateStr = new Date().toISOString().split('T')[0];
+      link.href = url;
+      link.download = `Bethra_Pitch_${safeName}_${dateStr}.pdf`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setToast({ msg: 'تعذّر توليد ملف PDF. حاول مرة أخرى.', sev: 'error' });
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }
+
   async function handlePublish() {
     if (!user || !selectedIdeaId || !canPublish) return;
     setPublishing(true);
@@ -283,6 +333,26 @@ export default function PitchPage() {
           >
             {draftLoading ? 'جارٍ التوليد…' : draftApplied ? 'تم التوليد ✓' : 'مسودة بالذكاء الاصطناعي'}
           </Button>
+          <Tooltip title={exportBlockedReason} arrow>
+            <span>
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={generatingPdf ? <CircularProgress size={14} color="inherit" /> : <FileDownloadOutlinedIcon />}
+                onClick={downloadPdf}
+                disabled={!!exportBlockedReason || generatingPdf}
+                sx={{
+                  bgcolor: '#0F3D24',
+                  color: '#fff',
+                  fontWeight: 600,
+                  '&:hover': { bgcolor: '#D4A653', color: '#0F3D24' },
+                  '&.Mui-disabled': { bgcolor: '#B5AE9F', color: '#fff' },
+                }}
+              >
+                {generatingPdf ? 'جارٍ التوليد…' : 'تصدير PDF'}
+              </Button>
+            </span>
+          </Tooltip>
         </Stack>
         <Typography variant="body2" color="text.secondary">عرضك الجاهز للمستثمرين، مولّد تلقائياً.</Typography>
       </Box>
