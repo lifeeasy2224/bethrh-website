@@ -43,7 +43,7 @@ export interface ScoreBreakdown {
 
 export interface IqScoreInputs {
   // Real customer-contact signals ONLY — the caller must exclude stress_test rows.
-  validationEntries: Array<{ type: string | null; sentiment: string | null }>;
+  validationEntries: Array<{ type: string | null; sentiment: string | null; amount?: number | null }>;
   canvasBlocksFilled: number;                                    // 0–9
   financials: { revenue: number; costs: number; breakEvenMonth: number };
   journeyTasksDone: number;
@@ -54,7 +54,11 @@ export function computeIqBreakdown(p: IqScoreInputs): ScoreBreakdown {
   const rawValidation = p.validationEntries.reduce((sum, e) => {
     const typePts = VALIDATION_TYPE_PTS[(e.type ?? '').toLowerCase()] ?? 0;
     const mult = SENTIMENT_MULT[(e.sentiment ?? 'positive').toLowerCase()] ?? 1;
-    return sum + typePts * mult;
+    const amount = Number(e.amount ?? 0);
+    // Log scale: $0=1x, $10=1.2x, $100=1.4x, $1000=1.6x — caps at 1.6x so amount
+    // matters but doesn't dominate the type/sentiment signal.
+    const amountBoost = 1 + Math.min(Math.log10(Math.max(amount, 1)), 3) * 0.2;
+    return sum + typePts * mult * amountBoost;
   }, 0);
   const validation = Math.min(Math.round(rawValidation), SCORE_CAPS.validation);
   const model = Math.min(Math.round((p.canvasBlocksFilled / CANVAS_BLOCK_KEYS.length) * SCORE_CAPS.model), SCORE_CAPS.model);
@@ -85,7 +89,7 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
   if (!ideaId) return null;
 
   const [valRes, canvasRes, tasksRes, ideaRes] = await Promise.all([
-    supabase.from('validation_entries').select('type, sentiment').eq('user_idea_id', ideaId),
+    supabase.from('validation_entries').select('type, sentiment, amount').eq('user_idea_id', ideaId),
     supabase.from('canvas_data').select('*').eq('user_idea_id', ideaId).maybeSingle(),
     supabase.from('journey_tasks').select('id', { count: 'exact', head: true }).eq('user_idea_id', ideaId).eq('is_completed', true),
     supabase.from('user_ideas').select('iq_score, iq_breakdown, coach_assessment').eq('id', ideaId).maybeSingle(),
@@ -96,7 +100,7 @@ export async function recomputeIqScore(ideaId: string): Promise<{ score: number;
     ? CANVAS_BLOCK_KEYS.filter(k => String(canvas[k] ?? '').length >= 20).length
     : 0;
 
-  const entries = (valRes.data as Array<{ type: string | null; sentiment: string | null }> | null) ?? [];
+  const entries = (valRes.data as Array<{ type: string | null; sentiment: string | null; amount: number | null }> | null) ?? [];
   const validationEntries = entries.filter(e => (e.type ?? '').toLowerCase() !== 'stress_test');
 
   const breakdown = computeIqBreakdown({
