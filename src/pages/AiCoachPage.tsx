@@ -220,6 +220,7 @@ export default function AiCoachPage() {
           },
           body: JSON.stringify({
             messages: history,
+            idea_id: coachIdeaId || undefined,
             idea: idea ? {
               title: idea.title,
               sector: idea.sector,
