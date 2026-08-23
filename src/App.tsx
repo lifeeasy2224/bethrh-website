@@ -64,8 +64,10 @@ const AdminCRMUserProfile = lazy(() => import('./pages/admin/AdminCRMUserProfile
 const AdminCRMTagsPage = lazy(() => import('./pages/admin/AdminCRMTagsPage'));
 const AdminCRMSegmentsPage = lazy(() => import('./pages/admin/AdminCRMSegmentsPage'));
 const AdminCRMSegmentDetail = lazy(() => import('./pages/admin/AdminCRMSegmentDetail'));
+const AdminCRMPipeline = lazy(() => import('./pages/admin/AdminCRMPipeline'));
 const AdminCampaignsPage = lazy(() => import('./pages/admin/AdminCampaignsPage'));
 const AdminCampaignNew = lazy(() => import('./pages/admin/AdminCampaignNew'));
+const AdminCampaignEdit = lazy(() => import('./pages/admin/AdminCampaignEdit'));
 const AdminTemplatesPage = lazy(() => import('./pages/admin/AdminTemplatesPage'));
 const AdminUploadContacts = lazy(() => import('./pages/admin/AdminUploadContacts'));
 const AdminSuppressionPage = lazy(() => import('./pages/admin/AdminSuppressionPage'));
@@ -605,6 +607,14 @@ export function AppRoutes() {
                 }
               />
               <Route
+                path="/admin/crm/pipeline"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminCRMPipeline />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/crm/revenue"
                 element={
                   <AdminProtectedRoute>
@@ -633,6 +643,14 @@ export function AppRoutes() {
                 element={
                   <AdminProtectedRoute>
                     <AdminCampaignReport />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/marketing/campaigns/:id/edit"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminCampaignEdit />
                   </AdminProtectedRoute>
                 }
               />
