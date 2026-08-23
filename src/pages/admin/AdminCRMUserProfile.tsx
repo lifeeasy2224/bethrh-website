@@ -41,7 +41,7 @@ interface ProfileData {
   user_id: string;
   full_name: string | null;
   role: string | null;
-  tier: string | null;
+  plan: string | null;
   lead_score: number;
   lifecycle_stage: string | null;
   user_status: string | null;
@@ -95,7 +95,7 @@ function calculateStatus(lastLogin: string | null): string {
 }
 
 function calculateLifecycle(user: ProfileData): string {
-  const tier = user.tier ?? 'free';
+  const tier = user.plan ?? 'free';
   const status = calculateStatus(user.last_login_at);
   if (tier !== 'free' && status === 'churned') return 'churned';
   if (tier !== 'free') return 'paying';
@@ -114,7 +114,7 @@ function calculateLeadScore(user: ProfileData, ideasCount: number): number {
   else if (d <= 3) score += 15;
   else if (d <= 7) score += 10;
   else if (d <= 14) score += 5;
-  const tier = user.tier ?? 'free';
+  const tier = user.plan ?? 'free';
   if (tier === 'accelerator' || tier === 'family') score += 10;
   else if (tier === 'growth' || tier === 'launch') score += 8;
   else if (tier === 'pro' || tier === 'builder') score += 6;
@@ -304,7 +304,7 @@ export default function AdminCRMUserProfile() {
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography variant="caption" color="text.secondary">Plan</Typography>
                     <Chip
-                      label={(profile.tier ?? 'free').charAt(0).toUpperCase() + (profile.tier ?? 'free').slice(1)}
+                      label={(profile.plan ?? 'free').charAt(0).toUpperCase() + (profile.plan ?? 'free').slice(1)}
                       size="small"
                       sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700, bgcolor: '#F0F5F1', color: '#1B6B3E' }}
                     />
@@ -429,7 +429,7 @@ export default function AdminCRMUserProfile() {
                         { label: 'Engagement (logins)', value: Math.min(profile.login_count ?? 0, 20), max: 20 },
                         { label: 'Idea activity', value: Math.min(ideas.length * 5, 10), max: 10 },
                         { label: 'Recency', value: (() => { const d = daysBetween(profile.last_login_at); if (d <= 1) return 20; if (d <= 3) return 15; if (d <= 7) return 10; if (d <= 14) return 5; return 0; })(), max: 20 },
-                        { label: 'Plan tier', value: (() => { const t = profile.tier ?? 'free'; if (t === 'accelerator' || t === 'family') return 10; if (t === 'growth' || t === 'launch') return 8; if (t === 'pro' || t === 'builder') return 6; return 0; })(), max: 10 },
+                        { label: 'Plan tier', value: (() => { const t = profile.plan ?? 'free'; if (t === 'accelerator' || t === 'family') return 10; if (t === 'growth' || t === 'launch') return 8; if (t === 'pro' || t === 'builder') return 6; return 0; })(), max: 10 },
                       ].map(row => (
                         <Stack key={row.label} direction="row" spacing={1.5} alignItems="center">
                           <Typography variant="caption" color="text.secondary" sx={{ minWidth: 160 }}>{row.label}</Typography>

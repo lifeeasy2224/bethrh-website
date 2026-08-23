@@ -105,12 +105,12 @@ export default function AdminRevenuePage() {
 
   // Derived stats
   const payingProfiles = profiles.filter(p => {
-    const plan = p.plan ?? p.tier ?? '';
+    const plan = p.plan ?? '';
     return PAYING_TIERS.includes(plan);
   });
 
   const mrr = payingProfiles.reduce((s, p) => {
-    const plan = (p.plan ?? p.tier ?? '').toLowerCase();
+    const plan = (p.plan ?? '').toLowerCase();
     return s + (PLAN_PRICES[plan] ?? 0);
   }, 0);
 
@@ -130,7 +130,7 @@ export default function AdminRevenuePage() {
   // Revenue by plan for pie chart
   const planBreakdown = PAYING_TIERS
     .map(plan => {
-      const count = payingProfiles.filter(p => (p.plan ?? p.tier ?? '') === plan).length;
+      const count = payingProfiles.filter(p => (p.plan ?? '') === plan).length;
       const revenue = count * (PLAN_PRICES[plan] ?? 0);
       return { name: plan.charAt(0).toUpperCase() + plan.slice(1), value: revenue, count, plan };
     })
