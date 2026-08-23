@@ -120,6 +120,7 @@ Deno.serve(async (req: Request) => {
     let pitchRow: Record<string, unknown> | null = null;
     type ValRow = { type: string; notes: string | null; sentiment: string | null; amount: number | null; created_at: string };
     let valRows: ValRow[] = [];
+    let journeyNotes: Array<{ week_number: number; notes: string }> = [];
 
     if (idea) {
       const ideaId = idea.id as string;
@@ -132,7 +133,7 @@ Deno.serve(async (req: Request) => {
           .eq('user_idea_id', ideaId).maybeSingle(),
         db.from('pitch_data').select('elevator_pitch, pitch_problem, pitch_solution, target_market, revenue_model, break_even_summary, investment_amount, use_of_funds')
           .eq('user_idea_id', ideaId).maybeSingle(),
-        db.from('journey_tasks').select('week_number, task_key, is_completed').eq('user_idea_id', ideaId),
+        db.from('journey_tasks').select('week_number, task_key, is_completed, notes').eq('user_idea_id', ideaId),
       ]);
 
       if (valEntries.error) console.error('ai-coach: validation_entries fetch failed', valEntries.error.message);
@@ -146,7 +147,7 @@ Deno.serve(async (req: Request) => {
       pitchRow  = pitch.data  as Record<string, unknown> | null;
       valRows   = (valEntries.data as ValRow[] | null) ?? [];
 
-      const rows = (journeyRows.data as Array<{ week_number: number; task_key: string; is_completed: boolean }> | null) ?? [];
+      const rows = (journeyRows.data as Array<{ week_number: number; task_key: string; is_completed: boolean; notes: string | null }> | null) ?? [];
       const anyTaskDone = rows.some(r => r.is_completed);
       const STEPS = [
         { key: STEP_LABEL.validation, done: valRows.length > 0 },
@@ -161,6 +162,13 @@ Deno.serve(async (req: Request) => {
 
       const doneMainWeeks = rows.filter(r => r.task_key === 'main' && r.is_completed).length;
       currentWeek = doneMainWeeks ? Math.min(12, doneMainWeeks + 1) : 0;
+
+      // Founder's logged findings — free-text notes on each week's main task,
+      // the most direct first-person signal the coach can ground a reply in.
+      journeyNotes = rows
+        .filter(r => r.task_key === 'main' && String(r.notes ?? '').trim())
+        .map(r => ({ week_number: r.week_number, notes: String(r.notes).trim() }))
+        .sort((a, b) => a.week_number - b.week_number);
     }
 
     // Compact, labeled full-circle digest — summarized, not raw dumps.
@@ -223,6 +231,11 @@ Deno.serve(async (req: Request) => {
 
       const pitchText = summarize(pitchRow);
       if (pitchText) digest.push(`العرض التمويلي: ${pitchText}`);
+
+      if (journeyNotes.length) {
+        const lines = journeyNotes.map(n => `الأسبوع ${n.week_number}: ${n.notes.slice(0, 300)}`);
+        digest.push(`ملاحظات الرائد — ما سجّله المؤسس بنفسه أثناء تنفيذ خطة الـ ٩٠ يوماً، أسبوعاً بأسبوع:\n  - ${lines.join('\n  - ')}`);
+      }
 
       digest.push(`الرحلة: ${currentWeek ? `في الأسبوع ${currentWeek} من ١٢ في خطة الـ ٩٠ يوماً` : 'لم تبدأ خطة الـ ٩٠ يوماً بعد'}. المراحل المكتملة: ${completedSteps.length ? completedSteps.join('، ') : 'لا شيء بعد'}. التالي: ${nextMilestone}.`);
     }

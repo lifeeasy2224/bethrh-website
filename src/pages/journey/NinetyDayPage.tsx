@@ -9,6 +9,7 @@ import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
 import Checkbox from '@mui/material/Checkbox';
+import TextField from '@mui/material/TextField';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
@@ -54,6 +55,7 @@ export default function NinetyDayPage() {
   const { selectedIdea, selectedIdeaId } = useIdea();
   const { triggerReview } = useReview();
   const [tasks, setTasks] = useState<TaskMap>({});
+  const [notes, setNotes] = useState<Record<number, string>>({});
   const [toast, setToast] = useState<string | null>(null);
   const [recommendedWeeks, setRecommendedWeeks] = useState<number[]>([]);
   const [rationale, setRationale] = useState<string>('');
@@ -65,11 +67,14 @@ export default function NinetyDayPage() {
     if (!selectedIdeaId) return;
     const { data } = await supabase.from('journey_tasks').select('*').eq('user_idea_id', selectedIdeaId);
     const map: TaskMap = {};
+    const notesMap: Record<number, string> = {};
     (data ?? []).forEach((t: any) => {
       if (!map[t.week_number]) map[t.week_number] = {};
       map[t.week_number][t.task_key] = !!t.is_completed || !!t.completed_at;
+      if (t.task_key === 'main' && t.notes) notesMap[t.week_number] = t.notes;
     });
     setTasks(map);
+    setNotes(notesMap);
 
     // Adaptive unlock layer — non-destructive, only ever adds early unlocks on
     // top of the fixed sequential backbone above. Best-effort: a failure here
@@ -103,6 +108,17 @@ export default function NinetyDayPage() {
       await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: taskKey, is_completed: newVal, completed_at: now });
     }
     void recomputeIqScore(selectedIdeaId); // completing a task moves the score now
+  }
+
+  async function saveNotes(weekNum: number, text: string) {
+    if (!user || !selectedIdeaId) return;
+    const existing = await supabase.from('journey_tasks').select('id').eq('user_idea_id', selectedIdeaId).eq('week_number', weekNum).eq('task_key', 'main').maybeSingle();
+
+    if (existing.data?.id) {
+      await supabase.from('journey_tasks').update({ notes: text || null }).eq('id', existing.data.id);
+    } else {
+      await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: 'main', notes: text || null });
+    }
   }
 
   const totalTasks = WEEKS.reduce((sum, w) => sum + 1 + w.subs.length, 0);
@@ -266,6 +282,20 @@ export default function NinetyDayPage() {
                     </Stack>
                   ))}
                 </Stack>
+
+                {/* Notes */}
+                <TextField
+                  value={notes[week.num] ?? ''}
+                  onChange={e => setNotes(prev => ({ ...prev, [week.num]: e.target.value }))}
+                  onBlur={() => !isLocked && saveNotes(week.num, notes[week.num] ?? '')}
+                  disabled={isLocked}
+                  placeholder="ملاحظاتك حول هذا الأسبوع…"
+                  size="small"
+                  fullWidth
+                  multiline
+                  minRows={2}
+                  sx={{ mt: 1.5 }}
+                />
 
                 {/* Coach tip */}
                 <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#F0F5F1', borderRadius: 1.5 }}>
