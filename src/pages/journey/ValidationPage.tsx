@@ -58,6 +58,7 @@ export default function ValidationPage() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [reaction, setReaction] = useState<{ text: string; entryCount: number; totalCommitted: number } | null>(null);
 
   const plan = profile?.plan ?? 'free';
   const canEdit = plan !== 'free';
@@ -81,22 +82,33 @@ export default function ValidationPage() {
     return Object.keys(e).length === 0;
   }
 
+  async function fetchReaction(entry: { type: string; notes: string; sentiment: string; amount: number }) {
+    if (!selectedIdeaId) return;
+    const { data, error } = await supabase.functions.invoke('validation-reaction', {
+      body: { idea_id: selectedIdeaId, entry },
+    });
+    if (error || !data) return; // silent failure — never blocks the add flow
+    setReaction({ text: data.reaction, entryCount: data.entry_count, totalCommitted: data.total_committed });
+  }
+
   async function handleAdd() {
     if (!validate() || !user || !selectedIdeaId) return;
     setSaving(true);
-    const { error } = await supabase.from('validation_entries').insert({
-      user_idea_id: selectedIdeaId,
+    setReaction(null); // auto-clear the previous reaction on a new add
+    const entry = {
       type: form.type,
       notes: form.notes.trim(),
       amount: form.type === 'preorder' && form.amount ? parseFloat(form.amount) : 0,
       sentiment: form.sentiment,
-    });
+    };
+    const { error } = await supabase.from('validation_entries').insert({ user_idea_id: selectedIdeaId, ...entry });
     if (error) { setToast('تعذّر حفظ النشاط.'); setSaving(false); return; }
     setForm({ type: 'interview', notes: '', amount: '', sentiment: 'positive' });
     setSaving(false);
     setToast('سُجّل نشاط التحقق!');
     await loadEntries();
     if (selectedIdeaId) void recomputeIqScore(selectedIdeaId); // logging a signal moves the score now
+    void fetchReaction(entry);
   }
 
   async function handleDelete(id: string) {
@@ -188,6 +200,15 @@ export default function ValidationPage() {
             </Grid>
           </CardContent>
         </Card>
+      )}
+
+      {reaction && (
+        <Alert severity="info" sx={{ mb: 3 }} onClose={() => setReaction(null)}>
+          <Typography variant="body2">{reaction.text}</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            لديك {reaction.entryCount} إدخال، بإجمالي ${reaction.totalCommitted}
+          </Typography>
+        </Alert>
       )}
 
       {/* History */}

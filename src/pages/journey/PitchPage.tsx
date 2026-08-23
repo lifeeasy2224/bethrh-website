@@ -23,6 +23,9 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import PublicIcon from '@mui/icons-material/Public';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import CheckIcon from '@mui/icons-material/Check';
+import CircularProgress from '@mui/material/CircularProgress';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
@@ -45,6 +48,24 @@ interface PitchDataRow {
 }
 
 const PUBLISH_LIMITS: Record<string, number> = { growth: 3, launch: 1, family: 3 };
+
+const PITCH_FIELD_LABELS: Record<string, string> = {
+  elevator_pitch: 'العرض المختصر',
+  pitch_problem: 'المشكلة',
+  pitch_solution: 'الحل',
+  target_market: 'السوق المستهدف',
+  revenue_model: 'نموذج الإيراد',
+  break_even_summary: 'نقطة التعادل',
+  investment_amount: 'المبلغ المطلوب',
+  use_of_funds: 'استخدام التمويل',
+};
+
+interface PitchDraftResult {
+  draft: Record<string, string>;
+  idea_id: string;
+  fields_drafted: string[];
+  fields_kept: string[];
+}
 
 export default function PitchPage() {
   const { user, profile } = useAuth();
@@ -69,6 +90,12 @@ export default function PitchPage() {
   const [publishing, setPublishing] = useState(false);
   const [toast, setToast] = useState<{ msg: string; sev: 'success' | 'error' } | null>(null);
   const [generated, setGenerated] = useState(false);
+
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [draftResult, setDraftResult] = useState<PitchDraftResult | null>(null);
+  const [draftApplying, setDraftApplying] = useState(false);
+  const [draftApplied, setDraftApplied] = useState(false);
 
   const plan = profile?.plan ?? 'free';
   const canAccess = plan === 'growth' || plan === 'launch' || plan === 'family';
@@ -146,6 +173,53 @@ export default function PitchPage() {
     setToast({ msg: 'وُلّد العرض التمويلي!', sev: 'success' });
   }
 
+  async function handleDraft() {
+    if (!selectedIdeaId) return;
+    setDraftLoading(true);
+    setDraftError('');
+    setDraftResult(null);
+    const { data, error } = await supabase.functions.invoke('pitch-draft', { body: { idea_id: selectedIdeaId } });
+    if (error) {
+      let msg = 'تعذّر توليد المسودة. حاول مرة أخرى.';
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.json === 'function') {
+        const body = await ctx.json().catch(() => null);
+        if (body?.error) msg = body.error;
+      }
+      setDraftError(msg);
+    } else {
+      setDraftResult(data as PitchDraftResult);
+    }
+    setDraftLoading(false);
+  }
+
+  async function applyDraft() {
+    if (!draftResult || !user || !selectedIdeaId) return;
+    setDraftApplying(true);
+    // Fill-empty-only: fields_drafted is already server-computed as "currently empty"
+    // (same non-destructive contract as canvas-draft / extract-document's apply* functions).
+    const payload: Record<string, string | number | null> = { user_idea_id: selectedIdeaId, user_id: user.id };
+    for (const key of draftResult.fields_drafted) {
+      const v = draftResult.draft[key];
+      payload[key] = key === 'investment_amount' ? (parseFloat(v) || null) : v;
+    }
+    const { error } = await supabase.from('pitch_data').upsert(payload, { onConflict: 'user_idea_id' });
+    if (!error) {
+      await loadData();
+      void recomputeIqScore(selectedIdeaId);
+      setDraftApplied(true);
+      setDraftResult(null);
+      setToast({ msg: 'طُبّقت المسودة!', sev: 'success' });
+    } else {
+      setToast({ msg: 'تعذّر تطبيق المسودة. حاول مرة أخرى.', sev: 'error' });
+    }
+    setDraftApplying(false);
+  }
+
+  function dismissDraft() {
+    setDraftResult(null);
+  }
+
   async function handlePublish() {
     if (!user || !selectedIdeaId || !canPublish) return;
     setPublishing(true);
@@ -193,9 +267,64 @@ export default function PitchPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={800}>العرض التمويلي</Typography>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Typography variant="h5" fontWeight={800}>العرض التمويلي</Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={draftLoading ? <CircularProgress size={14} color="inherit" /> : draftApplied ? <CheckIcon /> : <AutoAwesomeOutlinedIcon />}
+            onClick={handleDraft}
+            disabled={draftLoading || draftApplied}
+            sx={{
+              borderColor: '#D4A653', color: '#B5862E', fontWeight: 700,
+              '&:hover': { borderColor: '#D4A653', bgcolor: '#FAF5E9' },
+              '&.Mui-disabled': draftApplied ? { borderColor: '#D4A653', color: '#B5862E' } : undefined,
+            }}
+          >
+            {draftLoading ? 'جارٍ التوليد…' : draftApplied ? 'تم التوليد ✓' : 'مسودة بالذكاء الاصطناعي'}
+          </Button>
+        </Stack>
         <Typography variant="body2" color="text.secondary">عرضك الجاهز للمستثمرين، مولّد تلقائياً.</Typography>
       </Box>
+
+      {draftError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDraftError('')}>{draftError}</Alert>
+      )}
+
+      {draftResult && (
+        <Card sx={{ mb: 3, border: '1px solid', borderColor: '#D4A653' }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <AutoAwesomeOutlinedIcon sx={{ color: '#D4A653' }} />
+              <Typography variant="subtitle2" fontWeight={700}>مسودة بالذكاء الاصطناعي — راجع ثم طبّق</Typography>
+            </Stack>
+            {draftResult.fields_drafted.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">كل الحقول ممتلئة بالفعل — لا يوجد ما يُصاغ.</Typography>
+            ) : (
+              <Stack spacing={2}>
+                {draftResult.fields_drafted.map(key => (
+                  <Box key={key}>
+                    <Typography variant="caption" fontWeight={700} sx={{ color: '#B5862E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{PITCH_FIELD_LABELS[key] ?? key}</Typography>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, mt: 0.5 }}>{draftResult.draft[key]}</Typography>
+                  </Box>
+                ))}
+              </Stack>
+            )}
+            <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={applyDraft}
+                disabled={draftApplying || draftResult.fields_drafted.length === 0}
+                sx={{ bgcolor: '#0F3D24', '&:hover': { bgcolor: '#D4A653', color: '#0F3D24' } }}
+              >
+                {draftApplying ? 'جارٍ التطبيق…' : 'طبّق المسودة'}
+              </Button>
+              <Button size="small" color="inherit" onClick={dismissDraft} disabled={draftApplying}>تجاهل</Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Requirements checklist */}
       {!allMet && (

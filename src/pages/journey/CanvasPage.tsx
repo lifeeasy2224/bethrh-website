@@ -22,6 +22,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import CheckIcon from '@mui/icons-material/Check';
 import { createElement } from 'react';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -39,6 +41,21 @@ const BLOCKS = [
   { key: 'cost_structure', title: 'هيكل التكاليف', helper: 'ما أهم التكاليف في مشروعك؟' },
   { key: 'revenue_streams', title: 'مصادر الإيرادات', helper: 'كيف يجني مشروعك المال؟' },
 ];
+
+// Financials aren't in BLOCKS (they're a separate section), but canvas-draft
+// can draft them too — reuse the exact Arabic labels already used on their TextFields.
+const FINANCIAL_LABELS: Record<string, string> = {
+  monthly_revenue: 'الإيراد الشهري ($)',
+  monthly_costs: 'التكاليف الشهرية ($)',
+  break_even_month: 'شهر التعادل',
+};
+
+interface CanvasDraftResult {
+  draft: Record<string, string | number>;
+  idea_id: string;
+  blocks_drafted: string[];
+  blocks_kept: string[];
+}
 
 const BLOCK_COLORS: Record<string, { color: string; bg: string }> = {
   key_partners: { color: '#2A8A52', bg: '#DEEBE2' },
@@ -64,6 +81,12 @@ export default function CanvasPage() {
 
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const [draftLoading, setDraftLoading] = useState(false);
+  const [draftError, setDraftError] = useState('');
+  const [draftResult, setDraftResult] = useState<CanvasDraftResult | null>(null);
+  const [draftApplying, setDraftApplying] = useState(false);
+  const [draftApplied, setDraftApplied] = useState(false);
 
   const plan = profile?.plan ?? 'free';
   const canEdit = plan !== 'free';
@@ -119,6 +142,52 @@ export default function CanvasPage() {
       setToast({ msg: 'حُفظت البيانات المالية!', sev: 'success' });
     }
     else { setToast({ msg: 'تعذّر حفظ البيانات المالية.', sev: 'error' }); }
+  }
+
+  async function handleDraft() {
+    if (!selectedIdeaId) return;
+    setDraftLoading(true);
+    setDraftError('');
+    setDraftResult(null);
+    const { data, error } = await supabase.functions.invoke('canvas-draft', { body: { idea_id: selectedIdeaId } });
+    if (error) {
+      let msg = 'تعذّر توليد المسودة. حاول مرة أخرى.';
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.json === 'function') {
+        const body = await ctx.json().catch(() => null);
+        if (body?.error) msg = body.error;
+      }
+      setDraftError(msg);
+    } else {
+      setDraftResult(data as CanvasDraftResult);
+    }
+    setDraftLoading(false);
+  }
+
+  async function applyDraft() {
+    if (!draftResult || !selectedIdeaId) return;
+    setDraftApplying(true);
+    // Fill-empty-only: blocks_drafted is already server-computed as "currently empty"
+    // (same non-destructive contract as extract-document's apply* functions).
+    const payload: Record<string, string | number> = { user_idea_id: selectedIdeaId, updated_at: new Date().toISOString() };
+    for (const key of draftResult.blocks_drafted) {
+      if (key in draftResult.draft) payload[key] = draftResult.draft[key];
+    }
+    const { error } = await supabase.from('canvas_data').upsert(payload, { onConflict: 'user_idea_id' });
+    if (!error) {
+      await loadCanvas();
+      void recomputeIqScore(selectedIdeaId);
+      setDraftApplied(true);
+      setDraftResult(null);
+      setToast({ msg: 'طُبّقت المسودة!', sev: 'success' });
+    } else {
+      setToast({ msg: 'تعذّر تطبيق المسودة. حاول مرة أخرى.', sev: 'error' });
+    }
+    setDraftApplying(false);
+  }
+
+  function dismissDraft() {
+    setDraftResult(null);
   }
 
   async function downloadPdf() {
@@ -178,7 +247,25 @@ export default function CanvasPage() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} justifyContent="space-between" sx={{ mb: 1 }}>
         <Box>
-          <Typography variant="h5" fontWeight={800}>مخطط نموذج العمل</Typography>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Typography variant="h5" fontWeight={800}>مخطط نموذج العمل</Typography>
+            {canEdit && (
+              <Button
+                variant="outlined"
+                size="small"
+                startIcon={draftLoading ? <CircularProgress size={14} color="inherit" /> : draftApplied ? <CheckIcon /> : <AutoAwesomeOutlinedIcon />}
+                onClick={handleDraft}
+                disabled={draftLoading || draftApplied}
+                sx={{
+                  borderColor: '#D4A653', color: '#B5862E', fontWeight: 700,
+                  '&:hover': { borderColor: '#D4A653', bgcolor: '#FAF5E9' },
+                  '&.Mui-disabled': draftApplied ? { borderColor: '#D4A653', color: '#B5862E' } : undefined,
+                }}
+              >
+                {draftLoading ? 'جارٍ التوليد…' : draftApplied ? 'تم التوليد ✓' : 'مسودة بالذكاء الاصطناعي'}
+              </Button>
+            )}
+          </Stack>
           <Typography variant="body2" color="text.secondary">ارسم مشروعك كاملاً في صفحة واحدة.</Typography>
         </Box>
         <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mt: { xs: 1, sm: 0 } }}>
@@ -189,6 +276,49 @@ export default function CanvasPage() {
           <Typography variant="body2" fontWeight={700}>{pct}%</Typography>
         </Stack>
       </Stack>
+
+      {draftError && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDraftError('')}>{draftError}</Alert>
+      )}
+
+      {draftResult && (
+        <Card sx={{ mb: 3, border: '1px solid', borderColor: '#D4A653' }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+              <AutoAwesomeOutlinedIcon sx={{ color: '#D4A653' }} />
+              <Typography variant="subtitle2" fontWeight={700}>مسودة بالذكاء الاصطناعي — راجع ثم طبّق</Typography>
+            </Stack>
+            {draftResult.blocks_drafted.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">كل المربعات ممتلئة بالفعل — لا يوجد ما يُصاغ.</Typography>
+            ) : (
+              <Stack spacing={2}>
+                {draftResult.blocks_drafted.map(key => {
+                  const label = BLOCKS.find(b => b.key === key)?.title ?? FINANCIAL_LABELS[key] ?? key;
+                  const value = draftResult.draft[key];
+                  return (
+                    <Box key={key}>
+                      <Typography variant="caption" fontWeight={700} sx={{ color: '#B5862E', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</Typography>
+                      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, mt: 0.5 }}>{String(value)}</Typography>
+                    </Box>
+                  );
+                })}
+              </Stack>
+            )}
+            <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={applyDraft}
+                disabled={draftApplying || draftResult.blocks_drafted.length === 0}
+                sx={{ bgcolor: '#0F3D24', '&:hover': { bgcolor: '#D4A653', color: '#0F3D24' } }}
+              >
+                {draftApplying ? 'جارٍ التطبيق…' : 'طبّق المسودة'}
+              </Button>
+              <Button size="small" color="inherit" onClick={dismissDraft} disabled={draftApplying}>تجاهل</Button>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
 
       {!canEdit && (
         <Alert severity="warning" sx={{ mb: 2 }} action={<Button size="small" component={Link} to="/pricing">رقِّ</Button>}>
