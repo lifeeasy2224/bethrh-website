@@ -69,8 +69,8 @@ interface IdeaRow {
   is_featured: boolean;
   view_count: number;
   grab_count: number;
-  spots_total: number;
-  spots_taken: number;
+  spots_total?: number;
+  spots_taken?: number;
   created_at: string;
   updated_at: string;
   last_edited_by: string | null;
@@ -477,7 +477,7 @@ export default function AdminIdeasLibraryPage() {
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" fontWeight={600}>{idea.grab_count}</Typography>
-                      <Typography variant="caption" color="text.secondary">{idea.spots_taken}/{idea.spots_total}</Typography>
+                      <Typography variant="caption" color="text.secondary">-</Typography>
                     </TableCell>
                     <TableCell>
                       <Switch checked={idea.is_published} size="small" onChange={() => void togglePublished(idea)} />
