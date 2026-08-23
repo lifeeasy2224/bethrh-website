@@ -28,6 +28,7 @@ import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useIdea } from '../contexts/IdeaContext';
@@ -44,6 +45,9 @@ const SUGGESTED_PROMPTS = [
   'كيف يبدو الـ MVP الجيد؟',
   'ساعدني أفكر في استراتيجية التسعير',
 ];
+
+// The full-circle recap — the Coach plays back the founder's whole journey.
+const RECAP_PROMPT = 'لخّص لي وضع فكرتي الحالي بناءً على كل ما سجّلته';
 
 
 interface Conversation {
@@ -486,6 +490,21 @@ export default function AiCoachPage() {
 
             {/* Input */}
             <Box sx={{ p: { xs: 2, sm: 3 }, borderTop: '1px solid', borderColor: 'divider', bgcolor: 'white' }}>
+              <Box sx={{ mb: 1.5 }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AutoAwesomeOutlinedIcon />}
+                  onClick={() => sendMessage(RECAP_PROMPT)}
+                  disabled={thinking || atLimit}
+                  sx={{
+                    borderColor: '#D4A653', color: '#B5862E', fontWeight: 700,
+                    '&:hover': { borderColor: '#D4A653', bgcolor: '#FAF5E9' },
+                  }}
+                >
+                  لخّص فكرتي
+                </Button>
+              </Box>
               <Stack direction="row" spacing={1}>
                 <TextField
                   fullWidth
