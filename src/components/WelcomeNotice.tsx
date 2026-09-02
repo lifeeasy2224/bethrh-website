@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Dialog from '@mui/material/Dialog';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
@@ -17,17 +18,22 @@ const SEEN_KEY = 'bethra_welcome_seen';
  */
 export default function WelcomeNotice() {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const isAdmin = pathname.startsWith('/admin');
 
   useEffect(() => {
+    if (isAdmin) return;
     try {
       if (!localStorage.getItem(SEEN_KEY)) setOpen(true);
     } catch { /* localStorage unavailable — skip */ }
-  }, []);
+  }, [isAdmin]);
 
   function dismiss() {
     try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* ignore */ }
     setOpen(false);
   }
+
+  if (isAdmin) return null;
 
   return (
     <Dialog
