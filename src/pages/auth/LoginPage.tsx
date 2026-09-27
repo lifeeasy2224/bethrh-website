@@ -10,6 +10,7 @@ import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LoginIcon from '@mui/icons-material/Login';
@@ -31,8 +32,13 @@ export default function LoginPage() {
 
   const searchParams = new URLSearchParams(location.search);
   const redirectParam = searchParams.get('redirect');
-  const stateFrom = (location.state as { from?: Location })?.from;
+  const navState = location.state as { from?: Location; notice?: string } | null;
+  const stateFrom = navState?.from;
   const from = redirectParam ?? (stateFrom ? stateFrom.pathname + (stateFrom.search ?? '') : null);
+
+  // One-off success message handed over by another page (e.g. after a password reset).
+  const notice = navState?.notice ?? '';
+  const [noticeOpen, setNoticeOpen] = useState(!!notice);
 
   // Redirect after login once auth state + profile are both settled
   useEffect(() => {
@@ -177,6 +183,10 @@ export default function LoginPage() {
           </Typography>
         </Box>
       </Container>
+
+      <Snackbar open={noticeOpen} autoHideDuration={6000} onClose={() => setNoticeOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity="success" variant="filled" onClose={() => setNoticeOpen(false)}>{notice}</Alert>
+      </Snackbar>
     </Box>
   );
 }

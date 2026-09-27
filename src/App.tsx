@@ -89,6 +89,7 @@ const HelpCenterPage = lazy(() => import('./pages/HelpCenterPage'));
 const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
 const SignupPage = lazy(() => import('./pages/auth/SignupPage'));
 const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const OnboardingPage = lazy(() => import('./pages/auth/OnboardingPage'));
 
 const FounderDashboard = lazy(() => import('./pages/founder/FounderDashboard'));
@@ -216,6 +217,7 @@ export function AppRoutes() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
 
               {/* Onboarding */}
               <Route

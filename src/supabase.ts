@@ -13,6 +13,24 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// A password-recovery link is consumed while this client initializes — usually
+// before the lazily loaded /reset-password page exists to subscribe — so the
+// PASSWORD_RECOVERY event is recorded here, eagerly, for that page to read.
+let passwordRecoveryEvent = false;
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') passwordRecoveryEvent = true;
+});
+
+export function hasPasswordRecoveryEvent() {
+  return passwordRecoveryEvent;
+}
+
+// Called once the new password is saved, so revisiting /reset-password later
+// in the same tab doesn't offer the form again.
+export function clearPasswordRecoveryEvent() {
+  passwordRecoveryEvent = false;
+}
+
 export interface Profile {
   id: string;
   user_id: string;
