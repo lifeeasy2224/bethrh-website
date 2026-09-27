@@ -24,6 +24,38 @@ function jsonRes(data: unknown, status = 200) {
   });
 }
 
+type PromoRow = { id: string; code: string; discount_pct: number };
+
+// Single source of truth for promo validation — used by both the checkout
+// page's "طبّق" preview (action: 'validate_promo') and the real checkout, so
+// the two can never disagree. Runs with the service role: clients have no
+// SELECT access to promo_codes, and only an exact code match is ever answered.
+async function lookupPromo(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  rawCode: unknown,
+): Promise<{ ok: true; row: PromoRow } | { ok: false; error: string }> {
+  const code = String(rawCode ?? '').toUpperCase().trim();
+  if (!code) return { ok: false, error: 'رمز خصم غير صالح' };
+
+  const { data: row } = await supabase
+    .from('promo_codes')
+    .select('id, code, discount_pct, max_uses, uses_count, expires_at, is_active')
+    .eq('code', code)
+    .maybeSingle();
+
+  // Unknown and inactive codes get the same answer so this endpoint can't be
+  // used to learn which codes exist.
+  if (!row || !row.is_active) return { ok: false, error: 'رمز خصم غير صالح' };
+  if (row.expires_at && new Date(row.expires_at) < new Date()) {
+    return { ok: false, error: 'انتهت صلاحية رمز الخصم' };
+  }
+  if (row.max_uses !== null && row.uses_count >= row.max_uses) {
+    return { ok: false, error: 'بلغ رمز الخصم حد استخدامه' };
+  }
+  return { ok: true, row };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -42,7 +74,16 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) return jsonRes({ error: 'Unauthorized' }, 401);
 
-    const { plan, billing, origin, promo_code } = await req.json();
+    const { plan, billing, origin, promo_code, action } = await req.json();
+
+    // ── Promo preview (no checkout) ─────────────────────────────────────────────
+    // The checkout page calls this when the founder presses "طبّق" instead of
+    // reading promo_codes itself (that client read is what exposed every code).
+    if (action === 'validate_promo') {
+      const result = await lookupPromo(supabase, promo_code);
+      if (!result.ok) return jsonRes({ valid: false, error: result.error });
+      return jsonRes({ valid: true, code: result.row.code, discount_pct: result.row.discount_pct });
+    }
 
     if (!PLAN_PRICES[plan]) return jsonRes({ error: 'Invalid plan' }, 400);
     if (!['monthly', 'annual'].includes(billing)) return jsonRes({ error: 'Invalid billing cycle' }, 400);
@@ -58,24 +99,11 @@ Deno.serve(async (req: Request) => {
     let promoCodeId: string | null = null;
 
     if (promo_code) {
-      const { data: codeRow } = await supabase
-        .from('promo_codes')
-        .select('id, discount_pct, max_uses, uses_count, expires_at, is_active')
-        .eq('code', String(promo_code).toUpperCase().trim())
-        .maybeSingle();
+      const result = await lookupPromo(supabase, promo_code);
+      if (!result.ok) return jsonRes({ error: result.error }, 400);
 
-      if (!codeRow || !codeRow.is_active) {
-        return jsonRes({ error: 'Invalid or inactive promo code' }, 400);
-      }
-      if (codeRow.expires_at && new Date(codeRow.expires_at) < new Date()) {
-        return jsonRes({ error: 'This promo code has expired' }, 400);
-      }
-      if (codeRow.max_uses !== null && codeRow.uses_count >= codeRow.max_uses) {
-        return jsonRes({ error: 'This promo code has reached its usage limit' }, 400);
-      }
-
-      discountPct = codeRow.discount_pct as number;
-      promoCodeId = codeRow.id as string;
+      discountPct = result.row.discount_pct;
+      promoCodeId = result.row.id;
     }
 
     const basePriceAmount = PLAN_PRICES[plan][billing as 'monthly' | 'annual'];

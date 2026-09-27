@@ -80,6 +80,23 @@ const PLANS: Record<string, PlanConfig> = {
 
 type PromoState = { code: string; discountPct: number; label: string } | null;
 
+// All promo validation and checkout goes through the stripe-checkout edge
+// function — the client has no SELECT access to promo_codes.
+async function callCheckoutFn(body: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  return fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`,
+      'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -122,20 +139,23 @@ export default function CheckoutPage() {
     setPromoError('');
     setPromoApplied(null);
 
-    const { data, error: dbErr } = await supabase
-      .from('promo_codes')
-      .select('code, discount_pct, max_uses, uses_count, expires_at, is_active')
-      .eq('code', code)
-      .maybeSingle();
+    let result: { valid?: boolean; code?: string; discount_pct?: number; error?: string } | null = null;
+    try {
+      const res = await callCheckoutFn({ action: 'validate_promo', promo_code: code });
+      result = res.ok ? await res.json() : null;
+    } catch {
+      result = null;
+    }
 
     setPromoLoading(false);
 
-    if (dbErr || !data) { setPromoError('رمز خصم غير صالح'); return; }
-    if (!data.is_active) { setPromoError('رمز الخصم لم يعد فعّالاً'); return; }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) { setPromoError('انتهت صلاحية رمز الخصم'); return; }
-    if (data.max_uses !== null && data.uses_count >= data.max_uses) { setPromoError('بلغ رمز الخصم حد استخدامه'); return; }
+    if (!result) { setPromoError('تعذّر التحقق من رمز الخصم. حاول مرة أخرى.'); return; }
+    if (!result.valid || !result.code || typeof result.discount_pct !== 'number') {
+      setPromoError(result.error ?? 'رمز خصم غير صالح');
+      return;
+    }
 
-    setPromoApplied({ code: data.code as string, discountPct: data.discount_pct as number, label: `خصم ${data.discount_pct}٪` });
+    setPromoApplied({ code: result.code, discountPct: result.discount_pct, label: `خصم ${result.discount_pct}٪` });
   }
 
   async function applyPromo() {
@@ -180,23 +200,11 @@ export default function CheckoutPage() {
     setLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
-
-      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`;
-      const res = await fetch(fnUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-          'Apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          plan: planId,
-          billing,
-          origin: window.location.origin,
-          promo_code: promoApplied?.code ?? null,
-        }),
+      const res = await callCheckoutFn({
+        plan: planId,
+        billing,
+        origin: window.location.origin,
+        promo_code: promoApplied?.code ?? null,
       });
 
       const data = await res.json();
