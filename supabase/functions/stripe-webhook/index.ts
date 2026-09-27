@@ -7,6 +7,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 };
 
+// Newer Stripe API versions moved current_period_end from the subscription onto
+// its items, so read whichever is present.
+// deno-lint-ignore no-explicit-any
+const periodEnd = (s: any) => s.current_period_end ?? s.items?.data?.[0]?.current_period_end;
+
+// Only write current_period_end when Stripe actually sent one — a missing value
+// would otherwise become an Invalid Date and throw, failing the whole event.
+function periodEndFields(sub: Stripe.Subscription) {
+  const end = periodEnd(sub);
+  return typeof end === 'number' ? { current_period_end: new Date(end * 1000).toISOString() } : {};
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -67,7 +79,7 @@ Deno.serve(async (req: Request) => {
               plan,
               billing_cycle: billingCycle ?? 'monthly',
               status: sub.status,
-              current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+              ...periodEndFields(sub),
               cancel_at_period_end: sub.cancel_at_period_end,
               updated_at: new Date().toISOString(),
             },
@@ -87,7 +99,7 @@ Deno.serve(async (req: Request) => {
           .from('subscriptions')
           .update({
             status: sub.status,
-            current_period_end: new Date(sub.current_period_end * 1000).toISOString(),
+            ...periodEndFields(sub),
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           })

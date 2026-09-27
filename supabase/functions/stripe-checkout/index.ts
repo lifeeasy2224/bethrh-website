@@ -109,7 +109,9 @@ Deno.serve(async (req: Request) => {
     const basePriceAmount = PLAN_PRICES[plan][billing as 'monthly' | 'annual'];
     const interval = billing === 'annual' ? 'year' : 'month';
     const planName = PLAN_NAMES[plan];
-    const siteOrigin = origin || 'https://bethra.co';
+    // origin comes from the request body, so only trust our own domains —
+    // otherwise Stripe's success/cancel redirect could point anywhere.
+    const siteOrigin = ['https://bethra.co', 'https://www.bethra.co'].includes(origin) ? origin : 'https://bethra.co';
 
     // ── 100% discount — free plan, no Stripe needed ──────────────────────────────
     if (discountPct === 100) {
