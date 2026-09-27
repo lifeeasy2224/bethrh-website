@@ -19,6 +19,12 @@ function periodEndFields(sub: Stripe.Subscription) {
   return typeof end === 'number' ? { current_period_end: new Date(end * 1000).toISOString() } : {};
 }
 
+// Newer Stripe API versions moved an invoice's subscription id under
+// parent.subscription_details.
+// deno-lint-ignore no-explicit-any
+const invoiceSubId = (inv: any): string | undefined =>
+  inv.subscription ?? inv.parent?.subscription_details?.subscription ?? undefined;
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -44,14 +50,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Fail closed: without the secret we can't prove an event came from
+    // Stripe, and an unverified event could grant a paid plan.
     const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET');
-    let event: Stripe.Event;
-
-    if (webhookSecret) {
-      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-    } else {
-      event = JSON.parse(body) as Stripe.Event;
+    if (!webhookSecret) {
+      console.error('stripe-webhook: STRIPE_WEBHOOK_SECRET is not set — rejecting event');
+      return new Response(JSON.stringify({ error: 'Webhook not configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    const event: Stripe.Event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -139,8 +149,9 @@ Deno.serve(async (req: Request) => {
 
       case 'invoice.paid': {
         const invoice = event.data.object as Stripe.Invoice;
-        if (!invoice.subscription) break;
-        const sub = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const subId = invoiceSubId(invoice);
+        if (!subId) break;
+        const sub = await stripe.subscriptions.retrieve(subId);
         const userId = sub.metadata?.user_id;
         if (!userId) break;
         const amount = invoice.amount_paid / 100;
@@ -159,8 +170,9 @@ Deno.serve(async (req: Request) => {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        if (!invoice.subscription) break;
-        const sub = await stripe.subscriptions.retrieve(invoice.subscription as string);
+        const subId = invoiceSubId(invoice);
+        if (!subId) break;
+        const sub = await stripe.subscriptions.retrieve(subId);
         const userId = sub.metadata?.user_id;
         if (!userId) break;
         await supabase.from('revenue_events').insert({
