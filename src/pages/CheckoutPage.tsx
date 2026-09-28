@@ -18,7 +18,7 @@ import IconButton from '@mui/material/IconButton';
 import Collapse from '@mui/material/Collapse';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../components/rtlIcons';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import VerifiedUserOutlinedIcon from '@mui/icons-material/VerifiedUserOutlined';
@@ -122,6 +122,23 @@ export default function CheckoutPage() {
     if (!plan) navigate('/pricing');
   }, [plan, navigate]);
 
+  // bfcache resilience: if this page is restored from the back-forward cache
+  // (e.g. the founder navigated away and back), the DOM can still show a
+  // stale "promo applied" chip while React state doesn't match what a fresh
+  // mount would have — this was the diagnosed root cause of the promo
+  // silently not reaching checkout. Re-validate against the live DB whenever
+  // a persisted pageshow fires with a promo still marked as applied.
+  // (Declared before the early return below so hooks always run in the same order.)
+  useEffect(() => {
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted && promoApplied) {
+        void validateAndApplyCode(promoApplied.code);
+      }
+    }
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, [promoApplied]);
+
   if (!plan) return null;
 
   const displayPrice = billing === 'annual' ? plan.annualMonthly : plan.monthly;
@@ -167,22 +184,6 @@ export default function CheckoutPage() {
     setPromoInput('');
     setPromoError('');
   }
-
-  // bfcache resilience: if this page is restored from the back-forward cache
-  // (e.g. the founder navigated away and back), the DOM can still show a
-  // stale "promo applied" chip while React state doesn't match what a fresh
-  // mount would have — this was the diagnosed root cause of the promo
-  // silently not reaching checkout. Re-validate against the live DB whenever
-  // a persisted pageshow fires with a promo still marked as applied.
-  useEffect(() => {
-    function onPageShow(e: PageTransitionEvent) {
-      if (e.persisted && promoApplied) {
-        void validateAndApplyCode(promoApplied.code);
-      }
-    }
-    window.addEventListener('pageshow', onPageShow);
-    return () => window.removeEventListener('pageshow', onPageShow);
-  }, [promoApplied]);
 
   async function handleCheckout() {
     setError('');

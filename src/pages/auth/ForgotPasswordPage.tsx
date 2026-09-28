@@ -8,7 +8,7 @@ import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link } from 'react-router-dom';
 import { supabase } from '../../supabase';

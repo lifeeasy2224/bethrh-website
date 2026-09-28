@@ -31,11 +31,10 @@ import Alert from '@mui/material/Alert';
 import InputAdornment from '@mui/material/InputAdornment';
 import Divider from '@mui/material/Divider';
 import SearchIcon from '@mui/icons-material/Search';
-import ReplyIcon from '@mui/icons-material/Reply';
+import { ReplyIcon, SendIcon } from '../../components/rtlIcons';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ArchiveOutlinedIcon from '@mui/icons-material/ArchiveOutlined';
 import ForumOutlinedIcon from '@mui/icons-material/ForumOutlined';
-import SendIcon from '@mui/icons-material/Send';
 import { useAdminAuth, ADMIN_API } from '../../contexts/AdminAuthContext';
 
 const TYPE_CONFIG: Record<string, { label: string; color: string; bg: string; emoji: string }> = {

@@ -99,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password,
       options: {
         data: { full_name: fullName, role },
+        // Land the confirmation link on onboarding, not the marketing homepage.
+        emailRedirectTo: `${window.location.origin}/onboarding`,
       },
     });
     // When email confirmation is required, signUp succeeds but returns no session.

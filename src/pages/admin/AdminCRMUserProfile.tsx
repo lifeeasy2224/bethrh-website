@@ -27,7 +27,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import NoteAddOutlinedIcon from '@mui/icons-material/NoteAddOutlined';
 import LocalOfferOutlinedIcon from '@mui/icons-material/LocalOfferOutlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';

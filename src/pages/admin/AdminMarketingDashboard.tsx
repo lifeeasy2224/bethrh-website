@@ -11,7 +11,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableRow from '@mui/material/TableRow';
 import Button from '@mui/material/Button';
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import { SendOutlinedIcon } from '../../components/rtlIcons';
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import AdsClickOutlinedIcon from '@mui/icons-material/AdsClickOutlined';
 import BlockIcon from '@mui/icons-material/Block';

@@ -21,7 +21,7 @@ import Divider from '@mui/material/Divider';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { ArrowForwardIcon } from '../../components/rtlIcons';
 import PublicIcon from '@mui/icons-material/Public';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import CheckIcon from '@mui/icons-material/Check';

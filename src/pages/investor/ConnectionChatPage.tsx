@@ -23,11 +23,9 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import SendIcon from '@mui/icons-material/Send';
+import { ArrowBackIcon, SendIcon, LogoutIcon } from '../../components/rtlIcons';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';
@@ -81,10 +79,6 @@ export default function ConnectionChatPage() {
   const [endReason, setEndReason] = useState<
     'deal_completed' | 'not_fit' | 'no_interest' | 'other'
   >('not_fit');
-
-  if (!connectionId) {
-    return <Typography color="error">معرّف تواصل غير صالح</Typography>;
-  }
 
   const loadConnection = async () => {
     if (!connectionId) return;
@@ -269,6 +263,11 @@ export default function ConnectionChatPage() {
   };
 
   const isConnectionEnded = connection?.status === 'ended';
+
+  // After all hooks, so they run in the same order on every render.
+  if (!connectionId) {
+    return <Typography color="error">معرّف تواصل غير صالح</Typography>;
+  }
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>

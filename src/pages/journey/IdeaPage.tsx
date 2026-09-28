@@ -24,7 +24,7 @@ import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { ArrowForwardIcon } from '../../components/rtlIcons';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import { supabase, SECTORS, getStageInfo, type UserIdea } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';

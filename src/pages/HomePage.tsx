@@ -17,7 +17,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CheckIcon from '@mui/icons-material/Check';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { ArrowForwardIcon } from '../components/rtlIcons';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
@@ -284,7 +284,7 @@ export default function HomePage() {
     return () => clearTimeout(timer);
   }, []);
   useSEO({
-    title: 'بذرة — تحقق من فكرتك، ابنِ مشروعك، وموّله',
+    title: 'بذرة — تحقق من فكرتك، ابنِ مشروعك، وكن جاهزاً للتمويل',
     description: 'اكتشف وتحقق من أفكار المشاريع بتحليل الذكاء الاصطناعي. ابنِ خطة إطلاق ٩٠ يوماً وتواصل مع المستثمرين — في مكان واحد.',
     canonicalPath: '/',
     jsonLd: [

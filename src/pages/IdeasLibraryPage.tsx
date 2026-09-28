@@ -16,7 +16,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Alert from '@mui/material/Alert';
 import SearchIcon from '@mui/icons-material/Search';
 import TimerOutlinedIcon from '@mui/icons-material/TimerOutlined';
-import LoginOutlinedIcon from '@mui/icons-material/LoginOutlined';
+import { LoginOutlinedIcon } from '../components/rtlIcons';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import Footer from '../components/Footer';

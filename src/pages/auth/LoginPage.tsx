@@ -6,14 +6,13 @@ import Card from '@mui/material/Card';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-import LoginIcon from '@mui/icons-material/Login';
+import { LoginIcon } from '../../components/rtlIcons';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { restorePendingIdea } from '../../lib/pendingIdea';
@@ -161,15 +160,6 @@ export default function LoginPage() {
                   startIcon={<LoginIcon />}
                 >
                   {loading ? 'جارٍ تسجيل الدخول…' : 'تسجيل الدخول ←'}
-                </Button>
-
-                <Divider>
-                  <Typography variant="caption" color="text.secondary">أو</Typography>
-                </Divider>
-
-                <Button variant="outlined" fullWidth disabled sx={{ color: 'text.secondary' }}>
-                  <img src="https://www.google.com/favicon.ico" width="16" height="16" style={{ marginInlineEnd: 8 }} alt="" />
-                  المتابعة بحساب Google (قريباً)
                 </Button>
               </Stack>
             </form>

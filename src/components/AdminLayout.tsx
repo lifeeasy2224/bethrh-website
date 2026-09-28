@@ -41,7 +41,7 @@ import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import LogoutIcon from '@mui/icons-material/Logout';
+import { LogoutIcon } from './rtlIcons';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 import ConfirmationNumberOutlinedIcon from '@mui/icons-material/ConfirmationNumberOutlined';

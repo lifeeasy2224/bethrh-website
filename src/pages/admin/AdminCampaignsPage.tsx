@@ -21,7 +21,7 @@ import Divider from '@mui/material/Divider';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import { SendOutlinedIcon } from '../../components/rtlIcons';
 import DraftsOutlinedIcon from '@mui/icons-material/DraftsOutlined';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';

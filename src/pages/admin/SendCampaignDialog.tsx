@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
 import CircularProgress from '@mui/material/CircularProgress';
-import SendOutlinedIcon from '@mui/icons-material/SendOutlined';
+import { SendOutlinedIcon } from '../../components/rtlIcons';
 import { supabase } from '../../supabase';
 
 export interface SendableCampaign {

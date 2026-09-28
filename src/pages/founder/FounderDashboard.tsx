@@ -29,7 +29,7 @@ import AddIcon from '@mui/icons-material/Add';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowForwardIcon } from '../../components/rtlIcons';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -382,7 +382,7 @@ export default function FounderDashboard() {
               <Box sx={{ px: { xs: 2.5, sm: 5, md: 7 }, mt: 3 }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
                   <Typography variant="h6" fontWeight={700}>أفكاري</Typography>
-                  <Button component={Link} to="/journey" endIcon={<ArrowBackIcon />} size="small">عرض الكل</Button>
+                  <Button component={Link} to="/journey" endIcon={<ArrowForwardIcon />} size="small">عرض الكل</Button>
                 </Stack>
                 <Stack spacing={1.5} sx={{ maxWidth: 720 }}>
                   {ideas.slice(0, 3).map(idea => {

@@ -7,7 +7,6 @@ import CardContent from '@mui/material/CardContent';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
-import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
@@ -46,7 +45,11 @@ export default function SignupPage() {
     setResending(true);
     setError('');
     setResent(false);
-    const { error: err } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+    const { error: err } = await supabase.auth.resend({
+      type: 'signup',
+      email: email.trim(),
+      options: { emailRedirectTo: `${window.location.origin}/onboarding` },
+    });
     setResending(false);
     if (err) { setError(err.message); return; }
     setResent(true);
@@ -269,20 +272,6 @@ export default function SignupPage() {
                       startIcon={role === 'founder' ? <RocketLaunchIcon /> : <MonetizationOnIcon />}
                     >
                       {loading ? 'جارٍ إنشاء الحساب…' : 'أنشئ حسابك ←'}
-                    </Button>
-
-                    <Divider>
-                      <Typography variant="caption" color="text.secondary">أو</Typography>
-                    </Divider>
-
-                    <Button
-                      variant="outlined"
-                      fullWidth
-                      disabled
-                      sx={{ color: 'text.secondary', justifyContent: 'center', gap: 1 }}
-                    >
-                      <img src="https://www.google.com/favicon.ico" width="16" height="16" alt="" />
-                      المتابعة بحساب Google (قريباً)
                     </Button>
                   </Stack>
                 </form>

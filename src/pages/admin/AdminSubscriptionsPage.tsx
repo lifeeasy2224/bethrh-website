@@ -24,7 +24,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import SearchIcon from '@mui/icons-material/Search';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import { adminDb, adminAuthListUsers } from '../../lib/adminDb';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';

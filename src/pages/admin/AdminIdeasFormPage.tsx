@@ -20,7 +20,7 @@ import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Skeleton from '@mui/material/Skeleton';
 import LinearProgress from '@mui/material/LinearProgress';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import { useAdminAuth, ADMIN_API } from '../../contexts/AdminAuthContext';
 import { adminDb } from '../../lib/adminDb';

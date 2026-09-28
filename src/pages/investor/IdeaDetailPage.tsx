@@ -27,7 +27,7 @@ import {
   Stack,
   Snackbar,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import LockIcon from '@mui/icons-material/Lock';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';

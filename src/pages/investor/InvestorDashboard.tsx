@@ -29,7 +29,7 @@ import HourglassTopOutlined from '@mui/icons-material/HourglassTopOutlined';
 import TuneOutlined from '@mui/icons-material/TuneOutlined';
 import MenuBookOutlined from '@mui/icons-material/MenuBookOutlined';
 import PersonOutlined from '@mui/icons-material/PersonOutlined';
-import ArrowForwardOutlined from '@mui/icons-material/ArrowForwardOutlined';
+import { ArrowForwardOutlinedIcon as ArrowForwardOutlined } from '../../components/rtlIcons';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabase';

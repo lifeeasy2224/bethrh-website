@@ -26,7 +26,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import PersonIcon from '@mui/icons-material/Person';
 import LockIcon from '@mui/icons-material/Lock';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import { ArrowForwardIcon } from '../../components/rtlIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';

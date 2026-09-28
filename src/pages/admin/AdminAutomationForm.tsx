@@ -18,7 +18,7 @@ import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBackIcon } from '../../components/rtlIcons';
 import AdminLayout from '../../components/AdminLayout';
 import { adminDb } from '../../lib/adminDb';
 import { useAdminAuth } from '../../contexts/AdminAuthContext';

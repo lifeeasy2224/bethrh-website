@@ -22,7 +22,7 @@ import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import MenuIcon from '@mui/icons-material/Menu';
-import SendIcon from '@mui/icons-material/Send';
+import { SendIcon } from '../components/rtlIcons';
 import AddIcon from '@mui/icons-material/Add';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
