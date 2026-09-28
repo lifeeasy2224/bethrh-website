@@ -12,9 +12,11 @@ const PLAN_PRICES: Record<string, { monthly: number; annual: number }> = {
   growth: { monthly: 1900, annual: 18200 },
 };
 
+// Arabic only: mixing Latin text into these names made the Stripe checkout
+// page render them in a jumbled bidi order.
 const PLAN_NAMES: Record<string, string> = {
-  pro:    'برو (Pro)',
-  growth: 'نمو (Growth)',
+  pro:    'برو',
+  growth: 'نمو',
 };
 
 function jsonRes(data: unknown, status = 200) {
@@ -68,11 +70,11 @@ Deno.serve(async (req: Request) => {
     );
 
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return jsonRes({ error: 'Unauthorized' }, 401);
+    if (!authHeader) return jsonRes({ error: 'غير مصرّح — سجّل الدخول ثم حاول مجدداً' }, 401);
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return jsonRes({ error: 'Unauthorized' }, 401);
+    if (authError || !user) return jsonRes({ error: 'غير مصرّح — سجّل الدخول ثم حاول مجدداً' }, 401);
 
     const { plan, billing, origin, promo_code, action } = await req.json();
 
@@ -85,8 +87,8 @@ Deno.serve(async (req: Request) => {
       return jsonRes({ valid: true, code: result.row.code, discount_pct: result.row.discount_pct });
     }
 
-    if (!PLAN_PRICES[plan]) return jsonRes({ error: 'Invalid plan' }, 400);
-    if (!['monthly', 'annual'].includes(billing)) return jsonRes({ error: 'Invalid billing cycle' }, 400);
+    if (!PLAN_PRICES[plan]) return jsonRes({ error: 'خطة غير صالحة' }, 400);
+    if (!['monthly', 'annual'].includes(billing)) return jsonRes({ error: 'دورة فوترة غير صالحة' }, 400);
 
     // ── Validate promo code if provided ─────────────────────────────────────────
     // Logged unconditionally (including "(none)") so a promo that validated
@@ -167,8 +169,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const productName = discountPct > 0
-      ? `Bethra ${planName} Plan (${discountPct}% off)`
-      : `Bethra ${planName} Plan`;
+      ? `بذرة — خطة ${planName} (خصم ${discountPct}٪)`
+      : `بذرة — خطة ${planName}`;
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -180,8 +182,8 @@ Deno.serve(async (req: Request) => {
             product_data: {
               name: productName,
               description: billing === 'annual'
-                ? 'Billed annually — save 20%'
-                : 'Billed monthly, cancel anytime',
+                ? 'تُدفع سنوياً — وفّر 20٪'
+                : 'تُدفع شهرياً — يمكنك الإلغاء في أي وقت',
             },
             unit_amount: priceAmount,
             recurring: { interval },

@@ -1,0 +1,108 @@
+# Edge-function settings for the Supabase CLI (`supabase functions deploy`).
+#
+# verify_jwt values mirror what is deployed live (checked 2026-09-28). They are
+# pinned here so a redeploy can't silently flip them: a function that must be
+# reachable without a Supabase user JWT (Stripe, pg_cron, DB triggers, public
+# tools) breaks if deployed with verify_jwt = true, and a user-facing function
+# loses its gateway auth check if deployed with verify_jwt = false.
+#
+# Deploys through the Dashboard or the Supabase MCP don't read this file — set
+# the same value there by hand.
+
+project_id = "bethrh-website"
+
+[functions.admin-auth]
+verify_jwt = true
+
+[functions.admin-db]
+verify_jwt = true
+
+[functions.admin-resources]
+verify_jwt = false  # admin panel uses its own admin_sessions token, not a Supabase JWT
+
+[functions.ai-coach]
+verify_jwt = true
+
+[functions.assess-idea]
+verify_jwt = true
+
+[functions.canvas-draft]
+verify_jwt = true
+
+[functions.cleanup-expired-documents]
+verify_jwt = false  # called by pg_cron with the Vault bearer
+
+[functions.extract-document]
+verify_jwt = true
+
+[functions.get-resource-url]
+verify_jwt = true
+
+[functions.handle-email-webhook]
+verify_jwt = false  # called by the email provider, not a signed-in user
+
+[functions.idea-stress-test]
+verify_jwt = false  # public validator for logged-out visitors (rate-limited per IP)
+
+[functions.journey-plan]
+verify_jwt = true
+
+[functions.pitch-draft]
+verify_jwt = true
+
+[functions.process-automations]
+verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth)
+
+[functions.process-scheduled-campaigns]
+verify_jwt = false  # called by pg_cron with the Vault bearer
+
+[functions.send-campaign]
+verify_jwt = true
+
+[functions.send-contact-email]
+verify_jwt = true
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.send-inspiration-upgrade]
+verify_jwt = true
+
+[functions.send-investor-interested]
+verify_jwt = false  # called by DB triggers via _call_edge_function (Vault bearer)
+
+[functions.send-investor-match]
+verify_jwt = false  # called by DB triggers via _call_edge_function (Vault bearer)
+
+[functions.send-new-message]
+verify_jwt = false  # called by DB triggers via _call_edge_function (Vault bearer)
+
+[functions.send-notification]
+verify_jwt = true
+
+[functions.send-validation-complete]
+verify_jwt = false  # called by DB triggers via _call_edge_function (Vault bearer)
+
+[functions.send-weekly-digest]
+verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth)
+
+[functions.send-weekly-inspiration]
+verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth)
+
+[functions.send-welcome-email]
+verify_jwt = false  # called by DB triggers via _call_edge_function (Vault bearer)
+
+[functions.snapshot-mrr]
+verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth)
+
+[functions.stripe-checkout]
+verify_jwt = true
+
+[functions.stripe-webhook]
+verify_jwt = false  # Stripe sends no Supabase JWT; authenticity comes from the Stripe signature.
+
+[functions.swot-analysis]
+verify_jwt = true
+
+[functions.validation-reaction]
+verify_jwt = true
