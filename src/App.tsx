@@ -126,7 +126,6 @@ const ContactPage = lazy(() => import('./pages/ContactPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const WearLessHatsPage = lazy(() => import('./pages/WearLessHatsPage'));
 const WallOfFamePage = lazy(() => import('./pages/WallOfFamePage'));
-const WhyBethraPage = lazy(() => import('./pages/WhyBethraPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
 const UnsubscribePage = lazy(() => import('./pages/UnsubscribePage'));
 
@@ -761,7 +760,6 @@ export function AppRoutes() {
               <Route path="/contact" element={<ContactPage />} />
               <Route path="/wear-less-hats" element={<WearLessHatsPage />} />
               <Route path="/wall-of-fame" element={<WallOfFamePage />} />
-              <Route path="/why-bethra" element={<WhyBethraPage />} />
               <Route path="/blog" element={<BlogPage />} />
               <Route path="/unsubscribe" element={<UnsubscribePage />} />
 
