@@ -289,9 +289,9 @@ export default function SignupPage() {
               </Card>
 
               <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ mt: 2.5, display: 'block' }}>
-                بتسجيلك أنت توافق على{' '}
-                <Typography component={Link} to="/terms" variant="caption" sx={{ color: 'primary.main', textDecoration: 'none' }}>الشروط والأحكام</Typography>
-                {' '}و{' '}
+                بالتسجيل توافق على{' '}
+                <Typography component={Link} to="/terms" variant="caption" sx={{ color: 'primary.main', textDecoration: 'none' }}>الشروط</Typography>
+                {' '}و
                 <Typography component={Link} to="/privacy" variant="caption" sx={{ color: 'primary.main', textDecoration: 'none' }}>سياسة الخصوصية</Typography>
               </Typography>
 

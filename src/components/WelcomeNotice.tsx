@@ -7,12 +7,13 @@ import Stack from '@mui/material/Stack';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import { Link } from 'react-router-dom';
 
 const SEEN_KEY = 'bethra_welcome_seen';
 
 /**
- * One-time welcome modal for new visitors: explains Bethra is run 100% by AI
- * and that ideas stay private. Shown once (localStorage), prerender-safe
+ * One-time welcome modal for new visitors: explains Bethra is run by AI and
+ * how ideas are handled (links to /privacy). Shown once (localStorage), prerender-safe
  * (localStorage is only read in an effect, so the dialog defaults closed).
  */
 export default function WelcomeNotice() {
@@ -60,13 +61,17 @@ export default function WelcomeNotice() {
           <Stack direction="row" spacing={1.5} alignItems="flex-start">
             <LockOutlinedIcon sx={{ color: '#2A8A52', fontSize: 22, mt: 0.25, flexShrink: 0 }} />
             <Typography variant="body2" color="text.secondary">
-              بذرة تعمل <strong>بالذكاء الاصطناعي بالكامل</strong>. أفكارك تبقى خاصة — لا نقرؤها ولا نعدّلها ولا نطّلع عليها. هي ملكك وحدك.
+              <strong>أفكارك ملكك.</strong> لا نبيع بياناتك، ولا نشاركها مع أي جهة لأغراض تسويقية. تُعالَج أفكارك بالذكاء الاصطناعي عبر مزوّدنا (Anthropic) لتقديم التحليل والتدريب فقط، ولا يطّلع فريق بذرة على محتواك إلا عند الحاجة لتقديم الدعم أو حماية المنصة.{' '}
+              {/* The dialog is global, so close it when navigating away. */}
+              <Typography component={Link} to="/privacy" onClick={dismiss} variant="body2" sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none' }}>
+                اقرأ سياسة الخصوصية
+              </Typography>
             </Typography>
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="flex-start">
             <MailOutlineIcon sx={{ color: '#A07830', fontSize: 22, mt: 0.25, flexShrink: 0 }} />
             <Typography variant="body2" color="text.secondary">
-              لا يتدخّل أي إنسان إلا <strong>عندما تطلب أنت</strong> — راسلنا للمساعدة وسنساعدك، بطلبك فقط. غير ذلك، لا نمسّ أفكارك أبداً.
+              تحتاج مساعدة من إنسان؟ <strong>راسلنا</strong> وسيساعدك فريقنا.
             </Typography>
           </Stack>
         </Stack>
