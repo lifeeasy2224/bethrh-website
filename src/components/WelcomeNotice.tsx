@@ -51,7 +51,7 @@ export default function WelcomeNotice() {
         </Box>
         <Typography variant="h6" fontWeight={800}>تُدار بالذكاء الاصطناعي ١٠٠٪</Typography>
         <Typography variant="body2" sx={{ color: 'rgba(247,243,236,0.7)', mt: 0.5 }}>
-          لا أحد خلف الكواليس — ذكاءٌ يعمل من أجلك فقط.
+          أفكارك في أمان — ذكاءٌ يعمل من أجلك فقط.
         </Typography>
       </Box>
 
