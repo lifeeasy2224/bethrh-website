@@ -49,7 +49,7 @@ export default function WelcomeNotice() {
         >
           <SmartToyOutlinedIcon sx={{ fontSize: 30 }} />
         </Box>
-        <Typography variant="h6" fontWeight={800}>تُدار بالذكاء الاصطناعي ١٠٠٪</Typography>
+        <Typography variant="h6" fontWeight={800}>أدوات ذكية يدعمها فريق بشري</Typography>
         <Typography variant="body2" sx={{ color: 'rgba(247,243,236,0.7)', mt: 0.5 }}>
           أفكارك في أمان — ذكاءٌ يعمل من أجلك فقط.
         </Typography>
