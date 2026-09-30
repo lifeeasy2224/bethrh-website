@@ -10,12 +10,6 @@ export function render(html: string, vars: Record<string, string>): string {
   return html.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] ?? '');
 }
 
-/**
- * Returns the admin-editable email body for `name` from the marketing_templates
- * table, falling back to the hardcoded `fallback` template if the DB row is
- * missing or blank. Lets the admin Templates page control transactional email
- * bodies without ever breaking a send if a template is empty/absent.
- */
 export async function resolveBody(
   db: SupabaseClient,
   name: string,
