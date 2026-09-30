@@ -13,6 +13,17 @@ Deno.serve(async (req: Request) => {
 
     const db = getServiceClient();
 
+    // Only trusted callers (service role / cron token) or the user themself may
+    // trigger this — it used to email any user id for anyone with the anon key.
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const cron = Deno.env.get('CRON_BEARER_TOKEN');
+    const trusted = !!token && ((!!service && token === service) || (!!cron && token === cron));
+    if (!trusted) {
+      const { data: { user } } = token ? await db.auth.getUser(token) : { data: { user: null } };
+      if (!user || user.id !== user_id) return jsonResp({ error: 'Unauthorized' }, 401);
+    }
+
     const [{ data: authUser }, { data: profile }] = await Promise.all([
       db.auth.admin.getUserById(user_id),
       db.from('profiles')
@@ -49,8 +60,8 @@ Deno.serve(async (req: Request) => {
     await db.from('notifications').insert({
       user_id,
       type: 'upgrade_prompt',
-      title: 'Keep your weekly insights',
-      body: `You've completed ${weeksCompleted} weeks of inspiration. Upgrade to continue.`,
+      title: 'حافظ على رسائل إلهامك الأسبوعية',
+      body: `أكملت ${weeksCompleted} أسابيع من الإلهام. رقِّ خطتك لتستمر.`,
       is_read: false,
     });
 

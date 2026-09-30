@@ -1,4 +1,45 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+// ─── Caller check ────────────────────────────────────────────────────────────
+// This function used to accept anyone holding the public anon key, which made it
+// an open relay for branded mail from info@bethra.co. Now:
+//   trusted = service role or cron token (DB triggers, cron jobs)
+//   user    = a real signed-in user (rate-limited, all variables HTML-escaped)
+//   anything else → 401
+async function callerOf(req: Request): Promise<{ kind: 'trusted' } | { kind: 'user'; id: string } | null> {
+  const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '').trim();
+  if (!token) return null;
+  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const cron = Deno.env.get('CRON_BEARER_TOKEN');
+  if ((service && token === service) || (cron && token === cron)) return { kind: 'trusted' };
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, service!);
+  const { data: { user } } = await db.auth.getUser(token);
+  return user ? { kind: 'user', id: user.id } : null;
+}
+
+const USER_HOURLY = 10;
+const USER_DAILY = 30;
+
+async function userLimited(userId: string): Promise<boolean> {
+  const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const subject = `mail:${userId}`;
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+  const [h, d] = await Promise.all([
+    db.from('ai_usage').select('id', { count: 'exact', head: true }).eq('subject', subject).gte('created_at', hourAgo),
+    db.from('ai_usage').select('id', { count: 'exact', head: true }).eq('subject', subject).gte('created_at', dayAgo),
+  ]);
+  if ((h.count ?? 0) >= USER_HOURLY || (d.count ?? 0) >= USER_DAILY) return true;
+  await db.from('ai_usage').insert({ subject, fn: 'send-email' });
+  return false;
+}
+
+function escapeHtml(v: unknown): string {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' } as Record<string, string>
+  )[c]);
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -169,7 +210,21 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { to, template_name, variables = {} } = await req.json() as {
+    const caller = await callerOf(req);
+    if (!caller) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (caller.kind === 'user' && await userLimited(caller.id)) {
+      return new Response(JSON.stringify({ error: 'Too many emails — try again later' }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { to, template_name, variables: rawVars = {} } = await req.json() as {
       to: string;
       template_name: string;
       variables: Record<string, string>;
@@ -196,6 +251,14 @@ Deno.serve(async (req: Request) => {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Trusted callers may pass pre-built *_html fragments; everything else is escaped.
+    const variables: Record<string, string> = {};
+    for (const [k, v] of Object.entries(rawVars)) {
+      if (caller.kind === 'trusted' && k.endsWith('_html')) variables[k] = String(v ?? '');
+      else if (k.endsWith('_html')) variables[k] = escapeHtml(String(v ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim());
+      else variables[k] = escapeHtml(v);
     }
 
     const subject = renderTemplate(template.subject, variables);

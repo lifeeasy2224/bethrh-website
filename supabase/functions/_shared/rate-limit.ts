@@ -81,8 +81,22 @@ export async function guardUser(
 
 // For public functions: rate-limit by client IP, no auth required.
 // Returns a 429 Response when over the limit, or null when allowed.
+// The client can set X-Forwarded-For, so a determined caller can rotate "IPs".
+// A global ceiling per function bounds total cost regardless of spoofing.
+const GLOBAL_HOURLY = 300;
+const GLOBAL_DAILY = 1500;
+
 export async function guardIp(req: Request, fn: string, cors: Cors): Promise<Response | null> {
   const supabase = service();
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
+  const [gh, gd] = await Promise.all([
+    supabase.from('ai_usage').select('id', { count: 'exact', head: true }).eq('fn', fn).like('subject', 'ip:%').gte('created_at', hourAgo),
+    supabase.from('ai_usage').select('id', { count: 'exact', head: true }).eq('fn', fn).like('subject', 'ip:%').gte('created_at', dayAgo),
+  ]);
+  if ((gh.count ?? 0) >= GLOBAL_HOURLY || (gd.count ?? 0) >= GLOBAL_DAILY) {
+    return json({ error: 'الخدمة مزدحمة حالياً. سجّل حساباً مجانياً للمتابعة، أو حاول لاحقاً.' }, 429, cors);
+  }
   const ip = (req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? 'unknown').trim();
   return enforce(supabase, `ip:${ip}`, fn, IP_HOURLY, IP_DAILY, cors);
 }

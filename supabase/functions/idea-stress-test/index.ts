@@ -35,6 +35,17 @@ Deno.serve(async (req: Request) => {
       competitors: string;
     };
 
+    // Cap every field — the prompt is sent to the most expensive model.
+    const MAX = 1500;
+    for (const [k, v] of Object.entries({ idea, target_customer, problem_solved, revenue_model, competitors })) {
+      if (v != null && (typeof v !== 'string' || v.length > MAX)) {
+        return new Response(JSON.stringify({ error: `الحقل ${k} طويل جداً (الحد ${MAX} حرف)` }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     if (!idea) {
       return new Response(JSON.stringify({ error: 'idea is required' }), {
         status: 400,

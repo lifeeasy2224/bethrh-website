@@ -28,6 +28,21 @@ function jsonRes(data: unknown, status = 200) {
 
 type PromoRow = { id: string; code: string; discount_pct: number };
 
+const PROMO_INVALID = 'رمز الخصم غير صالح أو غير متاح';
+
+// Guessing codes one attempt at a time: cap promo checks per user.
+const PROMO_HOURLY = 10;
+// deno-lint-ignore no-explicit-any
+async function promoLimited(supabase: any, userId: string): Promise<boolean> {
+  const subject = `promo:${userId}`;
+  const hourAgo = new Date(Date.now() - 3_600_000).toISOString();
+  const { count } = await supabase.from('ai_usage').select('id', { count: 'exact', head: true })
+    .eq('subject', subject).gte('created_at', hourAgo);
+  if ((count ?? 0) >= PROMO_HOURLY) return true;
+  await supabase.from('ai_usage').insert({ subject, fn: 'promo' });
+  return false;
+}
+
 // Single source of truth for promo validation — used by both the checkout
 // page's "طبّق" preview (action: 'validate_promo') and the real checkout, so
 // the two can never disagree. Runs with the service role: clients have no
@@ -38,7 +53,7 @@ async function lookupPromo(
   rawCode: unknown,
 ): Promise<{ ok: true; row: PromoRow } | { ok: false; error: string }> {
   const code = String(rawCode ?? '').toUpperCase().trim();
-  if (!code) return { ok: false, error: 'رمز خصم غير صالح' };
+  if (!code || code.length > 64) return { ok: false, error: PROMO_INVALID };
 
   const { data: row } = await supabase
     .from('promo_codes')
@@ -46,15 +61,11 @@ async function lookupPromo(
     .eq('code', code)
     .maybeSingle();
 
-  // Unknown and inactive codes get the same answer so this endpoint can't be
-  // used to learn which codes exist.
-  if (!row || !row.is_active) return { ok: false, error: 'رمز خصم غير صالح' };
-  if (row.expires_at && new Date(row.expires_at) < new Date()) {
-    return { ok: false, error: 'انتهت صلاحية رمز الخصم' };
-  }
-  if (row.max_uses !== null && row.uses_count >= row.max_uses) {
-    return { ok: false, error: 'بلغ رمز الخصم حد استخدامه' };
-  }
+  // One message for every failure (unknown, inactive, expired, used up) so the
+  // endpoint can't be used to learn which codes exist.
+  const expired = row?.expires_at && new Date(row.expires_at) < new Date();
+  const usedUp = row?.max_uses !== null && row?.max_uses !== undefined && row.uses_count >= row.max_uses;
+  if (!row || !row.is_active || expired || usedUp) return { ok: false, error: PROMO_INVALID };
   return { ok: true, row };
 }
 
@@ -82,6 +93,9 @@ Deno.serve(async (req: Request) => {
     // The checkout page calls this when the founder presses "طبّق" instead of
     // reading promo_codes itself (that client read is what exposed every code).
     if (action === 'validate_promo') {
+      if (await promoLimited(supabase, user.id)) {
+        return jsonRes({ valid: false, error: 'محاولات كثيرة — حاول بعد ساعة' });
+      }
       const result = await lookupPromo(supabase, promo_code);
       if (!result.ok) return jsonRes({ valid: false, error: result.error });
       return jsonRes({ valid: true, code: result.row.code, discount_pct: result.row.discount_pct });
@@ -101,6 +115,9 @@ Deno.serve(async (req: Request) => {
     let promoCodeId: string | null = null;
 
     if (promo_code) {
+      if (await promoLimited(supabase, user.id)) {
+        return jsonRes({ error: 'محاولات كثيرة — حاول بعد ساعة' }, 429);
+      }
       const result = await lookupPromo(supabase, promo_code);
       if (!result.ok) return jsonRes({ error: result.error }, 400);
 
@@ -119,6 +136,11 @@ Deno.serve(async (req: Request) => {
     if (discountPct === 100) {
       const planKey = plan as string;
 
+      // Claim a use atomically first; if two requests race for the last use,
+      // only one wins and the other gets the invalid-code message.
+      const { data: claimed, error: claimErr } = await supabase.rpc('increment_promo_uses', { code_id: promoCodeId });
+      if (claimErr || claimed !== true) return jsonRes({ error: PROMO_INVALID }, 400);
+
       const { error: upsertErr } = await supabase.from('subscriptions').upsert({
         user_id: user.id,
         plan: planKey,
@@ -134,10 +156,6 @@ Deno.serve(async (req: Request) => {
 
       await supabase.from('profiles').update({ plan: planKey }).eq('user_id', user.id);
 
-      if (promoCodeId) {
-        await supabase.rpc('increment_promo_uses', { code_id: promoCodeId });
-      }
-
       return jsonRes({ free: true, redirect: `${siteOrigin}/checkout/success` });
     }
 
@@ -145,6 +163,12 @@ Deno.serve(async (req: Request) => {
     const priceAmount = discountPct > 0
       ? Math.round(basePriceAmount * (1 - discountPct / 100))
       : basePriceAmount;
+
+    // Paid checkout with a partial discount: claim the use atomically too.
+    if (promoCodeId) {
+      const { data: claimed, error: claimErr } = await supabase.rpc('increment_promo_uses', { code_id: promoCodeId });
+      if (claimErr || claimed !== true) return jsonRes({ error: PROMO_INVALID }, 400);
+    }
 
     // Paid checkout from here on — Stripe key only needed past the free path.
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -211,11 +235,6 @@ Deno.serve(async (req: Request) => {
         },
       },
     });
-
-    // Increment promo uses_count now (webhook will also fire but idempotent via upsert)
-    if (promoCodeId) {
-      await supabase.rpc('increment_promo_uses', { code_id: promoCodeId });
-    }
 
     return jsonRes({ url: session.url });
   } catch (error) {

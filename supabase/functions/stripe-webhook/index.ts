@@ -25,6 +25,20 @@ function periodEndFields(sub: Stripe.Subscription) {
 const invoiceSubId = (inv: any): string | undefined =>
   inv.subscription ?? inv.parent?.subscription_details?.subscription ?? undefined;
 
+// Database writes must succeed, or Stripe needs a 500 so it retries.
+// deno-lint-ignore no-explicit-any
+function must(res: { error: any }, what: string) {
+  if (res.error) throw new Error(`${what}: ${res.error.message}`);
+}
+// revenue_events.stripe_event_id is UNIQUE: a duplicate means this event was
+// already processed (Stripe replay/retry), so the caller should skip side effects.
+// deno-lint-ignore no-explicit-any
+function logged(res: { error: any }): boolean {
+  if (!res.error) return true;
+  if (res.error.code === '23505') return false;
+  throw new Error(`revenue_events: ${res.error.message}`);
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -74,12 +88,12 @@ Deno.serve(async (req: Request) => {
 
         const sub = await stripe.subscriptions.retrieve(session.subscription as string);
 
-        await supabase
+        must(await supabase
           .from('profiles')
           .update({ plan, stripe_customer_id: session.customer as string })
-          .eq('user_id', userId);
+          .eq('user_id', userId), 'profiles');
 
-        await supabase
+        must(await supabase
           .from('subscriptions')
           .upsert(
             {
@@ -94,7 +108,7 @@ Deno.serve(async (req: Request) => {
               updated_at: new Date().toISOString(),
             },
             { onConflict: 'user_id' },
-          );
+          ), 'subscriptions');
         break;
       }
 
@@ -105,7 +119,7 @@ Deno.serve(async (req: Request) => {
 
         const plan = sub.metadata?.plan;
 
-        await supabase
+        must(await supabase
           .from('subscriptions')
           .update({
             status: sub.status,
@@ -113,10 +127,10 @@ Deno.serve(async (req: Request) => {
             cancel_at_period_end: sub.cancel_at_period_end,
             updated_at: new Date().toISOString(),
           })
-          .eq('user_id', userId);
+          .eq('user_id', userId), 'subscriptions');
 
         if (plan) {
-          await supabase.from('profiles').update({ plan }).eq('user_id', userId);
+          must(await supabase.from('profiles').update({ plan }).eq('user_id', userId), 'profiles');
         }
         break;
       }
@@ -129,21 +143,21 @@ Deno.serve(async (req: Request) => {
         const plan = sub.metadata?.plan ?? sub.items.data[0]?.price?.metadata?.plan;
         const amount = (sub.items.data[0]?.price?.unit_amount ?? 0) / 100;
 
-        await supabase.from('profiles').update({ plan: 'free' }).eq('user_id', userId);
-        await supabase
+        must(await supabase.from('profiles').update({ plan: 'free' }).eq('user_id', userId), 'profiles');
+        must(await supabase
           .from('subscriptions')
           .update({ status: 'canceled', cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq('user_id', userId);
+          .eq('user_id', userId), 'subscriptions');
 
-        // Log churn event for revenue dashboard
-        await supabase.from('revenue_events').insert({
+        // Log churn event for revenue dashboard (duplicate replays are ignored)
+        logged(await supabase.from('revenue_events').insert({
           user_id: userId,
           event_type: 'subscription_cancelled',
           plan,
           amount,
           stripe_event_id: event.id,
           stripe_subscription_id: sub.id,
-        });
+        }));
         break;
       }
 
@@ -155,8 +169,9 @@ Deno.serve(async (req: Request) => {
         const userId = sub.metadata?.user_id;
         if (!userId) break;
         const amount = invoice.amount_paid / 100;
-        await supabase.rpc('increment_total_revenue', { target_user_id: userId, inc_amount: amount });
-        await supabase.from('revenue_events').insert({
+        // Log first: the unique event id makes a replay a no-op, so revenue is
+        // only ever counted once per Stripe event.
+        const isNew = logged(await supabase.from('revenue_events').insert({
           user_id: userId,
           event_type: 'payment_received',
           plan: sub.metadata?.plan,
@@ -164,7 +179,10 @@ Deno.serve(async (req: Request) => {
           currency: invoice.currency,
           stripe_event_id: event.id,
           stripe_subscription_id: sub.id,
-        });
+        }));
+        if (isNew) {
+          must(await supabase.rpc('increment_total_revenue', { target_user_id: userId, inc_amount: amount }), 'increment_total_revenue');
+        }
         break;
       }
 
@@ -175,7 +193,7 @@ Deno.serve(async (req: Request) => {
         const sub = await stripe.subscriptions.retrieve(subId);
         const userId = sub.metadata?.user_id;
         if (!userId) break;
-        await supabase.from('revenue_events').insert({
+        logged(await supabase.from('revenue_events').insert({
           user_id: userId,
           event_type: 'payment_failed',
           plan: sub.metadata?.plan,
@@ -183,7 +201,7 @@ Deno.serve(async (req: Request) => {
           currency: invoice.currency,
           stripe_event_id: event.id,
           stripe_subscription_id: sub.id,
-        });
+        }));
         break;
       }
     }
@@ -193,6 +211,7 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
+    console.error('stripe-webhook error:', (error as Error).message);
     return new Response(
       JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
