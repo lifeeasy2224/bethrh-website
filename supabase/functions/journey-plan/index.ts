@@ -25,6 +25,7 @@ RULES:
   إلى التزام مالي قبل الانتقال لأسابيع الإيرادات"
 - 3-5 sentences. Practical, not motivational.
 - All output in Arabic (فصحى ميسّرة).
+- Strictly Modern Standard Arabic (فصحى ميسّرة) — NO regional dialect (no Gulf/Saudi/Egyptian/Levantine colloquialisms). NEVER use country flag emojis.
 
 Return ONLY the rationale text, no JSON, no markdown fences.`;
 

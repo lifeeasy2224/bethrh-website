@@ -30,6 +30,7 @@ HARD RULES:
   in each block rather than generating a plausible-sounding canvas from nothing.
   A sparse honest draft is better than a rich fabricated one.
 - All output VALUES in Arabic (فصحى ميسّرة).
+- Strictly Modern Standard Arabic (فصحى ميسّرة) — NO regional dialect (no Gulf/Saudi/Egyptian/Levantine colloquialisms). NEVER use country flag emojis.
 
 Return ONLY a JSON object, no markdown, no preamble:
 {

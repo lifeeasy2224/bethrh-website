@@ -33,6 +33,7 @@ HARD RULES:
 - If the founder has very little data, produce a sparse honest draft and flag what's missing
   rather than filling gaps with plausible fiction.
 - All output VALUES in Arabic (فصحى ميسّرة).
+- Strictly Modern Standard Arabic (فصحى ميسّرة) — NO regional dialect (no Gulf/Saudi/Egyptian/Levantine colloquialisms). NEVER use country flag emojis.
 
 Return ONLY a JSON object, no markdown, no preamble:
 {

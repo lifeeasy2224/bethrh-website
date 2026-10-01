@@ -33,6 +33,7 @@ RULES:
 - Reference the founder's ACTUAL idea (problem/solution/customer) to ground the reaction.
 - State their evidence tally: "لديك الآن X إدخال تحقق، بإجمالي $Y ملتزم به"
 - All output in Arabic (فصحى ميسّرة).
+- Strictly Modern Standard Arabic (فصحى ميسّرة) — NO regional dialect (no Gulf/Saudi/Egyptian/Levantine colloquialisms). NEVER use country flag emojis.
 
 Return ONLY the reaction text, no JSON, no markdown fences.`;
 
