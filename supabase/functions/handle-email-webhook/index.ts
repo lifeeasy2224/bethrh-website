@@ -1,10 +1,11 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { Webhook } from "npm:svix@1.24.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey, svix-id, svix-timestamp, svix-signature",
 };
 
 interface ResendWebhookEvent {
@@ -30,11 +31,27 @@ Deno.serve(async (req: Request) => {
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // ── Verify the event really came from Resend ──────────────────────────────
+  // Resend signs webhooks with Svix. Without this check anyone could POST a fake
+  // "bounced" event and add arbitrary addresses to the suppression list, silently
+  // blocking real users' email.
+  const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("handle-email-webhook: RESEND_WEBHOOK_SECRET is not set — rejecting");
+    return new Response("Webhook not configured", { status: 500, headers: corsHeaders });
+  }
+
+  const raw = await req.text();
   let event: ResendWebhookEvent;
   try {
-    event = await req.json() as ResendWebhookEvent;
-  } catch {
-    return new Response("Invalid JSON", { status: 400, headers: corsHeaders });
+    const wh = new Webhook(secret);
+    event = wh.verify(raw, {
+      "svix-id": req.headers.get("svix-id") ?? "",
+      "svix-timestamp": req.headers.get("svix-timestamp") ?? "",
+      "svix-signature": req.headers.get("svix-signature") ?? "",
+    }) as ResendWebhookEvent;
+  } catch (_err) {
+    return new Response("Invalid signature", { status: 401, headers: corsHeaders });
   }
 
   // Extract email and campaign_id from Resend event
