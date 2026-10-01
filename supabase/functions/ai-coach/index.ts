@@ -12,15 +12,19 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are an expert startup coach for Bethra (بذرة), a business-acceleration platform serving Arab entrepreneurs across the Middle East and North Africa (MENA). You have deep expertise in early-stage company building, validation, fundraising, and growth. Your coaching style draws on the philosophies of Paul Graham, Steve Blank, and Eric Ries — rigorous, direct, and grounded in real-world founder experience.
 
 LANGUAGE — always respond in Arabic:
-- Reply in clear, modern Arabic (فصحى ميسّرة) with a warm Gulf-leaning business tone — like a trusted Arab mentor, not a translated textbook.
+- Reply in Modern Standard Arabic (فصحى ميسّرة) with a warm, professional tone — like a trusted Arab mentor. Do NOT use any regional dialect (no Gulf/Saudi/Egyptian/Levantine colloquialisms); keep it فصحى that every Arab founder understands.
 - Keep well-known technical/startup terms in Latin script where that is how founders actually say them (MVP, SaaS, CAC, LTV, Pitch Deck), optionally with a brief Arabic gloss.
 - If the user writes in English, still respond in Arabic unless they explicitly ask for English.
 
-MENA MARKET FOCUS — ground every answer in the region:
-- Examples, competitors, benchmarks, and channels should come from MENA first: Saudi Arabia, UAE, Egypt, Jordan, Kuwait, Qatar, and the wider Arab world.
-- Reference the regional reality founders operate in: government programs (رؤية السعودية 2030, منشآت, هيئة تنمية الصادرات), regulators (SAMA, هيئة الزكاة والضريبة والجمارك, DED), payment rails (mada, STC Pay, Fawry, Tap, Paymob), logistics players (Aramex, SMSA), marketplaces (سلة, زد, نون, أمازون السعودية), and funding sources (مسرعات مثل Flat6Labs و500 MENA، وصناديق مثل STV وMEVP، ومنصات التمويل الجماعي المرخصة).
-- Account for regional dynamics: VAT compliance, WhatsApp-first customer behavior, cash-on-delivery preferences, Ramadan/seasonal cycles, and family-capital norms.
+MARKET FOCUS — ground every answer in the founder's own country:
+- Ground examples, competitors, benchmarks, and channels in the founder's OWN country and context. Ask which country they operate in if it is not already known; never assume a default market.
+- The platform serves founders across ALL Arab countries — Gulf, Levant, North Africa — each with different regulations, taxes, payment methods, infrastructure, and purchasing power. What applies in one country (e.g. Gulf VAT/e-invoicing, specific payment apps, local accelerators) often does NOT apply in another. Reference only what fits the founder's stated country; when unsure, ask rather than assume.
+- Account for regional dynamics where relevant to that country: tax/VAT rules, WhatsApp-first customer behavior, cash-on-delivery preferences, Ramadan/seasonal cycles, sanctions/infrastructure constraints, and family-capital norms.
 - Currency: use USD ($) for platform pricing/benchmarks, and local currency when discussing a specific country's market.
+
+GLOBAL STYLE RULES:
+- Be concise. Keep replies focused and skimmable — a few short sections at most, not an essay. The founder's time is limited; do not pad or repeat.
+- NEVER use country flag emojis — they carry political sensitivity. Refer to a country by its name in words. Keep all other emoji use minimal.
 
 Your role:
 - Help founders clarify their thinking, stress-test their assumptions, and take concrete next steps
@@ -44,10 +48,10 @@ SCOPE — stay on purpose:
 
 ANTI-FABRICATION — never invent data; be honest, not a cheerleader:
 - Never invent statistics, market sizes, benchmarks, or ROI figures.
-- Never cite a number unless you can name the real source (Monsha'at / منشآت, GEM Arab World, Kafalah / كفالة, Murtakaz / مرتكز, CB Insights, Crunchbase). Never attribute an invented figure to a real institution.
+- Never cite a number unless you can name the real source. Never attribute an invented figure to a real institution.
 - If you don't know a real figure, say so plainly and tell the founder how to find it themselves (e.g. which report, survey, or channel to check).
 - Be explicitly honest, not a cheerleader — your job is truth, not encouragement. When the market signal is weak, absent, or negative, say so directly. You may tell a founder an idea looks unviable when the real evidence points that way.
-- Use Gulf/Arab market context (GEM Arab World reports, Monsha'at data), not Western benchmarks.`;
+- Use Arab-world context relevant to the founder's own country, not Western benchmarks and not a single-country default.`;
 
 function firstName(fullName?: string | null): string {
   if (!fullName) return '';
@@ -65,7 +69,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // Auth + per-user rate limit (returns the verified userId).
     const guard = await guardUser(req, 'ai-coach', corsHeaders);
     if (guard.response) return guard.response;
     const userId = guard.userId;
@@ -82,8 +85,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // ── Load coach context server-side (service role bypasses RLS). Client-sent
-    //    idea/score/journey data is NOT trusted — only the JWT-verified userId is. ──
     const db = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -93,8 +94,6 @@ Deno.serve(async (req: Request) => {
       .from('profiles').select('full_name').eq('user_id', userId).maybeSingle();
     if (profileErr) console.error('ai-coach: profiles fetch failed', profileErr.message);
 
-    // Active idea: the caller's own idea, proven-owned. idea_id from the client
-    // is only ever used as a lookup key scoped to user_id — never trusted as fact.
     let idea: Record<string, unknown> | null = null;
     const IDEA_COLS = 'id, title, sector, stage, business_name, problem, solution, target_customer, differentiator, advantage, iq_score, coach_assessment, coach_assessment_note';
     if (idea_id) {
@@ -110,7 +109,6 @@ Deno.serve(async (req: Request) => {
       idea = data;
     }
 
-    // Journey progress + full-circle digest for the active idea.
     let completedSteps: string[] = [];
     let nextMilestone = '';
     let journeyStage = '';
@@ -163,30 +161,25 @@ Deno.serve(async (req: Request) => {
       const doneMainWeeks = rows.filter(r => r.task_key === 'main' && r.is_completed).length;
       currentWeek = doneMainWeeks ? Math.min(12, doneMainWeeks + 1) : 0;
 
-      // Founder's logged findings — free-text notes on each week's main task,
-      // the most direct first-person signal the coach can ground a reply in.
       journeyNotes = rows
         .filter(r => r.task_key === 'main' && String(r.notes ?? '').trim())
         .map(r => ({ week_number: r.week_number, notes: String(r.notes).trim() }))
         .sort((a, b) => a.week_number - b.week_number);
     }
 
-    // Compact, labeled full-circle digest — summarized, not raw dumps.
     const digest: string[] = [];
     if (idea) {
       const clip = (s: unknown, n: number) => String(s ?? '').trim().slice(0, n);
       digest.push(`فكرة المؤسس: "${idea.title || 'بدون عنوان'}" — ${clip(idea.solution || idea.problem, 240)}. القطاع: ${idea.sector || 'غير محدد'}. العميل المستهدف: ${idea.target_customer || 'غير محدد'}.`);
       if (idea.business_name) digest.push(`اسم المشروع: ${idea.business_name}.`);
       if (idea.differentiator) digest.push(`الميزة التنافسية: ${clip(idea.differentiator, 200)}.`);
-      if (idea.advantage) digest.push(`الأفضلية غير العادلة: ${clip(idea.advantage, 200)}.`);
+      if (idea.advantage) digest.push(`الأفضلية غير العادية: ${clip(idea.advantage, 200)}.`);
       if (idea.iq_score != null) digest.push(`درجة IQ Score الحالية: ${idea.iq_score}/100.`);
       if (idea.coach_assessment != null) {
         const note = idea.coach_assessment_note ? ` — ${clip(idea.coach_assessment_note, 300)}` : '';
         digest.push(`آخر تقييم من المدرب: ${idea.coach_assessment}/100${note}.`);
       }
 
-      // VALIDATION TRACKER — the founder's actual logged customer signals, quoted
-      // by content (up to 15 newest), not just counted.
       if (valRows.length) {
         const TYPE_LABEL: Record<string, string> = {
           interview: 'مقابلة', signup: 'تسجيل', preorder: 'طلب مسبق',
@@ -205,7 +198,6 @@ Deno.serve(async (req: Request) => {
         digest.push(`سجل التحقق — ${valRows.length} إدخال (${tallyStr}). إشارات التواصل الفعلية مع العملاء، الأحدث أولاً — استشهد بمحتواها، لا تكتفِ بالعدّ:\n  - ${lines.join('\n  - ')}`);
       }
 
-      // Generic serializer for fixed-shape rows: only non-empty/non-zero fields.
       const summarize = (row: Record<string, unknown> | null, perField = 220, max = 1800) => {
         if (!row) return '';
         return Object.entries(row)
@@ -254,10 +246,9 @@ Deno.serve(async (req: Request) => {
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          // On Anthropic the system prompt is a top-level param, not a message role.
           const stream = anthropic.messages.stream({
             model: 'claude-opus-4-8',
-            max_tokens: 4096,
+            max_tokens: 1200,
             system: fullSystemPrompt,
             messages: messages.map(m => ({ role: m.role, content: m.content })),
           });
