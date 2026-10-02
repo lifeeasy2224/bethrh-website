@@ -5,7 +5,6 @@ import { checkCronAuth } from '../_shared/cron-auth.ts';
 
 const PAID_TIERS = new Set(['pro', 'growth', 'accelerator']);
 const FREE_MAX_WEEKS = 8;
-const TOTAL_MESSAGES = 100;
 
 const CATEGORY_STYLES: Record<string, { color: string; bg: string }> = {
   'QUICK TIP':     { color: '#1D4ED8', bg: '#DBEAFE' },
@@ -87,8 +86,10 @@ Deno.serve(async (req: Request) => {
         const style = CATEGORY_STYLES[msg.category] ?? CATEGORY_STYLES['QUICK TIP'];
         const tipsReceived = sentIds.size;
 
+        const totalMessages = allMessages.length;
+
         const html = render(await resolveBody(db, 'weekly-inspiration', WEEKLY_INSPIRATION_TEMPLATE), {
-          first_name: (profile.full_name ?? '').split(' ')[0] || 'there',
+          first_name: (profile.full_name ?? '').split(' ')[0] || 'صديقنا',
           category_label: msg.category,
           category_color: style.color,
           category_bg: style.bg,
@@ -96,7 +97,7 @@ Deno.serve(async (req: Request) => {
           main_content: msg.main_content,
           action_prompt: msg.action_prompt,
           tip_number: String(tipsReceived + 1),
-          total_tips: String(TOTAL_MESSAGES),
+          total_tips: String(totalMessages),
           week_number: String(weekNumber),
           dashboard_url: `${origin}/founder/dashboard`,
           unsubscribe_url: `${origin}/unsubscribe?token=${profile.unsubscribe_token ?? ''}`,

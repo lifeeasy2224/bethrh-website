@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
 
     const roi = canvasRow?.monthly_revenue && canvasRow?.monthly_costs
       ? `${Math.round(((canvasRow.monthly_revenue - canvasRow.monthly_costs) / Math.max(canvasRow.monthly_costs, 1)) * 100)}%`
-      : 'TBD';
+      : 'لم يُحدَّد';
 
     const origin = 'https://bethra.co';
     let sent = 0;
@@ -200,15 +200,15 @@ Deno.serve(async (req: Request) => {
       if (!profile?.email_digest_enabled) continue;
 
       const html = render(await resolveBody(db, 'investor-match', INVESTOR_MATCH_TEMPLATE), {
-        investor_name: (profile?.full_name ?? '').split(' ')[0] || 'there',
+        investor_name: (profile?.full_name ?? '').split(' ')[0] || 'صديقنا',
         match_score: `${matchScore} — ${matchLabel(matchScore)}`,
         sector: record.sector,
         sector_emoji: SECTOR_EMOJI[record.sector] ?? '💡',
         idea_name: record.title,
         idea_description: (record.problem ?? '').slice(0, 160),
-        investment_range: investor.check_size ?? 'N/A',
+        investment_range: investor.check_size ?? 'غير محدد',
         roi,
-        breakeven: canvasRow?.break_even_month ? `Month ${canvasRow.break_even_month}` : 'TBD',
+        breakeven: canvasRow?.break_even_month ? `الشهر ${canvasRow.break_even_month}` : 'لم يُحدَّد',
         match_reasons: reasons.join(' · '),
         idea_url: `${origin}/investor/idea/${record.id}`,
         unsubscribe_url: `${origin}/unsubscribe?token=${profile?.unsubscribe_token ?? ''}`,

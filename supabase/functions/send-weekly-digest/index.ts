@@ -13,10 +13,10 @@ function ideaCardHtml(name: string, sector: string, match: string, investment: s
   const emoji = SECTOR_EMOJI[sector] ?? '💡';
   return `<div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:8px;padding:14px;margin-bottom:10px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-      <strong style="font-size:14px;color:#1B2A4A;">${emoji} ${name}</strong>
-      <span style="background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;">${match}</span>
+      <strong style="font-size:14px;color:#0F3D24;">${emoji} ${name}</strong>
+      <span style="background:#DEEBE2;color:#1B6B3E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;">${match}</span>
     </div>
-    <div style="color:#6B7280;font-size:12px;">${sector} · ${investment}</div>
+    <div style="color:#6B7280;font-size:12px;">${sector}${investment ? ` · ${investment}` : ''}</div>
   </div>`;
 }
 
@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - 7);
-    const weekDate = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}–${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    const weekDate = `${weekStart.toLocaleDateString('ar', { month: 'long', day: 'numeric' })}–${now.toLocaleDateString('ar', { month: 'long', day: 'numeric' })}`;
 
     const { data: profiles } = await db
       .from('profiles')
@@ -59,11 +59,12 @@ Deno.serve(async (req: Request) => {
           { count: newIdeasCount },
         ] = await Promise.all([
           db.from('user_ideas').select('iq_score').eq('user_id', profile.user_id).order('iq_score', { ascending: false }).limit(1).maybeSingle(),
-          db.from('messages').select('*', { count: 'exact', head: true })
+          db.from('notifications').select('*', { count: 'exact', head: true })
+            .eq('user_id', profile.user_id)
             .gte('created_at', weekStart.toISOString()),
           db.from('notifications').select('*', { count: 'exact', head: true })
             .eq('user_id', profile.user_id)
-            .eq('type', 'investor_match')
+            .eq('type', 'match')
             .gte('created_at', weekStart.toISOString()),
           db.from('user_ideas').select('*', { count: 'exact', head: true })
             .eq('in_marketplace', true)
@@ -106,9 +107,9 @@ Deno.serve(async (req: Request) => {
 
           topIdeas = (matchedIdeas ?? []).map(i => ({
             title: i.title,
-            sector: i.sector ?? 'General',
-            match: '95%',
-            check_size: investorProfile?.check_size ?? 'N/A',
+            sector: i.sector ?? 'عام',
+            match: 'يطابق قطاعك',
+            check_size: investorProfile?.check_size ?? '—',
           }));
         } else {
           // For founders: top 3 new marketplace ideas published this week
@@ -122,18 +123,18 @@ Deno.serve(async (req: Request) => {
 
           topIdeas = (newIdeas ?? []).map(i => ({
             title: i.title,
-            sector: i.sector ?? 'General',
-            match: 'New',
-            check_size: 'Various',
+            sector: i.sector ?? 'عام',
+            match: 'جديد',
+            check_size: '',
           }));
         }
 
         const ideasSection = topIdeas.length
           ? topIdeas.map(i => ideaCardHtml(i.title, i.sector, i.match ?? 'New', i.check_size ?? 'N/A')).join('')
-          : '<p style="color:#9CA3AF;font-size:14px;text-align:center;padding:16px 0;">No new ideas this week — check back next Monday.</p>';
+          : '<p style="color:#9CA3AF;font-size:14px;text-align:center;padding:16px 0;">لا أفكار جديدة هذا الأسبوع — تابعنا الاثنين القادم.</p>';
 
         const html = render(await resolveBody(db, 'weekly-digest', WEEKLY_DIGEST_TEMPLATE), {
-          first_name: (profile.full_name ?? '').split(' ')[0] || 'there',
+          first_name: (profile.full_name ?? '').split(' ')[0] || 'صديقنا',
           week_date: weekDate,
           iq_score: String((idea as { iq_score?: number } | null)?.iq_score ?? 0),
           streak: String(profile.current_streak ?? 0),

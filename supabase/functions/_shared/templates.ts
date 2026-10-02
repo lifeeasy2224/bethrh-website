@@ -90,7 +90,7 @@ export const INVESTOR_MATCH_TEMPLATE = WRAP(
     <table width="100%" cellpadding="0" cellspacing="0" dir="rtl">
       <tr>
         <td style="font-size:13px;color:#8A8070;">الاستثمار</td>
-        <td style="font-size:13px;color:#8A8070;">العائد المتوقع</td>
+        <td style="font-size:13px;color:#8A8070;">العائد (تقدير المؤسس)</td>
         <td style="font-size:13px;color:#8A8070;">نقطة التعادل</td>
       </tr>
       <tr>
@@ -172,7 +172,7 @@ export const WEEKLY_DIGEST_TEMPLATE = WRAP(
       </tr>
       <tr>
         <td style="padding:8px 0;">
-          <span style="color:#8A8070;font-size:14px;">💬 رسائل وصلتك</span>
+          <span style="color:#8A8070;font-size:14px;">🔔 تنبيهات هذا الأسبوع</span>
         </td>
         <td align="left" style="padding:8px 0;">
           <strong style="color:#0F3D24;font-size:14px;">{{messages_count}}</strong>
