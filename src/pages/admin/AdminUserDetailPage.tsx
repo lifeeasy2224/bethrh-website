@@ -59,7 +59,7 @@ interface UserDetail {
   };
   founder_profile: Record<string, string> | null;
   investor_profile: Record<string, string> | null;
-  ideas: { id: string; title: string; created_at: string; status: string }[];
+  ideas: { id: string; title: string; created_at: string; stage: string | null }[];
   tickets: { id: string; subject: string; status: string; priority: string; created_at: string }[];
   action_log: { action: string; reason: string | null; created_at: string }[];
 }
@@ -459,7 +459,7 @@ export default function AdminUserDetailPage() {
                         sx={{ py: 1.25, borderBottom: '1px solid', borderColor: 'grey.100', '&:last-child': { borderBottom: 'none' } }}>
                         <Typography variant="body2" fontWeight={500}>{idea.title}</Typography>
                         <Stack direction="row" alignItems="center" spacing={1.5}>
-                          <Chip label={idea.status} size="small" sx={{ fontSize: '0.7rem', textTransform: 'capitalize', bgcolor: 'grey.100' }} />
+                          <Chip label={idea.stage ?? '—'} size="small" sx={{ fontSize: '0.7rem', textTransform: 'capitalize', bgcolor: 'grey.100' }} />
                           <Typography variant="caption" color="text.secondary">{fmtShort(idea.created_at)}</Typography>
                         </Stack>
                       </Stack>

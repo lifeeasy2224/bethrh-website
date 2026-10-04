@@ -129,15 +129,32 @@ export default function GroupDetailPage() {
 
     const [groupRes, membersRes, checkinsRes, myMemberRes] = await Promise.all([
       supabase.from('accountability_groups').select('*').eq('id', id).maybeSingle(),
-      supabase.from('group_members').select('*, profiles(full_name)').eq('group_id', id),
-      supabase.from('group_checkins').select('*, profiles(full_name)').eq('group_id', id).order('created_at', { ascending: false }),
+      supabase.from('group_members').select('*').eq('group_id', id),
+      supabase.from('group_checkins').select('*').eq('group_id', id).order('created_at', { ascending: false }),
       supabase.from('group_members').select('id').eq('group_id', id).eq('user_id', user.id).maybeSingle(),
     ]);
 
-    setGroup(groupRes.data as Group | null);
-    setMembers((membersRes.data ?? []) as Member[]);
+    // No FK from group_members/group_checkins to profiles (both point at
+    // auth.users), so fetch names separately and merge client-side.
+    const memberRows = (membersRes.data ?? []) as Member[];
+    const checkinRows = (checkinsRes.data ?? []) as Checkin[];
+    const userIds = [...new Set([...memberRows, ...checkinRows].map(r => r.user_id))];
+    const nameByUser = new Map<string, string>();
+    if (userIds.length) {
+      const { data: profs } = await supabase.from('profiles').select('user_id, full_name').in('user_id', userIds);
+      (profs ?? []).forEach((p: { user_id: string; full_name: string | null }) => {
+        if (p.full_name) nameByUser.set(p.user_id, p.full_name);
+      });
+    }
+    const withName = <T extends { user_id: string }>(r: T): T & { profiles?: { full_name: string } } => {
+      const full_name = nameByUser.get(r.user_id);
+      return full_name ? { ...r, profiles: { full_name } } : r;
+    };
 
-    const allCheckins = (checkinsRes.data ?? []) as Checkin[];
+    setGroup(groupRes.data as Group | null);
+    setMembers(memberRows.map(withName));
+
+    const allCheckins = checkinRows.map(withName);
     setCheckins(allCheckins);
 
     const thisWeek = getWeekStart();

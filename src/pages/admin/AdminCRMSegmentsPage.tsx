@@ -447,7 +447,7 @@ export default function AdminCRMSegmentsPage() {
     setLoading(true);
     const [{ data: segsData }, { data: profilesData }, { data: ideasCountData }] = await Promise.all([
       adminDb(sessionToken, 'marketing_segments').select('*', { order: { column: 'created_at' } }),
-      adminDb(sessionToken, 'profiles').select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at, login_count, iq_score'),
+      adminDb(sessionToken, 'enriched_users').select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at, login_count, iq_score'),
       adminDb(sessionToken, 'user_ideas').select('user_id'),
     ]);
 

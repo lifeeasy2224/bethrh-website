@@ -159,17 +159,25 @@ Deno.serve(async (req: Request) => {
         }
 
         case "canvas_completed": {
-          // Find canvas_data updated in window where all 9 blocks are filled
+          // Find canvas_data updated in window where all 9 blocks are filled.
+          // canvas_data has one column per block and no user_id; the owner
+          // comes from the user_ideas embed (canvas_data.user_idea_id FK).
+          const BLOCKS = [
+            "key_partners", "key_activities", "value_proposition", "customer_relationships",
+            "customer_segments", "key_resources", "channels", "cost_structure", "revenue_streams",
+          ] as const;
           const { data: canvases } = await supabase
             .from("canvas_data")
-            .select("user_id, data")
+            .select(`${BLOCKS.join(", ")}, user_ideas(user_id)`)
             .gte("updated_at", windowStart.toISOString())
             .lte("updated_at", windowEnd.toISOString());
-          for (const c of (canvases ?? []) as Array<{ user_id: string; data: unknown }>) {
-            const blocks = c.data as Record<string, string> | null;
-            if (blocks && Object.values(blocks).filter(v => v?.trim()).length >= 9) {
-              candidateIds.push(c.user_id);
-            }
+          type CanvasRow = Record<(typeof BLOCKS)[number], string | null> & {
+            user_ideas: { user_id: string } | { user_id: string }[] | null;
+          };
+          for (const c of (canvases ?? []) as unknown as CanvasRow[]) {
+            const filled = BLOCKS.filter(b => (c[b] ?? "").trim()).length;
+            const owner = Array.isArray(c.user_ideas) ? c.user_ideas[0]?.user_id : c.user_ideas?.user_id;
+            if (filled >= BLOCKS.length && owner) candidateIds.push(owner);
           }
           break;
         }

@@ -125,8 +125,7 @@ export default function InvestorDashboard() {
             `
             id,
             created_at,
-            user_ideas(title),
-            investor_profiles(name, avatar_url)
+            user_ideas(title)
           `
           )
           .eq('investor_id', user.id)
@@ -168,14 +167,14 @@ export default function InvestorDashboard() {
 
         const { data: notifData } = await supabase
           .from('notifications')
-          .select('message, created_at, type')
+          .select('body, created_at, type')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(5);
 
         (notifData || []).forEach((n: any) => {
           const icons: Record<string, string> = { connection: '🔔', match: '⭐', message: '💬' };
-          feed.push({ icon: icons[n.type] ?? '🔔', text: n.message, time: formatTime(n.created_at), _ts: new Date(n.created_at).getTime() });
+          feed.push({ icon: icons[n.type] ?? '🔔', text: n.body, time: formatTime(n.created_at), _ts: new Date(n.created_at).getTime() });
         });
 
         feed.sort((a, b) => b._ts - a._ts);

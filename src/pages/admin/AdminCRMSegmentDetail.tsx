@@ -292,7 +292,7 @@ export default function AdminCRMSegmentDetail() {
       { data: contactsData, error: contactsErr },
     ] = await Promise.all([
       adminDb(sessionToken, 'marketing_segments').select('*', { match: { id }, single: true }),
-      adminDb(sessionToken, 'profiles').select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at, login_count, iq_score'),
+      adminDb(sessionToken, 'enriched_users').select('user_id, full_name, role, tier, lead_score, lifecycle_stage, user_status, last_login_at, created_at, login_count, iq_score'),
       adminDb(sessionToken, 'user_ideas').select('user_id'),
       adminDb(sessionToken, 'segment_members').select('user_id', { match: { segment_id: id } }),
       adminDb(sessionToken, 'crm_contacts').select('*', { match: { segment_id: id } }),

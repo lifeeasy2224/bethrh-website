@@ -418,7 +418,7 @@ Deno.serve(async (req: Request) => {
         supabase.from("profiles").select("*", { count: "exact", head: true })
           .gte("created_at", todayStart.toISOString()),
         supabase.from("library_ideas").select("*", { count: "exact", head: true }),
-        supabase.from("ideas").select("*", { count: "exact", head: true }),
+        supabase.from("user_ideas").select("*", { count: "exact", head: true }),
         supabase.from("support_tickets").select("*", { count: "exact", head: true })
           .in("status", ["open", "in_progress"]),
         supabase.from("admin_sessions").select("*", { count: "exact", head: true })
@@ -568,12 +568,12 @@ Deno.serve(async (req: Request) => {
       const { data: users, count, error: usersError } = await query;
       if (usersError) return err(usersError.message);
 
-      // Get ideas counts per user from ideas table
+      // Get ideas counts per user from user_ideas table
       const userIds = (users ?? []).map((u: Record<string, unknown>) => u.user_id);
       let ideasCounts: Record<string, number> = {};
       if (userIds.length > 0) {
         const { data: ideasData } = await supabase
-          .from("ideas")
+          .from("user_ideas")
           .select("user_id")
           .in("user_id", userIds);
         (ideasData ?? []).forEach((idea: Record<string, unknown>) => {
@@ -619,7 +619,7 @@ Deno.serve(async (req: Request) => {
         supabase.auth.admin.getUserById(userId).then(r => ({ data: r.data?.user ?? null })),
         supabase.from("founder_profiles").select("*").eq("user_id", userId).maybeSingle(),
         supabase.from("investor_profiles").select("*").eq("user_id", userId).maybeSingle(),
-        supabase.from("ideas").select("id, title, created_at, status").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("user_ideas").select("id, title, created_at, stage").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("support_tickets").select("id, subject, status, priority, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
         supabase.from("admin_action_log").select("action, reason, created_at, admin_user_id").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(20),
       ]);
@@ -1290,7 +1290,7 @@ Deno.serve(async (req: Request) => {
           const { data: target } = await supabase.from("profiles").select("user_id").eq("id", merge_target_id).maybeSingle();
           if (!target) return err("Merge target not found");
           // Transfer ideas
-          await supabase.from("ideas").update({ user_id: authUserId }).eq("user_id", target.user_id as string);
+          await supabase.from("user_ideas").update({ user_id: authUserId }).eq("user_id", target.user_id as string);
           // Transfer library grabs
           await supabase.from("library_grabs").update({ user_id: authUserId }).eq("user_id", target.user_id as string);
           // Soft-delete target account
@@ -1599,17 +1599,16 @@ Deno.serve(async (req: Request) => {
     // ── audit-log-list ────────────────────────────────────────────────────────
     if (action === "audit-log-list") {
       const {
-        page = 1, limit = 25, admin_id, action_filter, entity_type, date_from, date_to,
+        page = 1, limit = 25, admin_id, action_filter, date_from, date_to,
       } = body as {
         page?: number; limit?: number; admin_id?: string; action_filter?: string;
-        entity_type?: string; date_from?: string; date_to?: string;
+        date_from?: string; date_to?: string;
       };
 
       let q = supabase.from("admin_action_log").select("*, admin_users(full_name, role)", { count: "exact" });
 
       if (admin_id && admin_id !== "all") q = q.eq("admin_user_id", admin_id);
       if (action_filter && action_filter !== "all") q = q.eq("action", action_filter);
-      if (entity_type && entity_type !== "all") q = q.eq("entity_type", entity_type);
       if (date_from) q = q.gte("created_at", date_from);
       if (date_to) q = q.lte("created_at", date_to + "T23:59:59");
 
@@ -1654,10 +1653,9 @@ Deno.serve(async (req: Request) => {
 
       await supabase.from("admin_action_log").insert({
         admin_user_id: adminUser.id,
-        action: "updated",
-        entity_type: "setting",
-        entity_id: key,
-        details: { key, value },
+        action: "setting_updated",
+        reason: key,
+        metadata: { key, value },
       });
 
       return ok({ success: true });
