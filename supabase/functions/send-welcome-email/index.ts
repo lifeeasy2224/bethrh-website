@@ -19,7 +19,7 @@ Deno.serve(async (req: Request) => {
     if (!email) return jsonResp({ skipped: 'no email' });
 
     const firstName = (record.full_name ?? '').split(' ')[0] || 'there';
-    const roleLabel = record.role === 'investor' ? 'Investor' : 'Founder';
+    const roleLabel = record.role === 'investor' ? 'مستثمر' : 'رائد أعمال';
     const dashboardPath = record.role === 'investor' ? '/investor/dashboard' : '/dashboard';
     const origin = 'https://bethra.co';
 
