@@ -89,7 +89,11 @@ function err(msg: string, status = 400): Response {
   });
 }
 
-async function resolveSession(supabase: ReturnType<typeof createClient>, token: string) {
+async function resolveSession(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  token: string,
+) {
   if (!token) return null;
   const { data } = await supabase
     .from("admin_sessions")
@@ -1426,6 +1430,8 @@ Deno.serve(async (req: Request) => {
 
     // ── analytics-traffic ────────────────────────────────────────────────────
     if (action === "analytics-traffic") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { days = 30 } = body as { days?: number };
       const since = new Date();
       since.setDate(since.getDate() - (days - 1));
@@ -1477,6 +1483,8 @@ Deno.serve(async (req: Request) => {
 
     // ── analytics-users ──────────────────────────────────────────────────────
     if (action === "analytics-users") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { days = 30 } = body as { days?: number };
       const since = new Date();
       since.setDate(since.getDate() - (days - 1));
@@ -1542,6 +1550,8 @@ Deno.serve(async (req: Request) => {
 
     // ── analytics-business ───────────────────────────────────────────────────
     if (action === "analytics-business") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { days = 30 } = body as { days?: number };
 
       // Revenue trend (synthetic MRR in USD)
@@ -1598,6 +1608,8 @@ Deno.serve(async (req: Request) => {
 
     // ── audit-log-list ────────────────────────────────────────────────────────
     if (action === "audit-log-list") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const {
         page = 1, limit = 25, admin_id, action_filter, date_from, date_to,
       } = body as {
@@ -1633,6 +1645,8 @@ Deno.serve(async (req: Request) => {
 
     // ── settings-get ─────────────────────────────────────────────────────────
     if (action === "settings-get") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { data: settings } = await supabase
         .from("system_settings")
         .select("*")
@@ -1696,7 +1710,7 @@ Deno.serve(async (req: Request) => {
             .maybeSingle();
           if (existing) {
             const readBy: string[] = existing.read_by || [];
-            if (!readBy.includes(adminUser.id)) {
+            if (!readBy.includes(adminUser.id as string)) {
               await supabase
                 .from("admin_notifications")
                 .update({ read_by: [...readBy, adminUser.id] })
@@ -1711,7 +1725,7 @@ Deno.serve(async (req: Request) => {
           .select("id, read_by");
         for (const n of (all || [])) {
           const readBy: string[] = n.read_by || [];
-          if (!readBy.includes(adminUser.id)) {
+          if (!readBy.includes(adminUser.id as string)) {
             await supabase
               .from("admin_notifications")
               .update({ read_by: [...readBy, adminUser.id] })
