@@ -24,15 +24,9 @@ import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import Avatar from '@mui/material/Avatar';
 import Skeleton from '@mui/material/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase, SECTORS, getStageInfo, type UserIdea, type CanvasData, type ConnectionRequest } from '../../supabase';
+import { supabase, SECTORS, getStageInfo, type MarketplaceTeaser, type ConnectionRequest } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import InvestorSidebar from '../../components/InvestorSidebar';
-
-interface MergedIdea extends UserIdea {
-  canvas_data?: CanvasData | null;
-  pitch_data?: { investment_amount: number; use_of_funds: string } | null;
-  connection_status?: 'pending' | 'accepted' | 'declined' | null;
-}
 
 export default function InvestorMarketplacePage() {
   const { user, profile } = useAuth();
@@ -41,7 +35,7 @@ export default function InvestorMarketplacePage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const [ideas, setIdeas] = useState<MergedIdea[]>([]);
+  const [ideas, setIdeas] = useState<MarketplaceTeaser[]>([]);
   const [loading, setLoading] = useState(true);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [requestMap, setRequestMap] = useState<Map<string, ConnectionRequest>>(new Map());
@@ -49,7 +43,7 @@ export default function InvestorMarketplacePage() {
   const [search, setSearch] = useState('');
   const [sectorFilter, setSectorFilter] = useState<string[]>([]);
   const [scoreFilter, setScoreFilter] = useState(0);
-  const [sortBy, setSortBy] = useState<'score' | 'newest' | 'roi'>('score');
+  const [sortBy, setSortBy] = useState<'score' | 'newest'>('score');
 
   // Auth guard
   useEffect(() => {
@@ -67,41 +61,17 @@ export default function InvestorMarketplacePage() {
       try {
         setLoading(true);
 
-        // 1. Fetch marketplace ideas (in_marketplace=true)
+        // 1. Fetch marketplace teasers (investors can only browse the teaser view;
+        //    full idea details unlock via get_idea_full after a connection)
         const { data: ideasData, error: ideasError } = await supabase
-          .from('user_ideas')
-          .select('*')
-          .eq('in_marketplace', true);
+          .from('marketplace_teasers')
+          .select('*');
 
         if (ideasError) throw ideasError;
 
-        const baseIdeas = (ideasData || []) as UserIdea[];
+        const teasers = (ideasData || []) as MarketplaceTeaser[];
 
-        // 2. Fetch canvas data and pitch data for each idea (in parallel)
-        const ideasWithData = await Promise.all(
-          baseIdeas.map(async (idea) => {
-            const [canvasRes, pitchRes] = await Promise.all([
-              supabase
-                .from('canvas_data')
-                .select('*')
-                .eq('user_idea_id', idea.id)
-                .maybeSingle(),
-              supabase
-                .from('pitch_data')
-                .select('investment_amount, use_of_funds')
-                .eq('user_idea_id', idea.id)
-                .maybeSingle(),
-            ]);
-
-            return {
-              ...idea,
-              canvas_data: canvasRes.data as CanvasData | null,
-              pitch_data: pitchRes.data as { investment_amount: number; use_of_funds: string } | null,
-            };
-          })
-        );
-
-        // 3. Fetch saved ideas for current investor
+        // 2. Fetch saved ideas for current investor
         const { data: savedData, error: savedError } = await supabase
           .from('saved_ideas')
           .select('idea_id')
@@ -110,7 +80,7 @@ export default function InvestorMarketplacePage() {
         if (savedError) throw savedError;
         const savedSet = new Set((savedData || []).map(s => s.idea_id));
 
-        // 4. Fetch connection requests for current investor
+        // 3. Fetch connection requests for current investor
         const { data: requestsData, error: requestsError } = await supabase
           .from('connection_requests')
           .select('*')
@@ -121,7 +91,7 @@ export default function InvestorMarketplacePage() {
           (requestsData || []).map(r => [r.idea_id, r])
         );
 
-        setIdeas(ideasWithData);
+        setIdeas(teasers);
         setSavedIds(savedSet);
         setRequestMap(reqMap);
       } catch (error) {
@@ -153,15 +123,6 @@ export default function InvestorMarketplacePage() {
     .sort((a, b) => {
       if (sortBy === 'score') return b.iq_score - a.iq_score;
       if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      if (sortBy === 'roi') {
-        const roiA = a.canvas_data?.monthly_revenue && a.canvas_data?.monthly_costs
-          ? ((a.canvas_data.monthly_revenue - a.canvas_data.monthly_costs) / a.canvas_data.monthly_costs) * 100
-          : 0;
-        const roiB = b.canvas_data?.monthly_revenue && b.canvas_data?.monthly_costs
-          ? ((b.canvas_data.monthly_revenue - b.canvas_data.monthly_costs) / b.canvas_data.monthly_costs) * 100
-          : 0;
-        return roiB - roiA;
-      }
       return 0;
     });
 
@@ -323,7 +284,7 @@ export default function InvestorMarketplacePage() {
                     select
                     size="small"
                     value={sortBy}
-                    onChange={e => setSortBy(e.target.value as 'score' | 'newest' | 'roi')}
+                    onChange={e => setSortBy(e.target.value as 'score' | 'newest')}
                     defaultValue="score"
                     sx={{ minWidth: 150 }}
                     slotProps={{
@@ -334,7 +295,6 @@ export default function InvestorMarketplacePage() {
                   >
                     <option value="score">الأعلى درجة</option>
                     <option value="newest">الأحدث</option>
-                    <option value="roi">الأعلى عائداً</option>
                   </TextField>
                 </Stack>
 
@@ -387,10 +347,6 @@ export default function InvestorMarketplacePage() {
                 {filteredIdeas.map(idea => {
                   const isSaved = savedIds.has(idea.id);
                   const connectionReq = requestMap.get(idea.id);
-                  const roi =
-                    idea.canvas_data?.monthly_revenue && idea.canvas_data?.monthly_costs
-                      ? ((idea.canvas_data.monthly_revenue - idea.canvas_data.monthly_costs) / idea.canvas_data.monthly_costs) * 100
-                      : null;
                   const scoreColor = getScoreColor(idea.iq_score);
 
                   return (
@@ -451,54 +407,24 @@ export default function InvestorMarketplacePage() {
                               <Chip label={getStageInfo(idea.stage).label} size="small" variant="outlined" />
                             </Stack>
 
-                            {/* Problem */}
-                            <Typography
-                              variant="body2"
-                              color="text.secondary"
-                              sx={{
-                                mb: 1.5,
-                                display: '-webkit-box',
-                                WebkitLineClamp: 3,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                              }}
-                            >
-                              {idea.problem}
-                            </Typography>
+                            {/* Business name (teaser) */}
+                            {idea.business_name && (
+                              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                                {idea.business_name}
+                              </Typography>
+                            )}
 
                             <Divider sx={{ my: 1.5 }} />
 
-                            {/* Metrics Grid */}
+                            {/* Teaser details — full idea unlocks after a connection */}
                             <Grid container spacing={1} sx={{ mb: 1.5 }}>
                               <Grid size={6}>
                                 <Box>
                                   <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    العائد المتوقع
+                                    المدينة
                                   </Typography>
                                   <Typography variant="body2" fontWeight={600}>
-                                    {roi !== null ? `٪${roi.toFixed(0)}` : '—'}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                              <Grid size={6}>
-                                <Box>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    نقطة التعادل
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight={600}>
-                                    {idea.canvas_data?.break_even_month ? `${idea.canvas_data.break_even_month} شهر` : '—'}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-                              <Grid size={6}>
-                                <Box>
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                                    الاستثمار
-                                  </Typography>
-                                  <Typography variant="body2" fontWeight={600}>
-                                    {idea.pitch_data?.investment_amount
-                                      ? `$${(idea.pitch_data.investment_amount / 1000).toFixed(0)}K`
-                                      : '—'}
+                                    {idea.city || '—'}
                                   </Typography>
                                 </Box>
                               </Grid>

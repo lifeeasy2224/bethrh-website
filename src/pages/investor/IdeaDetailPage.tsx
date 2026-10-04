@@ -38,34 +38,26 @@ import { SECTORS, supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { sendEmail } from '../../lib/sendEmail';
 
+// Teaser fields (marketplace_teasers) are always present. The rest only come
+// back from get_idea_full, i.e. for the owner or an investor with an active
+// connection — they are undefined for everyone else.
 interface Idea {
   id: string;
   title: string;
   sector: string;
-  problem: string;
-  solution: string;
-  target_customer: string;
   stage: string;
   iq_score: number;
-  iq_breakdown: { validation: number; model: number; financials: number; journey: number; coach: number; total: number } | null;
-  in_marketplace: boolean;
-  user_id: string;
+  city?: string | null;
+  business_name?: string | null;
   created_at: string;
-}
-
-interface Canvas {
-  id: string;
-  user_idea_id: string;
-  monthly_revenue: number | null;
-  monthly_costs: number | null;
-  break_even_month: number | null;
-}
-
-interface Pitch {
-  id: string;
-  user_idea_id: string;
-  investment_amount: number | null;
-  use_of_funds: string | null;
+  problem?: string;
+  solution?: string;
+  target_customer?: string;
+  differentiator?: string;
+  advantage?: string;
+  iq_breakdown?: { validation: number; model: number; financials: number; journey: number; coach: number; total: number } | null;
+  in_marketplace?: boolean;
+  user_id?: string;
 }
 
 interface ValidationStats {
@@ -83,6 +75,7 @@ interface ConnectionRequest {
 
 interface Connection {
   id: string;
+  status: string;
   created_at: string;
 }
 
@@ -94,8 +87,6 @@ export default function IdeaDetailPage() {
   const [toast, setToast] = useState<{ msg: string; severity: 'success' | 'error' } | null>(null);
 
   const [idea, setIdea] = useState<Idea | null>(null);
-  const [canvas, setCanvas] = useState<Canvas | null>(null);
-  const [pitch, setPitch] = useState<Pitch | null>(null);
   const [validationStats, setValidationStats] = useState<ValidationStats | null>(null);
   const [myRequest, setMyRequest] = useState<ConnectionRequest | null>(null);
   const [myConnection, setMyConnection] = useState<Connection | null>(null);
@@ -117,63 +108,64 @@ export default function IdeaDetailPage() {
     try {
       setLoading(true);
 
-      // Load idea
-      const { data: ideaData, error: ideaError } = await supabase
-        .from('user_ideas')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
+      // Teaser (always readable) + active connection, in parallel
+      const [{ data: teaserData, error: teaserError }, { data: connectionData }] = await Promise.all([
+        supabase.from('marketplace_teasers').select('*').eq('id', id).maybeSingle(),
+        supabase
+          .from('connections')
+          .select('id, status, created_at')
+          .eq('investor_id', userId)
+          .eq('idea_id', id)
+          .eq('status', 'active')
+          .maybeSingle(),
+      ]);
 
-      if (ideaError) throw ideaError;
-      if (!ideaData) {
+      if (teaserError) throw teaserError;
+      if (connectionData) setMyConnection(connectionData);
+
+      // Connected: unlock the full row (RPC enforces owner / active connection)
+      let loaded = teaserData as Idea | null;
+      if (connectionData) {
+        const { data: fullData, error: fullError } = await supabase
+          .rpc('get_idea_full', { p_idea_id: id })
+          .maybeSingle();
+        if (fullError) throw fullError;
+        if (fullData) loaded = fullData as Idea;
+      }
+
+      if (!loaded) {
         setToast({ msg: 'الفكرة غير موجودة', severity: 'error' });
         navigate('/marketplace');
         return;
       }
 
-      setIdea(ideaData);
+      setIdea(loaded);
 
-      // Load canvas data
-      const { data: canvasData } = await supabase
-        .from('canvas_data')
-        .select('*')
-        .eq('user_idea_id', id)
-        .maybeSingle();
+      // Validation evidence is only readable once connected
+      if (connectionData) {
+        const { data: validations } = await supabase
+          .from('validation_entries')
+          .select('type, amount')
+          .eq('user_idea_id', id);
 
-      if (canvasData) setCanvas(canvasData);
+        if (validations && validations.length > 0) {
+          let interviews = 0;
+          let signups = 0;
+          let preorders_total = 0;
 
-      // Load pitch data
-      const { data: pitchData } = await supabase
-        .from('pitch_data')
-        .select('*')
-        .eq('user_idea_id', id)
-        .maybeSingle();
+          validations.forEach((v: { type: string; amount: number | null }) => {
+            if (v.type === 'interview') interviews += 1;
+            if (v.type === 'signup') signups += 1;
+            if (v.type === 'preorder') preorders_total += Number(v.amount) || 0;
+          });
 
-      if (pitchData) setPitch(pitchData);
-
-      // Load validation entries
-      const { data: validations } = await supabase
-        .from('validation_entries')
-        .select('type, count, amount')
-        .eq('user_idea_id', id);
-
-      if (validations && validations.length > 0) {
-        let interviews = 0;
-        let signups = 0;
-        let preorders_total = 0;
-
-        validations.forEach((v: any) => {
-          if (v.type === 'interview') interviews = v.count || 0;
-          if (v.type === 'signup') signups = v.count || 0;
-          if (v.type === 'preorder') preorders_total = (v.amount || 0);
-        });
-
-        setValidationStats({
-          interviews,
-          signups,
-          preorders_total,
-          sentiment_positive: null,
-        });
+          setValidationStats({
+            interviews,
+            signups,
+            preorders_total,
+            sentiment_positive: null,
+          });
+        }
       }
 
       // Load connection request
@@ -185,16 +177,6 @@ export default function IdeaDetailPage() {
         .maybeSingle();
 
       if (requestData) setMyRequest(requestData);
-
-      // Load connection
-      const { data: connectionData } = await supabase
-        .from('connections')
-        .select('id, created_at')
-        .eq('investor_id', userId)
-        .eq('idea_id', id)
-        .maybeSingle();
-
-      if (connectionData) setMyConnection(connectionData);
 
       // Check if saved
       const { data: savedData } = await supabase
@@ -265,7 +247,8 @@ export default function IdeaDetailPage() {
         .insert([
           {
             investor_id: user.id,
-            founder_id: idea.user_id,
+            // Teasers don't expose user_id; it is only known once connected.
+            ...(idea.user_id ? { founder_id: idea.user_id } : {}),
             idea_id: id,
             message: requestMessage || null,
             status: 'pending',
@@ -280,10 +263,11 @@ export default function IdeaDetailPage() {
       const connectionsUrl = `${window.location.origin}/connections?request=${requestId}`;
 
       // Email founder (non-critical, fire and forget)
-      void (async () => {
+      const founderUserId = idea.user_id;
+      if (founderUserId) void (async () => {
         const [{ data: founderProfile }, { data: founderEmail }] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('user_id', idea.user_id).maybeSingle(),
-          supabase.rpc('get_user_email', { target_user_id: idea.user_id }),
+          supabase.from('profiles').select('full_name').eq('user_id', founderUserId).maybeSingle(),
+          supabase.rpc('get_user_email', { target_user_id: founderUserId }),
         ]);
         if (founderEmail) {
           void sendEmail(founderEmail as string, 'investor-interested', {
@@ -323,13 +307,6 @@ export default function IdeaDetailPage() {
     }
   };
 
-  const roi =
-    canvas && canvas.monthly_revenue && canvas.monthly_costs
-      ? Math.round(
-          ((canvas.monthly_revenue - canvas.monthly_costs) / Math.max(canvas.monthly_costs, 1)) * 100
-        )
-      : null;
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -358,17 +335,14 @@ export default function IdeaDetailPage() {
     );
   }
 
-  const isConnected = !!myConnection;
-  const solutionDisplay =
-    isConnected || !idea.solution
-      ? idea.solution
-      : idea.solution.substring(0, 100) + '...';
+  const isConnected = myConnection?.status === 'active';
 
   // Real components, persisted by recomputeIqScore under the founder's own
   // full-access session (investors can't read the founder's raw canvas_data to
   // recompute this themselves — RLS is owner-only, deliberately not loosened).
-  // Null only for ideas that predate this column / were never recomputed.
-  const breakdown = idea.iq_breakdown;
+  // Only returned by get_idea_full, so it is absent until connected; null for
+  // ideas that predate this column / were never recomputed.
+  const breakdown = idea.iq_breakdown ?? null;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F3EC' }}>
@@ -462,7 +436,14 @@ export default function IdeaDetailPage() {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                     المشكلة
                   </Typography>
-                  <Typography variant="body1">{idea.problem}</Typography>
+                  {isConnected ? (
+                    <Typography variant="body1">{idea.problem}</Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                      <LockIcon fontSize="small" />
+                      <Typography variant="body2">تواصل ليُكشف</Typography>
+                    </Box>
+                  )}
                 </Card>
               </Grid>
 
@@ -472,14 +453,51 @@ export default function IdeaDetailPage() {
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
                     الحل
                   </Typography>
-                  {!isConnected && idea.solution && idea.solution.length > 100 && (
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      تواصل مع المؤسس لرؤية تفاصيل الحل كاملة
-                    </Alert>
+                  {isConnected ? (
+                    <Typography variant="body1">{idea.solution}</Typography>
+                  ) : (
+                    <>
+                      <Alert severity="info" sx={{ mb: 2 }}>
+                        تواصل مع المؤسس لرؤية تفاصيل الحل كاملة
+                      </Alert>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                        <LockIcon fontSize="small" />
+                        <Typography variant="body2">تواصل ليُكشف</Typography>
+                      </Box>
+                    </>
                   )}
-                  <Typography variant="body1">{solutionDisplay}</Typography>
                 </Card>
               </Grid>
+
+              {/* Differentiator + advantage (connected only) */}
+              {isConnected && (idea.differentiator || idea.advantage) && (
+                <Grid size={{ xs: 12 }}>
+                  <Card sx={{ p: 3, backgroundColor: '#fff' }}>
+                    <Grid container spacing={2}>
+                      {idea.differentiator && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            ما يميّز الفكرة
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {idea.differentiator}
+                          </Typography>
+                        </Grid>
+                      )}
+                      {idea.advantage && (
+                        <Grid size={{ xs: 12, sm: 6 }}>
+                          <Typography variant="body2" color="textSecondary">
+                            الأفضلية غير العادلة
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                            {idea.advantage}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Card>
+                </Grid>
+              )}
 
               {/* Validation Evidence */}
               {validationStats && (
@@ -552,70 +570,6 @@ export default function IdeaDetailPage() {
                 </Card>
               </Grid>
 
-              {/* Financial Highlights */}
-              <Grid size={{ xs: 12 }}>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    <Card sx={{ p: 2, backgroundColor: '#fff', textAlign: 'center' }}>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                        العائد المتوقع
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: roi && roi > 0 ? 'success.main' : 'grey.500' }}>
-                        {roi !== null ? `٪${roi}` : '—'}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    <Card sx={{ p: 2, backgroundColor: '#fff', textAlign: 'center' }}>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                        شهر التعادل
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                        {canvas?.break_even_month !== null && canvas?.break_even_month !== undefined
-                          ? `الشهر ${canvas.break_even_month}`
-                          : '—'}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                  <Grid size={{ xs: 12, sm: 4 }}>
-                    <Card sx={{ p: 2, backgroundColor: '#fff', textAlign: 'center' }}>
-                      <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
-                        الاستثمار المطلوب
-                      </Typography>
-                      <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                        ${pitch?.investment_amount ? pitch.investment_amount.toLocaleString() : '0'}
-                      </Typography>
-                    </Card>
-                  </Grid>
-                </Grid>
-
-                {canvas && (canvas.monthly_revenue || canvas.monthly_costs) && (
-                  <Card sx={{ p: 3, backgroundColor: '#fff', mt: 2 }}>
-                    <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 1 }}>
-                      البيانات المالية الشهرية
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid size={{ xs: 6 }}>
-                        <Typography variant="body2" color="textSecondary">
-                          الإيرادات
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          ${canvas.monthly_revenue ? canvas.monthly_revenue.toLocaleString() : '—'}
-                        </Typography>
-                      </Grid>
-                      <Grid size={{ xs: 6 }}>
-                        <Typography variant="body2" color="textSecondary">
-                          التكاليف
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                          ${canvas.monthly_costs ? canvas.monthly_costs.toLocaleString() : '—'}
-                        </Typography>
-                      </Grid>
-                    </Grid>
-                  </Card>
-                )}
-              </Grid>
-
               {/* Bethra Score Breakdown */}
               <Grid size={{ xs: 12 }}>
                 <Card sx={{ p: 3, backgroundColor: '#fff' }}>
@@ -674,10 +628,15 @@ export default function IdeaDetailPage() {
                         </TableBody>
                       </Table>
                     </Box>
-                  ) : (
+                  ) : isConnected ? (
                     <Typography variant="body2" color="text.secondary">
                       تفصيل الدرجة غير متاح بعد لهذه الفكرة.
                     </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary' }}>
+                      <LockIcon fontSize="small" />
+                      <Typography variant="body2">تواصل ليُكشف</Typography>
+                    </Box>
                   )}
                 </Card>
               </Grid>
@@ -759,7 +718,7 @@ export default function IdeaDetailPage() {
                       <Button
                         variant="contained"
                         color="success"
-                        onClick={() => navigate(`/investor/connections/${myConnection.id}`)}
+                        onClick={() => navigate(`/investor/connections/${myConnection?.id}`)}
                       >
                         افتح المحادثة ←
                       </Button>

@@ -100,7 +100,7 @@ export default function ConnectionChatPage() {
 
       // Load idea
       const { data: ideaData, error: ideaErr } = await supabase
-        .from('user_ideas')
+        .from('marketplace_teasers')
         .select('id, title, sector')
         .eq('id', data.idea_id)
         .maybeSingle();

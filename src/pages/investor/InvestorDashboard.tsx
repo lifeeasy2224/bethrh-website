@@ -39,14 +39,7 @@ interface IdeaData {
   title: string;
   sector: string;
   iq_score: number;
-  problem: string;
   created_at: string;
-  pitch_data: {
-    investment_amount: number;
-  } | null;
-  canvas_data: {
-    break_even_month: number;
-  } | null;
 }
 
 export default function InvestorDashboard() {
@@ -76,9 +69,8 @@ export default function InvestorDashboard() {
       try {
         // Load marketplace ideas count
         const { count: marketCount } = await supabase
-          .from('user_ideas')
+          .from('marketplace_teasers')
           .select('*', { count: 'exact', head: true })
-          .eq('in_marketplace', true)
           .gte('iq_score', 80);
 
         setMarketplaceCount(marketCount || 0);
@@ -112,20 +104,8 @@ export default function InvestorDashboard() {
 
         // Load recommended ideas
         let ideasQuery = supabase
-          .from('user_ideas')
-          .select(
-            `
-            id,
-            title,
-            sector,
-            iq_score,
-            problem,
-            created_at,
-            pitch_data,
-            canvas_data
-          `
-          )
-          .eq('in_marketplace', true)
+          .from('marketplace_teasers')
+          .select('id, title, sector, iq_score, created_at')
           .gte('iq_score', 80)
           .order('iq_score', { ascending: false })
           .limit(6);
@@ -164,9 +144,8 @@ export default function InvestorDashboard() {
         // New ideas this week
         const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
         const { count: weekCount } = await supabase
-          .from('user_ideas')
+          .from('marketplace_teasers')
           .select('*', { count: 'exact', head: true })
-          .eq('in_marketplace', true)
           .gte('iq_score', 80)
           .gte('created_at', weekAgo);
         setNewThisWeek(weekCount || 0);
@@ -554,23 +533,6 @@ export default function InvestorDashboard() {
                           <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
                             {idea.title}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            {idea.problem.length > 100
-                              ? `${idea.problem.substring(0, 100)}...`
-                              : idea.problem}
-                          </Typography>
-                          <Box sx={{ mb: 2 }}>
-                            {idea.pitch_data?.investment_amount && (
-                              <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-                                مبلغ الاستثمار: ${idea.pitch_data.investment_amount.toLocaleString()}
-                              </Typography>
-                            )}
-                            {idea.canvas_data?.break_even_month && (
-                              <Typography variant="caption" display="block">
-                                نقطة التعادل: الشهر {idea.canvas_data.break_even_month}
-                              </Typography>
-                            )}
-                          </Box>
                         </CardContent>
                         <Box sx={{ px: 2, pb: 2 }}>
                           <Button

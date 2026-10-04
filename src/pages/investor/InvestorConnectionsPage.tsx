@@ -131,7 +131,7 @@ export default function InvestorConnectionsPage() {
       const ideasMap = new Map<string, UserIdea>();
       if (ideaIds.size > 0) {
         const { data: ideasData, error: ideasError } = await supabase
-          .from('user_ideas')
+          .from('marketplace_teasers')
           .select('id, title, sector, iq_score')
           .in('id', Array.from(ideaIds));
 

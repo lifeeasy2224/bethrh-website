@@ -129,6 +129,13 @@ export interface UserIdea {
   updated_at: string;
 }
 
+// Row shape of the public.marketplace_teasers view: the only user_ideas columns
+// investors may browse before a connection is accepted.
+export type MarketplaceTeaser = Pick<
+  UserIdea,
+  'id' | 'title' | 'sector' | 'stage' | 'iq_score' | 'city' | 'business_name' | 'created_at'
+>;
+
 export interface ValidationEntry {
   id: string;
   user_idea_id: string;
