@@ -1643,6 +1643,8 @@ Deno.serve(async (req: Request) => {
 
     // ── settings-update ───────────────────────────────────────────────────────
     if (action === "settings-update") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { key, value } = body as { key: string; value: unknown };
       if (!key) return err("key required");
 
@@ -1663,6 +1665,8 @@ Deno.serve(async (req: Request) => {
 
     // ── notifications-list ────────────────────────────────────────────────────
     if (action === "notifications-list") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { data: notifications } = await supabase
         .from("admin_notifications")
         .select("*")
@@ -1678,6 +1682,8 @@ Deno.serve(async (req: Request) => {
 
     // ── notifications-mark-read ───────────────────────────────────────────────
     if (action === "notifications-mark-read") {
+      const adminUser = await resolveSession(supabase, body.session_token as string);
+      if (!adminUser) return err("Unauthorized", 401);
       const { notification_ids } = body as { notification_ids?: string[] };
 
       if (notification_ids && notification_ids.length > 0) {
