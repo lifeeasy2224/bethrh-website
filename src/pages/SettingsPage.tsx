@@ -64,6 +64,8 @@ export default function SettingsPage() {
     validation_notifications: true,
   });
   const [notifSaving, setNotifSaving] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const [portalError, setPortalError] = useState<string | null>(null);
   const [notifSuccess, setNotifSuccess] = useState(false);
 
   useEffect(() => {
@@ -106,6 +108,30 @@ export default function SettingsPage() {
       setProfileError('تعذّر حفظ الملف الشخصي. حاول مرة أخرى.');
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function openPortal() {
+    setPortalLoading(true);
+    setPortalError(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-portal`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+          Apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ origin: window.location.origin }),
+      });
+      const d = await res.json();
+      if (d.url) window.location.href = d.url;
+      else setPortalError(d.error || 'تعذّر فتح بوابة الإدارة');
+    } catch {
+      setPortalError('تعذّر فتح بوابة الإدارة');
+    } finally {
+      setPortalLoading(false);
     }
   }
 
@@ -350,7 +376,7 @@ export default function SettingsPage() {
                           : 'شكراً لكونك مشتركاً عزيزاً.'}
                       </Typography>
                     </Box>
-                    {isFreePlan && (
+                    {isFreePlan ? (
                       <Button
                         component={Link}
                         to="/pricing"
@@ -359,6 +385,20 @@ export default function SettingsPage() {
                       >
                         رقِّ خطتك
                       </Button>
+                    ) : (
+                      <Box sx={{ flexShrink: 0 }}>
+                        <Button
+                          variant="contained"
+                          onClick={openPortal}
+                          disabled={portalLoading}
+                          startIcon={portalLoading ? <CircularProgress size={16} color="inherit" /> : undefined}
+                        >
+                          إدارة الاشتراك
+                        </Button>
+                        <Typography variant="caption" color="text.secondary" display="block" mt={0.75}>
+                          إلغاء، تحديث البطاقة، أو عرض الفواتير
+                        </Typography>
+                      </Box>
                     )}
                   </Stack>
                 </CardContent>
@@ -373,6 +413,9 @@ export default function SettingsPage() {
       </Snackbar>
       <Snackbar open={pwSuccess} autoHideDuration={3000} onClose={() => setPwSuccess(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity="success" variant="filled">حُدّثت كلمة المرور بنجاح.</Alert>
+      </Snackbar>
+      <Snackbar open={!!portalError} autoHideDuration={5000} onClose={() => setPortalError(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
+        <Alert severity="error" variant="filled">{portalError}</Alert>
       </Snackbar>
       <Snackbar open={notifSuccess} autoHideDuration={3000} onClose={() => setNotifSuccess(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
         <Alert severity="success" variant="filled">حُفظت تفضيلات الإشعارات.</Alert>
