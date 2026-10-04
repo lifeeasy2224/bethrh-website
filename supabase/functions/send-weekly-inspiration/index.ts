@@ -14,6 +14,14 @@ const CATEGORY_STYLES: Record<string, { color: string; bg: string }> = {
   'SUCCESS STORY': { color: '#9F1239', bg: '#FFE4E6' },
 };
 
+const CATEGORY_AR: Record<string, string> = {
+  'QUICK TIP': 'نصيحة سريعة',
+  'MOTIVATION': 'تحفيز',
+  'EDUCATION': 'تعليم',
+  'ACTION': 'خطوة عملية',
+  'SUCCESS STORY': 'قصة نجاح',
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -90,7 +98,7 @@ Deno.serve(async (req: Request) => {
 
         const html = render(await resolveBody(db, 'weekly-inspiration', WEEKLY_INSPIRATION_TEMPLATE), {
           first_name: (profile.full_name ?? '').split(' ')[0] || 'صديقنا',
-          category_label: msg.category,
+          category_label: CATEGORY_AR[msg.category] ?? msg.category,
           category_color: style.color,
           category_bg: style.bg,
           main_title: msg.main_title,
@@ -99,7 +107,7 @@ Deno.serve(async (req: Request) => {
           tip_number: String(tipsReceived + 1),
           total_tips: String(totalMessages),
           week_number: String(weekNumber),
-          dashboard_url: `${origin}/founder/dashboard`,
+          dashboard_url: `${origin}/dashboard`,
           unsubscribe_url: `${origin}/unsubscribe?token=${profile.unsubscribe_token ?? ''}`,
         });
 

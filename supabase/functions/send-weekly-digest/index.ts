@@ -11,12 +11,12 @@ const SECTOR_EMOJI: Record<string, string> = {
 
 function ideaCardHtml(name: string, sector: string, match: string, investment: string): string {
   const emoji = SECTOR_EMOJI[sector] ?? '💡';
-  return `<div style="background:#F8FAFC;border:1px solid #E5E7EB;border-radius:8px;padding:14px;margin-bottom:10px;">
+  return `<div style="background:#F7F3EC;border:1px solid #E8E4DC;border-radius:8px;padding:14px;margin-bottom:10px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
       <strong style="font-size:14px;color:#0F3D24;">${emoji} ${name}</strong>
       <span style="background:#DEEBE2;color:#1B6B3E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:100px;">${match}</span>
     </div>
-    <div style="color:#6B7280;font-size:12px;">${sector}${investment ? ` · ${investment}` : ''}</div>
+    <div style="color:#8A8070;font-size:12px;">${sector}${investment ? ` · ${investment}` : ''}</div>
   </div>`;
 }
 
@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
     const now = new Date();
     const weekStart = new Date(now);
     weekStart.setDate(now.getDate() - 7);
-    const weekDate = `${weekStart.toLocaleDateString('ar', { month: 'long', day: 'numeric' })}–${now.toLocaleDateString('ar', { month: 'long', day: 'numeric' })}`;
+    const weekDate = `${weekStart.toLocaleDateString('ar', { month: 'long', day: 'numeric' })}–${now.toLocaleDateString('ar', { month: 'long', day: 'numeric', year: 'numeric' })}`;
 
     const { data: profiles } = await db
       .from('profiles')
@@ -143,7 +143,7 @@ Deno.serve(async (req: Request) => {
           matches_count: String(matchCount ?? 0),
           messages_count: String(msgCount ?? 0),
           ideas_section: ideasSection,
-          dashboard_url: `${origin}/${isInvestor ? 'investor' : 'founder'}/dashboard`,
+          dashboard_url: `${origin}/${isInvestor ? 'investor/dashboard' : 'dashboard'}`,
           unsubscribe_url: `${origin}/unsubscribe?token=${profile.unsubscribe_token ?? ''}`,
         });
 

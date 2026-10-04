@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
 
     const firstName = (record.full_name ?? '').split(' ')[0] || 'there';
     const roleLabel = record.role === 'investor' ? 'Investor' : 'Founder';
-    const dashboardPath = record.role === 'investor' ? '/investor/dashboard' : '/founder/dashboard';
+    const dashboardPath = record.role === 'investor' ? '/investor/dashboard' : '/dashboard';
     const origin = 'https://bethra.co';
 
     const html = render(await resolveBody(db, 'welcome-email', WELCOME_TEMPLATE), {
