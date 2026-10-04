@@ -84,10 +84,10 @@ function computeMatchScore(params: {
   );
   if (exactMatch) {
     pts += 40;
-    reasons.push(`Sector match (${params.ideaSector})`);
+    reasons.push(`تطابق في القطاع (${params.ideaSector})`);
   } else if (relatedMatch) {
     pts += 20;
-    reasons.push(`Related sector (${params.ideaSector})`);
+    reasons.push(`قطاع قريب (${params.ideaSector})`);
   }
 
   // Budget fit (25 pts)
@@ -96,7 +96,7 @@ function computeMatchScore(params: {
   const ask = params.investmentAmount ?? 0;
   if (ask > 0 && min <= ask && ask <= max) {
     pts += 25;
-    reasons.push('Investment range aligns');
+    reasons.push('حجم الاستثمار متوافق');
   } else if (ask === 0 || (min === 0 && max === Infinity)) {
     pts += 12; // no info — partial credit
   }
@@ -104,12 +104,12 @@ function computeMatchScore(params: {
   // IQ quality (20 pts)
   const iqPts = Math.round((params.iqScore / 100) * 20);
   pts += iqPts;
-  if (params.iqScore >= 80) reasons.push(`High IQ Score (${params.iqScore}/100)`);
+  if (params.iqScore >= 80) reasons.push(`درجة IQ عالية (${params.iqScore}/100)`);
 
   // Completeness (15 pts)
   const completePts = Math.round((params.canvasFilledBlocks / 9) * 15);
   pts += completePts;
-  if (params.canvasFilledBlocks >= 7) reasons.push('Complete business model');
+  if (params.canvasFilledBlocks >= 7) reasons.push('نموذج عمل مكتمل');
 
   return { score: Math.min(pts, 100), reasons };
 }
@@ -210,7 +210,7 @@ Deno.serve(async (req: Request) => {
         roi,
         breakeven: canvasRow?.break_even_month ? `الشهر ${canvasRow.break_even_month}` : 'لم يُحدَّد',
         match_reasons: reasons.join(' · '),
-        idea_url: `${origin}/investor/idea/${record.id}`,
+        idea_url: `${origin}/marketplace/${record.id}`,
         unsubscribe_url: `${origin}/unsubscribe?token=${profile?.unsubscribe_token ?? ''}`,
       });
 
@@ -220,8 +220,8 @@ Deno.serve(async (req: Request) => {
         user_id: investor.user_id,
         type: 'match',
         title: `${matchLabel(matchScore)}: ${record.title}`,
-        body: `"${record.title}" scored ${matchScore}/100 match — ${reasons[0] ?? ''}`,
-        link: `/investor/idea/${record.id}`,
+        body: `حصلت «${record.title}» على تطابق ${matchScore}/100 — ${reasons[0] ?? ''}`,
+        link: `/marketplace/${record.id}`,
         is_read: false,
       });
 
