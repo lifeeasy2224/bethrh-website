@@ -118,6 +118,7 @@ const InvestorGuidePage = lazy(() => import('./pages/investor/InvestorGuidePage'
 const InvestorProfilePage = lazy(() => import('./pages/investor/InvestorProfilePage'));
 
 const ValidatePage = lazy(() => import('./pages/ValidatePage'));
+const SurveyPage = lazy(() => import('./pages/SurveyPage'));
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsPage = lazy(() => import('./pages/TermsPage'));
 const IpProtectionPage = lazy(() => import('./pages/IpProtectionPage'));
@@ -192,6 +193,7 @@ export function AppRoutes() {
               <Route path="/ideas-library/:slug/customize" element={<IdeasLibraryCustomizePage />} />
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/validate" element={<ValidatePage />} />
+              <Route path="/survey" element={<SurveyPage />} />
               <Route path="/help" element={<HelpCenterPage />} />
 
               {/* Checkout */}

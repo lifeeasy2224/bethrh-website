@@ -94,6 +94,26 @@ Deno.serve(async (req: Request) => {
           break;
         }
 
+        // Survey trigger: 72 hours after signup (day 3)
+        case "signup_72h": {
+          const target72 = new Date(now.getTime() - 72 * 3600000);
+          const win72Start = new Date(target72.getTime() - WINDOW_MS);
+          const win72End = new Date(target72.getTime() + WINDOW_MS);
+          // Only send if survey not yet submitted
+          const { data: submitted } = await supabase
+            .from("survey_responses")
+            .select("user_id")
+            .not("submitted_at", "is", null);
+          const submittedIds = new Set((submitted ?? []).map((r: { user_id: string }) => r.user_id));
+          candidateIds = (authUsers ?? [])
+            .filter(u => {
+              const t = new Date(u.created_at);
+              return t >= win72Start && t <= win72End && !submittedIds.has(u.id);
+            })
+            .map(u => u.id);
+          break;
+        }
+
         case "inactive_7_days":
         case "inactive_14_days":
         case "inactive_30_days": {
@@ -255,17 +275,34 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: `${FROM_NAME} <${FROM_EMAIL}>`,
-            to: [authUser.email],
-            subject,
-            html,
-            tags: [{ name: "automation_id", value: automation.id }],
-          }),
-        });
+        // For survey trigger, delegate to send-survey-email function
+        let res: Response;
+        if (automation.trigger_type === "signup_72h") {
+          res = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-survey-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              user_id: userId,
+              email: authUser.email,
+              full_name: profile?.full_name ?? "",
+            }),
+          });
+        } else {
+          res = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              from: `${FROM_NAME} <${FROM_EMAIL}>`,
+              to: [authUser.email],
+              subject,
+              html,
+              tags: [{ name: "automation_id", value: automation.id }],
+            }),
+          });
+        }
 
         await supabase.from("automation_logs").insert({
           automation_id: automation.id,

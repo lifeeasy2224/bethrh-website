@@ -247,3 +247,23 @@ export const WEEKLY_INSPIRATION_TEMPLATE = WRAP(
   ${BTN('{{dashboard_url}}', 'افتح لوحة التحكم ←', '#2A8A52')}
   ${P('<small style="color:#8A8070;">تصلك هذه الرسالة كجزء من رحلتك الريادية مع بذرة.</small>')}`
 );
+
+// ─── 8. survey-email ──────────────────────────────────────────────────────────
+export const SURVEY_TEMPLATE = WRAP(
+  BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#1B6B3E 100%)', '📋', 'رأيك يبني المستقبل'),
+  `${H2('أهلاً {{first_name}}،')}
+  ${P('نحن في بذرة نعمل على فهم احتياجاتك الحقيقية كرائد أعمال في المنطقة — ورأيك يُشكّل ما نبنيه.')}
+  <div style="background:#F0F8F3;border:1px solid #2A8A52;border-radius:10px;padding:20px;margin:0 0 24px;text-align:right;">
+    <div style="font-weight:700;color:#0F3D24;font-size:14px;margin-bottom:12px;">📝 الاستبيان يتضمن 5 أسئلة فقط:</div>
+    <ul style="margin:0;padding-right:20px;color:#3E382E;font-size:14px;line-height:2;">
+      <li>خياراتك الحالية لمكان العمل</li>
+      <li>أهم عوامل بيئة العمل المثالية</li>
+      <li>تجربتك مع غياب مكان عمل مناسب</li>
+      <li>السعر المناسب لمساحة احترافية</li>
+      <li>ملاحظاتك الحرة</li>
+    </ul>
+  </div>
+  ${P('<strong>الوقت المطلوب: 3 دقائق فقط ✓</strong>')}
+  ${BTN('{{survey_url}}', 'ابدأ الاستبيان ←', '#1B6B3E')}
+  ${P('<small>شكراً لثقتك بنا. إجاباتك ستساعدنا على بناء منصة أفضل لك.</small>')}`
+);
