@@ -76,7 +76,7 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no extr
 }`;
 
     const completion = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-sonnet-5-5',
       max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     });

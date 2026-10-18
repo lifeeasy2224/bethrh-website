@@ -90,7 +90,7 @@ Deno.serve(async (req: Request) => {
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
     const msg = await anthropic.messages.create({
-      model: 'claude-opus-4-8',
+      model: 'claude-haiku-5-5',
       max_tokens: 300,
       system: RUBRIC,
       messages: [{ role: 'user', content: `Assess this founder's readiness.\n\n${digest.join('\n')}` }],
