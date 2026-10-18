@@ -1,0 +1,32 @@
+name: Deploy Supabase Functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-functions.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: npm install -g @supabase/cli
+
+      - name: Deploy functions
+        run: |
+          npx supabase functions deploy \
+            assess-idea \
+            journey-plan \
+            validation-reaction \
+            canvas-draft \
+            pitch-draft \
+            swot-analysis \
+            extract-document \
+            --project-ref bethrh-website
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
