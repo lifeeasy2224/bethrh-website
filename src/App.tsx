@@ -71,6 +71,7 @@ const AdminCampaignEdit = lazy(() => import('./pages/admin/AdminCampaignEdit'));
 const AdminTemplatesPage = lazy(() => import('./pages/admin/AdminTemplatesPage'));
 const AdminUploadContacts = lazy(() => import('./pages/admin/AdminUploadContacts'));
 const AdminSuppressionPage = lazy(() => import('./pages/admin/AdminSuppressionPage'));
+const AdminOutboxPage = lazy(() => import('./pages/admin/AdminOutboxPage'));
 const AdminMarketingDashboard = lazy(() => import('./pages/admin/AdminMarketingDashboard'));
 const AdminCampaignReport = lazy(() => import('./pages/admin/AdminCampaignReport'));
 const AdminRevenuePage = lazy(() => import('./pages/admin/AdminRevenuePage'));
@@ -686,6 +687,14 @@ export function AppRoutes() {
                 element={
                   <AdminProtectedRoute>
                     <AdminUploadContacts />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/outbox"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminOutboxPage />
                   </AdminProtectedRoute>
                 }
               />

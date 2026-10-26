@@ -26,6 +26,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
+import OutboxOutlinedIcon from '@mui/icons-material/OutboxOutlined';
 import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined';
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -85,6 +86,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Dashboard', icon: DashboardOutlinedIcon, path: '/admin/dashboard' },
+  { id: 'outbox', label: 'Outbox', icon: OutboxOutlinedIcon, path: '/admin/outbox' },
   {
     id: 'users', label: 'Users', icon: PeopleAltOutlinedIcon,
     children: [
