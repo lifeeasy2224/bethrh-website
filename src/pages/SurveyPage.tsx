@@ -56,21 +56,21 @@ export default function SurveyPage() {
   async function submit() {
     if (!token) { setError('رابط غير صالح'); return; }
     setSaving(true);
-    const { error: err } = await supabase
-      .from('survey_responses')
-      .update({
-        q1_workspace: q1,
-        q2_factors: q2,
-        q3_lost_opp: q3,
-        q3_details: q3details || null,
-        q4_price: q4,
-        q5_feedback: q5 || null,
-        submitted_at: new Date().toISOString(),
-      })
-      .eq('token', token);
+    // Saved through a database function that matches the emailed token and
+    // reports back if it is unknown — never show "thanks" for an unsaved answer.
+    const { data: result, error: err } = await supabase.rpc('submit_survey', {
+      p_token: token,
+      p_q1: q1,
+      p_q2: q2,
+      p_q3: q3,
+      p_q3_details: q3details || null,
+      p_q4: q4,
+      p_q5: q5 || null,
+    });
     setSaving(false);
     if (err) { setError('حدث خطأ، حاول مرة أخرى'); return; }
-    setStep('done');
+    if (result === 'not_found') { setError('هذا الرابط غير صالح. راسلنا على info@bethra.co وسنرسل لك رابطاً جديداً.'); return; }
+    setStep('done'); // 'ok' or 'already' (answers were saved earlier)
   }
 
   const TOTAL = 5;
