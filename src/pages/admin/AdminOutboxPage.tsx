@@ -38,6 +38,8 @@ interface Outbound {
   created_at: string;
   created_by: string;
   purpose: string | null;
+  batch_id: string | null;
+  batch_label: string | null;
   status: 'pending_approval' | 'sending' | 'sent' | 'failed' | 'rejected';
   from_name: string;
   from_email: string;
@@ -247,11 +249,129 @@ function OutboundCard({ item, sessionToken, onChanged }: { item: Outbound; sessi
   );
 }
 
+function BatchCard({ items, sessionToken, onChanged }: { items: Outbound[]; sessionToken: string; onChanged: () => void }) {
+  const first = items[0];
+  const pendingCount = items.filter(i => i.status === 'pending_approval').length;
+  const sentCount = items.filter(i => i.status === 'sent').length;
+  const failedCount = items.filter(i => i.status === 'failed').length;
+  const [showPreview, setShowPreview] = useState(pendingCount > 0);
+  const [showEach, setShowEach] = useState(false);
+  const [confirm, setConfirm] = useState<'approve' | 'reject' | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'success' | 'error' | 'warning'; text: string } | null>(null);
+  const recipients = items.flatMap(i => i.to_emails);
+
+  const act = async () => {
+    if (!confirm) return;
+    setBusy(true); setMsg(null);
+    const r = await api<{ ok?: boolean; sent?: number; failed?: number; rejected?: number; failures?: { to: string; error: string }[] }>(
+      sessionToken, confirm === 'approve' ? 'approve_batch' : 'reject_batch', { batch_id: first.batch_id });
+    setBusy(false); setConfirm(null);
+    if (confirm === 'approve' && typeof r.sent === 'number') {
+      const failText = r.failures?.length ? ` Failed: ${r.failures.map(f => `${f.to} (${f.error})`).join('; ')}` : '';
+      setMsg({ type: r.failed ? 'warning' : 'success', text: `Sent ${r.sent} of ${r.sent + (r.failed ?? 0)}.${failText}` });
+      onChanged();
+    } else if (r.ok) { setMsg({ type: 'success', text: `Rejected ${r.rejected ?? ''}.` }); onChanged(); }
+    else setMsg({ type: 'error', text: r.error ?? 'Something went wrong' });
+  };
+
+  return (
+    <Card elevation={0} sx={{ border: '1px solid', borderColor: pendingCount ? '#E8C07A' : 'grey.200', borderRadius: 2, p: { xs: 2, sm: 2.5 }, mb: 2 }}>
+      {busy && <LinearProgress sx={{ mb: 1.5 }} />}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 1.5 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography fontWeight={800} sx={{ fontSize: 16, wordBreak: 'break-word' }} dir="auto">{first.batch_label || first.subject}</Typography>
+          <Typography variant="body2" color="text.secondary" dir="auto">{first.subject}</Typography>
+          {first.purpose && <Typography variant="body2" color="text.secondary" dir="auto">{first.purpose}</Typography>}
+          <Typography variant="caption" color="text.secondary">
+            {items.length} personalised emails · from {first.from_name} &lt;{first.from_email}&gt; · prepared by {first.created_by} · {fmt(first.created_at)}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+          {pendingCount > 0 && <Chip size="small" label={`${pendingCount} awaiting`} sx={{ color: STATUS_META.pending_approval.color, bgcolor: STATUS_META.pending_approval.bg, fontWeight: 700 }} />}
+          {sentCount > 0 && <Chip size="small" label={`${sentCount} sent`} sx={{ color: STATUS_META.sent.color, bgcolor: STATUS_META.sent.bg, fontWeight: 700 }} />}
+          {failedCount > 0 && <Chip size="small" label={`${failedCount} failed`} sx={{ color: STATUS_META.failed.color, bgcolor: STATUS_META.failed.bg, fontWeight: 700 }} />}
+        </Stack>
+      </Stack>
+
+      <Recipients label="To" list={recipients} />
+      {msg && <Alert severity={msg.type} sx={{ mt: 1.5 }} onClose={() => setMsg(null)}>{msg.text}</Alert>}
+
+      <Stack direction="row" spacing={1} sx={{ mt: 2 }} flexWrap="wrap" useFlexGap>
+        <Button size="small" startIcon={<VisibilityOutlinedIcon />} onClick={() => setShowPreview(v => !v)}>
+          {showPreview ? 'Hide sample' : 'Preview sample'}
+        </Button>
+        <Button size="small" onClick={() => setShowEach(v => !v)}>{showEach ? 'Hide each email' : 'Show each email'}</Button>
+        {pendingCount > 0 && (
+          <>
+            <Box sx={{ flex: 1 }} />
+            <Button size="small" color="inherit" startIcon={<CloseIcon />} disabled={busy} onClick={() => setConfirm('reject')}>Reject all</Button>
+            <Button variant="contained" startIcon={<SendIcon />} disabled={busy} onClick={() => setConfirm('approve')}
+              sx={{ bgcolor: '#0F3D24', '&:hover': { bgcolor: '#1B6B3E' } }}>
+              Approve &amp; send all {pendingCount}
+            </Button>
+          </>
+        )}
+      </Stack>
+
+      <Collapse in={showPreview} unmountOnExit>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2 }}>Sample: the email to {first.to_emails.join(', ')}. Each recipient gets their own name and link.</Typography>
+        <Box sx={{ mt: 1, border: '1px solid', borderColor: 'grey.200', borderRadius: 2, overflow: 'hidden', bgcolor: '#F7F3EC' }}>
+          <iframe title={`preview-${first.id}`} srcDoc={first.body_html} sandbox="" style={{ width: '100%', height: 720, border: 0, display: 'block' }} />
+        </Box>
+      </Collapse>
+      <Collapse in={showEach} unmountOnExit>
+        <Box sx={{ mt: 2 }}>
+          {items.map(item => (
+            <OutboundCard key={`${item.id}-${item.status}-${(item.attachments ?? []).length}`} item={item} sessionToken={sessionToken} onChanged={onChanged} />
+          ))}
+        </Box>
+      </Collapse>
+
+      <Dialog open={confirm !== null} onClose={() => !busy && setConfirm(null)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ pr: 6 }}>
+          {confirm === 'approve' ? `Send all ${pendingCount} emails now?` : `Reject all ${pendingCount} emails?`}
+          <IconButton onClick={() => setConfirm(null)} sx={{ position: 'absolute', right: 8, top: 8 }} disabled={busy}><CloseIcon /></IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Stack spacing={1}>
+            <Typography variant="body2" dir="auto"><b>{first.subject}</b></Typography>
+            <Typography variant="body2">To {pendingCount} recipients, one email each.</Typography>
+            {confirm === 'approve' && <Alert severity="warning" sx={{ mt: 1 }}>Sent emails cannot be recalled. Unsubscribed or bounced addresses are skipped automatically.</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirm(null)} disabled={busy}>Cancel</Button>
+          <Button variant="contained" onClick={() => void act()} disabled={busy}
+            color={confirm === 'reject' ? 'error' : 'primary'}
+            sx={confirm === 'approve' ? { bgcolor: '#0F3D24', '&:hover': { bgcolor: '#1B6B3E' } } : undefined}>
+            {confirm === 'approve' ? `Send ${pendingCount} now` : 'Reject all'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Card>
+  );
+}
+
 const TABS: { key: string; label: string; status?: Outbound['status'] }[] = [
   { key: 'pending', label: 'Awaiting approval', status: 'pending_approval' },
   { key: 'sent', label: 'Sent', status: 'sent' },
   { key: 'all', label: 'All' },
 ];
+
+// Emails sharing a batch_id are shown as one card; others stay individual.
+function groupItems(items: Outbound[]): Outbound[][] {
+  const groups: Outbound[][] = [];
+  const byBatch = new Map<string, Outbound[]>();
+  for (const it of items) {
+    if (!it.batch_id) { groups.push([it]); continue; }
+    let g = byBatch.get(it.batch_id);
+    if (!g) { g = []; byBatch.set(it.batch_id, g); groups.push(g); }
+    g.push(it);
+  }
+  for (const g of groups) g.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  return groups;
+}
 
 export default function AdminOutboxPage() {
   const { sessionToken } = useAdminAuth();
@@ -291,8 +411,10 @@ export default function AdminOutboxPage() {
             <Typography color="text.secondary">Nothing here.</Typography>
           </Card>
         )}
-        {sessionToken && items.map(item => (
-          <OutboundCard key={`${item.id}-${item.status}-${(item.attachments ?? []).length}`} item={item} sessionToken={sessionToken} onChanged={() => void load()} />
+        {sessionToken && groupItems(items).map(g => g.length > 1 ? (
+          <BatchCard key={`batch-${g[0].batch_id}-${g.map(i => i.status).join('')}`} items={g} sessionToken={sessionToken} onChanged={() => void load()} />
+        ) : (
+          <OutboundCard key={`${g[0].id}-${g[0].status}-${(g[0].attachments ?? []).length}`} item={g[0]} sessionToken={sessionToken} onChanged={() => void load()} />
         ))}
       </Box>
     </AdminLayout>
