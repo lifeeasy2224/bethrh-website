@@ -36,6 +36,7 @@ interface OutboundRow {
   to_emails: string[]; cc_emails: string[]; bcc_emails: string[];
   subject: string; body_html: string; body_text: string | null; attachments: Attachment[];
   crm_contact_id: string | null; crm_stage_after: string | null;
+  in_reply_to: string | null;
 }
 
 async function resolveAdmin(db: SupabaseClient, token: string) {
@@ -120,6 +121,8 @@ async function sendOne(db: SupabaseClient, id: string, approver: string): Promis
       html: row.body_html,
       text: row.body_text ?? undefined,
       attachments: files.length ? files : undefined,
+      // Thread replies under the recipient's original message in their mail client.
+      headers: row.in_reply_to ? { 'In-Reply-To': row.in_reply_to, References: row.in_reply_to } : undefined,
       tags: [{ name: 'outbound_id', value: row.id }],
     }),
   });
