@@ -109,3 +109,12 @@ verify_jwt = true
 
 [functions.validation-reaction]
 verify_jwt = true
+
+[functions.outbound-email]
+verify_jwt = false  # admin panel uses its own admin_sessions token; system calls use the Vault bearer
+
+[functions.send-survey-blast]
+verify_jwt = false  # internal only: checks the service-role key or Vault bearer itself
+
+[functions.send-survey-email]
+verify_jwt = false  # internal only: checks the service-role key or Vault bearer itself
