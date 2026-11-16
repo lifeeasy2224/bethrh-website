@@ -39,6 +39,18 @@ function logged(res: { error: any }): boolean {
   throw new Error(`revenue_events: ${res.error.message}`);
 }
 
+// Plans Bethra actually sells. profiles.plan has a CHECK constraint on exactly these,
+// so writing anything else would throw. An unknown plan is logged and ignored instead
+// of failing the webhook (a 500 makes Stripe retry the same event for days).
+const ALLOWED_PLANS = new Set(['pro', 'growth', 'accelerator']);
+
+function knownPlan(plan: string | null | undefined, where: string, userId?: string): string | null {
+  if (!plan) return null;
+  if (ALLOWED_PLANS.has(plan)) return plan;
+  console.warn(`stripe-webhook: ignoring unknown plan "${plan}" in ${where}${userId ? ` for user ${userId}` : ''}`);
+  return null;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -81,7 +93,7 @@ Deno.serve(async (req: Request) => {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.user_id;
-        const plan = session.metadata?.plan;
+        const plan = knownPlan(session.metadata?.plan, 'checkout.session.completed', userId);
         const billingCycle = session.metadata?.billing_cycle;
 
         if (!userId || !plan) break;
@@ -117,7 +129,7 @@ Deno.serve(async (req: Request) => {
         const userId = sub.metadata?.user_id;
         if (!userId) break;
 
-        const plan = sub.metadata?.plan;
+        const plan = knownPlan(sub.metadata?.plan, 'customer.subscription.updated', userId);
 
         must(await supabase
           .from('subscriptions')
@@ -140,7 +152,7 @@ Deno.serve(async (req: Request) => {
         const userId = sub.metadata?.user_id;
         if (!userId) break;
 
-        const plan = sub.metadata?.plan ?? sub.items.data[0]?.price?.metadata?.plan;
+        const plan = knownPlan(sub.metadata?.plan ?? sub.items.data[0]?.price?.metadata?.plan, 'customer.subscription.deleted', userId);
         const amount = (sub.items.data[0]?.price?.unit_amount ?? 0) / 100;
 
         must(await supabase.from('profiles').update({ plan: 'free' }).eq('user_id', userId), 'profiles');

@@ -20,6 +20,7 @@ export default function UnsubscribePage() {
   const token = params.get('token');
   const email = params.get('email');
   const campaignId = params.get('campaign');
+  const sig = params.get('sig');
   const [status, setStatus] = useState<Status>('loading');
 
   useEffect(() => {
@@ -35,33 +36,20 @@ export default function UnsubscribePage() {
 
   async function handleCampaignUnsubscribe(em: string, cid: string) {
     try {
-      const emailLower = em.toLowerCase();
-      // Mark recipient as unsubscribed
-      await supabase
-        .from('campaign_recipients')
-        .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
-        .eq('campaign_id', cid)
-        .eq('email', emailLower);
-
-      // Add to suppression list
-      await supabase
-        .from('email_suppression_list')
-        .upsert({ email: emailLower, reason: 'unsubscribed', source: cid }, { onConflict: 'email' });
-
-      // Increment campaign unsubscribe count
-      const { data: camp } = await supabase
-        .from('marketing_campaigns')
-        .select('unsubscribe_count')
-        .eq('id', cid)
-        .single<{ unsubscribe_count: number }>();
-      if (camp) {
-        await supabase
-          .from('marketing_campaigns')
-          .update({ unsubscribe_count: (camp.unsubscribe_count ?? 0) + 1 })
-          .eq('id', cid);
-      }
-
-      setStatus('success');
+      // The endpoint checks the link's signature (or, for emails sent before links were
+      // signed, that this address really received this campaign) and then records the
+      // unsubscribe. Anonymous visitors can't write those tables themselves.
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/unsubscribe-campaign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email: em, campaign: cid, sig: sig ?? undefined }),
+      });
+      if (res.ok) setStatus('success');
+      else setStatus(res.status === 400 ? 'invalid' : 'error');
     } catch {
       setStatus('error');
     }
