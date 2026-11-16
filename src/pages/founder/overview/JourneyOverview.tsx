@@ -178,7 +178,7 @@ function ScoreBoard({ score }: { score: Journey['score'] }) {
   return (
     <Box sx={{ mt: 7, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'auto minmax(0,1fr)' }, alignItems: 'center', gap: { xs: 4, sm: 9 }, bgcolor: C.navy700, px: { xs: 3, sm: 5.5 }, py: { xs: 4, sm: 5 } }}>
       <Box>
-        <Label>درجة بذرة</Label>
+        <Label>مؤشر الجاهزية</Label>
         <Stack direction="row" spacing={1.25} alignItems="baseline" sx={{ mt: 1.75 }}>
           <Typography sx={{ fontSize: { xs: 54, sm: 68 }, fontWeight: 800, lineHeight: 0.9, letterSpacing: 'normal', color: C.gold }}>{score.value}</Typography>
           <Typography sx={{ fontSize: 15, fontWeight: 700, color: C.ink600 }}>/100</Typography>

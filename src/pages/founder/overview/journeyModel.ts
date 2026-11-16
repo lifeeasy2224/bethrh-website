@@ -83,7 +83,7 @@ export interface JourneyInputs {
   ideaCreatedAt: string | null;
   ideasCount: number;
   iqScore: number;
-  scoreBreakdown: ScoreBreakdown; // the 5 real score components (drives the score bars)
+  scoreBreakdown: ScoreBreakdown; // the 4 real score parts (drives the score bars)
   validationCount: number;
   canvasBlocksFilled: number;
   journeyTasksDone: number;
@@ -229,17 +229,17 @@ export function buildJourney(inp: JourneyInputs): Journey {
   };
 }
 
-// The score bars — the five real Bethra Score components. Each bar is that
-// component as a % of its cap; "strong" (gold) once it clears 60% of its cap.
+// The score bars — the four real parts of مؤشر الجاهزية, customer evidence first.
+// Each bar is that part as a % of its cap; "strong" (gold) once it clears 60% of
+// its cap. The AI coach's opinion is not a part of the score (worth 0).
 function scoreParts(inp: JourneyInputs): ScorePart[] {
   const b = inp.scoreBreakdown;
   const bar = (value: number, cap: number, label: string): ScorePart =>
     ({ label, value: clampPct((value / cap) * 100), strong: value >= cap * 0.6 });
   return [
-    bar(b.validation, SCORE_CAPS.validation, 'التحقق من العملاء'),
+    bar(b.evidence, SCORE_CAPS.evidence, 'أدلة العملاء'),
     bar(b.model, SCORE_CAPS.model, 'نموذج العمل'),
     bar(b.financials, SCORE_CAPS.financials, 'الماليات'),
     bar(b.journey, SCORE_CAPS.journey, 'رحلة الـ٩٠ يوماً'),
-    bar(b.coach, SCORE_CAPS.coach, 'المدرّب الذكي'),
   ];
 }

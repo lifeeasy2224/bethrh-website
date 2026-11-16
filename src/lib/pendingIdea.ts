@@ -71,7 +71,7 @@ export async function createUserIdea(
     // zero real entries even right after logging one.
     await supabase.from('validation_entries').insert({
       user_idea_id: ideaId,
-      type: 'other',
+      type: 'stress_test', // the AI first read: never customer evidence (excluded from the score)
       notes: `اختبار الفكرة — درجة الذكاء الاصطناعي: ${results.score}/10. ${results.verdict}`,
       amount: 0,
       sentiment: results.score >= 7 ? 'positive' : results.score >= 5 ? 'neutral' : 'negative',

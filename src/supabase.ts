@@ -119,7 +119,13 @@ export interface UserIdea {
   solution: string;
   target_customer: string;
   stage: 'seed' | 'growing' | 'ready';
-  iq_score: number;
+  iq_score: number; // written by the database only
+  // Parts of the score (database-written): evidence /50, model /20, financials /15, journey /15.
+  score_evidence?: number;
+  score_model?: number;
+  score_financials?: number;
+  score_journey?: number;
+  evidence_min_met?: boolean;
   city: string;
   differentiator: string;
   advantage: string;
@@ -139,9 +145,10 @@ export type MarketplaceTeaser = Pick<
 export interface ValidationEntry {
   id: string;
   user_idea_id: string;
-  type: 'interview' | 'signup' | 'preorder' | 'observation';
+  type: 'interview' | 'signup' | 'preorder' | 'observation' | 'other' | 'stress_test';
   notes: string;
   amount: number;
+  sentiment?: 'positive' | 'neutral' | 'negative' | null; // empty is scored as neutral
   created_at: string;
 }
 

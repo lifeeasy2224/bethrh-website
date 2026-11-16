@@ -37,6 +37,7 @@ const ENTRY_TYPES = [
 ];
 
 const SENTIMENTS = [
+  { value: '', label: 'بدون انطباع' },
   { value: 'positive', label: '😊 إيجابي' },
   { value: 'neutral', label: '😐 محايد' },
   { value: 'negative', label: '😟 سلبي' },
@@ -82,7 +83,7 @@ export default function ValidationPage() {
     return Object.keys(e).length === 0;
   }
 
-  async function fetchReaction(entry: { type: string; notes: string; sentiment: string; amount: number }) {
+  async function fetchReaction(entry: { type: string; notes: string; sentiment: string | null; amount: number }) {
     if (!selectedIdeaId) return;
     const { data, error } = await supabase.functions.invoke('validation-reaction', {
       body: { idea_id: selectedIdeaId, entry },
@@ -99,7 +100,7 @@ export default function ValidationPage() {
       type: form.type,
       notes: form.notes.trim(),
       amount: form.type === 'preorder' && form.amount ? parseFloat(form.amount) : 0,
-      sentiment: form.sentiment,
+      sentiment: form.sentiment || null,
     };
     const { error } = await supabase.from('validation_entries').insert({ user_idea_id: selectedIdeaId, ...entry });
     if (error) { setToast('تعذّر حفظ النشاط.'); setSaving(false); return; }
@@ -122,8 +123,12 @@ export default function ValidationPage() {
   const preorders = entries.filter(e => e.type === 'preorder').reduce((s, e) => s + (e.amount ?? 0), 0);
   const positiveCount = entries.filter((e: any) => e.sentiment === 'positive').length;
 
-  const typeInfo = (t: string) => ENTRY_TYPES.find(x => x.value === t) ?? ENTRY_TYPES[0];
-  const sentimentEmoji = (s: string) => ({ positive: '😊', neutral: '😐', negative: '😟' }[s] ?? '😊');
+  // 'stress_test' is the AI first read logged from /validate: an AI opinion, not customer evidence.
+  const typeInfo = (t: string) => t === 'stress_test'
+    ? { value: 'stress_test', label: '🤖 قراءة أولى بالذكاء الاصطناعي', color: '#8A8070' }
+    : (ENTRY_TYPES.find(x => x.value === t) ?? ENTRY_TYPES[0]);
+  // An empty sentiment is stored as NULL and scores as neutral, so it shows as '—'.
+  const sentimentEmoji = (s: string | null | undefined) => (s ? ({ positive: '😊', neutral: '😐', negative: '😟' } as Record<string, string>)[s] ?? '—' : '—');
 
   if (!selectedIdea) {
     return (
@@ -180,7 +185,7 @@ export default function ValidationPage() {
                 </TextField>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                <TextField select label="الانطباع" value={form.sentiment} onChange={e => setForm(f => ({ ...f, sentiment: e.target.value }))} fullWidth size="small">
+                <TextField select label="الانطباع (اختياري)" value={form.sentiment} onChange={e => setForm(f => ({ ...f, sentiment: e.target.value }))} fullWidth size="small" slotProps={{ inputLabel: { shrink: true }, select: { displayEmpty: true } }}>
                   {SENTIMENTS.map(s => <MenuItem key={s.value} value={s.value}>{s.label}</MenuItem>)}
                 </TextField>
               </Grid>
@@ -236,7 +241,7 @@ export default function ValidationPage() {
                       <TableCell>
                         <Chip label={typeInfo(entry.type).label} size="small" sx={{ fontSize: '0.7rem', height: 20, bgcolor: `${typeInfo(entry.type).color}18`, color: typeInfo(entry.type).color, fontWeight: 700 }} />
                       </TableCell>
-                      <TableCell sx={{ fontSize: '1rem' }}>{sentimentEmoji((entry as any).sentiment ?? 'positive')}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem' }}>{sentimentEmoji((entry as any).sentiment)}</TableCell>
                       <TableCell sx={{ fontSize: '0.8125rem', maxWidth: 240 }}>
                         <Typography variant="caption" sx={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expanded === entry.id ? 'normal' : 'nowrap' }}>
                           {entry.notes}

@@ -37,6 +37,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { SECTORS, supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';
 import { sendEmail } from '../../lib/sendEmail';
+import { SCORE_CAPS, formatJourneyPoints } from '../../lib/iqScore';
 
 // Teaser fields (marketplace_teasers) are always present. The rest only come
 // back from get_idea_full, i.e. for the owner or an investor with an active
@@ -55,7 +56,9 @@ interface Idea {
   target_customer?: string;
   differentiator?: string;
   advantage?: string;
-  iq_breakdown?: { validation: number; model: number; financials: number; journey: number; coach: number; total: number } | null;
+  // Written by the database (recompute_idea_score). Keys: evidence (of 50), model (20),
+  // financials (15), journey (15), total, evidenceMinMet. Only present once connected.
+  iq_breakdown?: { evidence?: number; model?: number; financials?: number; journey?: number | string; total?: number; evidenceMinMet?: boolean } | null;
   in_marketplace?: boolean;
   user_id?: string;
 }
@@ -337,12 +340,13 @@ export default function IdeaDetailPage() {
 
   const isConnected = myConnection?.status === 'active';
 
-  // Real components, persisted by recomputeIqScore under the founder's own
-  // full-access session (investors can't read the founder's raw canvas_data to
-  // recompute this themselves — RLS is owner-only, deliberately not loosened).
-  // Only returned by get_idea_full, so it is absent until connected; null for
-  // ideas that predate this column / were never recomputed.
-  const breakdown = idea.iq_breakdown ?? null;
+  // Real parts, computed and stored by the database (investors can't read the
+  // founder's raw canvas_data to recompute this themselves — RLS is owner-only,
+  // deliberately not loosened). Only returned by get_idea_full, so it is absent
+  // until connected. Ideas stored before score v2 carry the old keys; those have no
+  // `evidence` key and are shown as unavailable rather than on the wrong scale.
+  const rawBreakdown = idea.iq_breakdown ?? null;
+  const breakdown = rawBreakdown && typeof rawBreakdown.evidence === 'number' ? rawBreakdown : null;
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F3EC' }}>
@@ -574,7 +578,7 @@ export default function IdeaDetailPage() {
               <Grid size={{ xs: 12 }}>
                 <Card sx={{ p: 3, backgroundColor: '#fff' }}>
                   <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
-                    تفصيل درجة بذرة
+                    تفصيل مؤشر الجاهزية
                   </Typography>
                   {breakdown ? (
                     <Box sx={{ overflowX: 'auto' }}>
@@ -592,29 +596,24 @@ export default function IdeaDetailPage() {
                         </TableHead>
                         <TableBody>
                           <TableRow>
-                            <TableCell>التحقق من العملاء</TableCell>
-                            <TableCell align="right">{breakdown.validation}</TableCell>
-                            <TableCell align="right">35</TableCell>
+                            <TableCell>أدلة العملاء</TableCell>
+                            <TableCell align="right">{breakdown.evidence}</TableCell>
+                            <TableCell align="right">{SCORE_CAPS.evidence}</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>نموذج العمل</TableCell>
-                            <TableCell align="right">{breakdown.model}</TableCell>
-                            <TableCell align="right">20</TableCell>
+                            <TableCell align="right">{breakdown.model ?? 0}</TableCell>
+                            <TableCell align="right">{SCORE_CAPS.model}</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>التوقعات المالية</TableCell>
-                            <TableCell align="right">{breakdown.financials}</TableCell>
-                            <TableCell align="right">15</TableCell>
+                            <TableCell align="right">{breakdown.financials ?? 0}</TableCell>
+                            <TableCell align="right">{SCORE_CAPS.financials}</TableCell>
                           </TableRow>
                           <TableRow>
                             <TableCell>رحلة الـ ٩٠ يوماً</TableCell>
-                            <TableCell align="right">{breakdown.journey}</TableCell>
-                            <TableCell align="right">15</TableCell>
-                          </TableRow>
-                          <TableRow>
-                            <TableCell>تقييم مدرّب الذكاء الاصطناعي</TableCell>
-                            <TableCell align="right">{breakdown.coach}</TableCell>
-                            <TableCell align="right">15</TableCell>
+                            <TableCell align="right">{formatJourneyPoints(Number(breakdown.journey ?? 0))}</TableCell>
+                            <TableCell align="right">{SCORE_CAPS.journey}</TableCell>
                           </TableRow>
                           <TableRow sx={{ backgroundColor: '#F7F3EC', fontWeight: 600 }}>
                             <TableCell sx={{ fontWeight: 600 }}>الإجمالي</TableCell>
@@ -627,6 +626,11 @@ export default function IdeaDetailPage() {
                           </TableRow>
                         </TableBody>
                       </Table>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>
+                        {breakdown.evidenceMinMet
+                          ? 'الحد الأدنى للأدلة متحقق: 5 أدلة عملاء على الأقل بينها تسجيل اهتمام أو طلب مسبق.'
+                          : 'الحد الأدنى للأدلة غير متحقق بعد.'}
+                      </Typography>
                     </Box>
                   ) : isConnected ? (
                     <Typography variant="body2" color="text.secondary">

@@ -32,7 +32,7 @@ import { createElement } from 'react';
 import { supabase, type CanvasData } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
-import { recomputeIqScore } from '../../lib/iqScore';
+import { recomputeIqScore, EVIDENCE_MIN_RULE } from '../../lib/iqScore';
 
 interface PitchDataRow {
   user_idea_id: string;
@@ -78,6 +78,7 @@ export default function PitchPage() {
   const [pitchData, setPitchData] = useState<PitchDataRow | null>(null);
   const [publishedCount, setPublishedCount] = useState(0);
   const [freshScore, setFreshScore] = useState<number | null>(null);
+  const [evidenceMinMet, setEvidenceMinMet] = useState(false);
 
   const [investmentAmt, setInvestmentAmt] = useState('');
   const [useOfFunds, setUseOfFunds] = useState('');
@@ -109,7 +110,7 @@ export default function PitchPage() {
     if (!selectedIdeaId || !user) return;
     const [c, v, p, pub] = await Promise.all([
       supabase.from('canvas_data').select('*').eq('user_idea_id', selectedIdeaId).maybeSingle(),
-      supabase.from('validation_entries').select('id', { count: 'exact' }).eq('user_idea_id', selectedIdeaId),
+      supabase.from('validation_entries').select('id', { count: 'exact' }).eq('user_idea_id', selectedIdeaId).neq('type', 'stress_test'),
       supabase.from('pitch_data').select('*').eq('user_idea_id', selectedIdeaId).maybeSingle(),
       supabase.from('pitch_data').select('id', { count: 'exact' }).eq('user_id', user.id).eq('is_published', true),
     ]);
@@ -117,9 +118,11 @@ export default function PitchPage() {
     setValidationCount(v.count ?? 0);
     setPitchData(p.data as PitchDataRow | null);
     setPublishedCount(pub.count ?? 0);
-    // Refresh the cached IQ score so the publish gate reflects the founder's
-    // actual progress, not whatever was last written on a dashboard visit.
-    setFreshScore((await recomputeIqScore(selectedIdeaId))?.score ?? null);
+    // Ask the server for the current مؤشر الجاهزية so the publish checklist matches
+    // what the database will check when the idea is listed.
+    const scoreRes = await recomputeIqScore(selectedIdeaId);
+    setFreshScore(scoreRes?.score ?? null);
+    setEvidenceMinMet(!!scoreRes?.breakdown.evidenceMinMet);
     if (p.data) {
       setInvestmentAmt(String(p.data.investment_amount ?? ''));
       setUseOfFunds(p.data.use_of_funds ?? '');
@@ -144,14 +147,16 @@ export default function PitchPage() {
   const hasFinancials = !!(canvas?.monthly_revenue && canvas?.monthly_costs);
 
   const requirements = [
-    { label: 'درجة بذرة ≥ ٥٠', met: score >= 50, value: `${score}/100`, link: null },
+    { label: 'مؤشر الجاهزية ≥ ٥٠', met: score >= 50, value: `${score}/100`, link: null },
     { label: 'اكتمال المخطط ٧٠٪ على الأقل', met: canvasPct >= 70, value: `٪${canvasPct}`, link: '/journey/canvas' },
     { label: '٥ أنشطة تحقق على الأقل', met: validationCount >= 5, value: String(validationCount), link: '/journey/validation' },
     { label: 'التوقعات المالية معبأة', met: hasFinancials, value: hasFinancials ? 'تم' : 'ناقصة', link: '/journey/canvas' },
   ];
 
   const allMet = requirements.every(r => r.met);
-  const canPublish = allMet && score >= 80 && !pitchData?.is_published && publishedCount < publishLimit;
+  // Listing needs what generating needs, plus مؤشر الجاهزية ≥ ٨٠ and the evidence
+  // minimum. The database re-checks all of it (and the canvas / financials) on listing.
+  const canPublish = allMet && score >= 80 && evidenceMinMet && !pitchData?.is_published && publishedCount < publishLimit;
 
   async function handleGenerate() {
     if (!user || !selectedIdeaId || !allMet) return;
@@ -274,14 +279,22 @@ export default function PitchPage() {
     if (!user || !selectedIdeaId || !canPublish) return;
     setPublishing(true);
     const now = new Date().toISOString();
+    // List the idea FIRST: the database re-checks the requirements (canvas, evidence,
+    // financials, مؤشر الجاهزية ≥ ٨٠) and refuses a listing that does not qualify. Its
+    // message is Arabic, so show it as is. Nothing is marked published on a refusal.
+    const { error: listErr } = await supabase.from('user_ideas').update({ in_marketplace: true }).eq('id', selectedIdeaId);
+    if (listErr) {
+      setPublishing(false);
+      setToast({ msg: listErr.message || 'تعذّر النشر في السوق. حاول مرة أخرى.', sev: 'error' });
+      void loadData();
+      return;
+    }
     await supabase.from('pitch_data').upsert({
       user_idea_id: selectedIdeaId,
       user_id: user.id,
       is_published: true,
       published_at: now,
     }, { onConflict: 'user_idea_id' });
-    // Mark idea as in_marketplace
-    await supabase.from('user_ideas').update({ in_marketplace: true }).eq('id', selectedIdeaId);
     // Trigger investor matching
     const { error } = await supabase.functions.invoke('send-investor-match', {
       body: { idea_id: selectedIdeaId },
@@ -513,7 +526,8 @@ export default function PitchPage() {
               >
                 {publishing ? 'جارٍ النشر…' : 'انشر في السوق'}
               </Button>
-              {score < 80 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>النشر يتطلب درجة بذرة ≥ ٨٠</Typography>}
+              {score < 80 && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>النشر يتطلب مؤشر الجاهزية ≥ ٨٠ (مؤشرك الحالي {score})</Typography>}
+              {!evidenceMinMet && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>{EVIDENCE_MIN_RULE}</Typography>}
               {publishedCount >= publishLimit && publishLimit > 0 && (
                 <Typography variant="caption" color="error" sx={{ display: 'block', mt: 0.5 }}>
                   بلغت حد النشر ({publishLimit} في خطتك)

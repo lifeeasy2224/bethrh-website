@@ -36,12 +36,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import FounderSidebar from '../../components/FounderSidebar';
 import { supabase, getStageInfo } from '../../supabase';
-import { recomputeIqScore, TAKEOFF_THRESHOLD, type ScoreBreakdown } from '../../lib/iqScore';
+import { recomputeIqScore, TAKEOFF_THRESHOLD, ZERO_BREAKDOWN, type ScoreBreakdown } from '../../lib/iqScore';
 import { assessIdea } from '../../lib/assessIdea';
 import JourneyOverview from './overview/JourneyOverview';
 import { buildJourney } from './overview/journeyModel';
-
-const ZERO_BREAKDOWN: ScoreBreakdown = { validation: 0, model: 0, financials: 0, journey: 0, coach: 0, total: 0 };
 
 async function fireConfetti() {
   const confetti = (await import('canvas-confetti')).default;
@@ -103,7 +101,7 @@ export default function FounderDashboard() {
       // existence (new — needed for the SWOT/Pitch stop states the old
       // dashboard never rendered).
       const [valRes, canvasRes, tasksRes, swotRes, pitchRes] = await Promise.all([
-        supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId!),
+        supabase.from('validation_entries').select('id, type, created_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId!).neq('type', 'stress_test'),
         supabase.from('canvas_data').select('*').eq('user_idea_id', selectedIdeaId!).maybeSingle(),
         supabase.from('journey_tasks').select('id, task_key, week_number, completed_at', { count: 'exact' }).eq('user_idea_id', selectedIdeaId!).eq('is_completed', true),
         supabase.from('swot_analyses').select('id', { count: 'exact', head: true }).eq('user_idea_id', selectedIdeaId!),
@@ -150,9 +148,8 @@ export default function FounderDashboard() {
         void fireConfetti();
       }
 
-      // ── Phase 1 (preserved verbatim): the real evidence-weighted score —
-      // single source of truth in recomputeIqScore, which also persists
-      // user_ideas.iq_score / iq_breakdown. ──
+      // ── Phase 1: the readiness score is computed and stored by the database;
+      // recomputeIqScore asks the server to refresh it and returns the parts. ──
       const scoreRes = await recomputeIqScore(selectedIdeaId!);
       if (cancelled) return;
 
@@ -230,7 +227,7 @@ export default function FounderDashboard() {
   if (metrics.canvasBlocksFilled > 0) takeoffEvidence.push(`مخطط النموذج التجاري — ${metrics.canvasBlocksFilled}/9 مربعات معبّأة`);
   if (metrics.breakdown.financials > 0) takeoffEvidence.push('التوقعات المالية مُعدّة');
   if (metrics.journeyTasksDone > 0) takeoffEvidence.push(`${metrics.journeyTasksDone}/48 مهمة من رحلة الـ ٩٠ يوماً مكتملة`);
-  if (metrics.breakdown.coach > 0) takeoffEvidence.push('تقييم المدرّب الذكي اجتاز الحد');
+  if (metrics.breakdown.evidenceMinMet) takeoffEvidence.push('الحد الأدنى للأدلة متحقق (5 أدلة بينها تسجيل اهتمام أو طلب مسبق)');
 
   // Milestone logging is offered once a founder has traction (growing/ready) —
   // replaces the old dashboard's "First Dollar" path-widget buttons, which

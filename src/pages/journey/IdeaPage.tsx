@@ -121,7 +121,7 @@ export default function IdeaPage() {
       const { data, error } = await supabase.from('user_ideas').insert({
         user_id: user.id, title: form.title.trim(), sector: form.sector,
         problem: form.problem.trim(), solution: form.solution.trim(),
-        target_customer: form.target_customer.trim(), stage: 'seed', iq_score: 0,
+        target_customer: form.target_customer.trim(), stage: 'seed',
       }).select().maybeSingle();
       if (error || !data) { setToast({ msg: 'تعذّرت إضافة الفكرة.', sev: 'error' }); setSaving(false); return; }
       setSelectedIdeaId(data.id);
