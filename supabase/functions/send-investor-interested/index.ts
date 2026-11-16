@@ -10,7 +10,7 @@ Deno.serve(async (req: Request) => {
   if (denied) return denied;
 
   try {
-    const { record } = await req.json() as { record: { id: string; investor_id: string; idea_id: string; status: string } };
+    const { record } = await req.json() as { record: { id: string; investor_id: string; idea_id: string; status: string; message: string | null } };
     const db = getServiceClient();
 
     // Get idea + founder
@@ -29,11 +29,18 @@ Deno.serve(async (req: Request) => {
     const founderEmail = founderAuth?.user?.email;
     if (!founderEmail) return jsonResp({ skipped: 'no founder email' });
 
-    // Get investor profile (record.investor_id is a profiles.id)
+    const { data: suppressed } = await db
+      .from('email_suppression_list')
+      .select('email')
+      .ilike('email', founderEmail)
+      .limit(1);
+    if (suppressed && suppressed.length > 0) return jsonResp({ skipped: 'founder suppressed' });
+
+    // connection_requests.investor_id is an auth user id (= profiles.user_id, not profiles.id)
     const { data: investorProfile } = await db
       .from('profiles')
       .select('full_name, user_id')
-      .eq('id', record.investor_id)
+      .eq('user_id', record.investor_id)
       .maybeSingle();
 
     const { data: investorDetails } = await db
@@ -44,28 +51,20 @@ Deno.serve(async (req: Request) => {
 
     const origin = 'https://bethra.co';
     const html = render(await resolveBody(db, 'investor-interested', INVESTOR_INTERESTED_TEMPLATE), {
-      founder_name: (founderProfile?.full_name ?? '').split(' ')[0] || 'there',
-      investor_name: investorProfile?.full_name ?? 'An investor',
+      founder_name: (founderProfile?.full_name ?? '').split(' ')[0] || 'صديقنا',
+      investor_name: investorProfile?.full_name ?? 'مستثمر',
       idea_name: idea.title,
-      investor_type: investorDetails?.investor_type ?? 'Angel Investor',
-      check_size: investorDetails?.check_size ?? 'Undisclosed',
-      investor_sectors: (investorDetails?.sectors_of_interest ?? []).join(', ') || 'Various',
-      message: 'I am interested in learning more about your idea.',
+      investor_type: investorDetails?.investor_type ?? 'مستثمر',
+      check_size: investorDetails?.check_size ?? 'غير معلن',
+      investor_sectors: (investorDetails?.sectors_of_interest ?? []).join(', ') || 'متنوعة',
+      message: record.message?.trim() || 'أودّ معرفة المزيد عن فكرتك.',
       connections_url: `${origin}/connections?request=${record.id}`,
       unsubscribe_url: `${origin}/unsubscribe?token=${founderProfile?.unsubscribe_token ?? ''}`,
     });
 
     await sendViaResend(founderEmail, `مستثمر مهتم بفكرتك «${idea.title}»!`, html);
 
-    // Notification for founder
-    await db.from('notifications').insert({
-      user_id: idea.user_id,
-      type: 'investor_interested',
-      title: 'Investor Interested',
-      body: `${investorProfile?.full_name ?? 'An investor'} is interested in "${idea.title}"`,
-      link: `/connections?request=${record.id}`,
-      is_read: false,
-    });
+    // The in-app notification is written by send-notification (called when the request is made).
 
     return jsonResp({ ok: true });
   } catch (err) {
