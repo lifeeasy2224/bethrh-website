@@ -148,7 +148,9 @@ Deno.serve(async (req: Request) => {
     const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
     const completion = await anthropic.messages.create({
       model: 'claude-haiku-5-5',
-      max_tokens: 1024,
+      // max_tokens includes the model's thinking (Claude 5.5 models think by default), so it is a
+      // ceiling well above the visible answer; a tight value cut answers and JSON short.
+      max_tokens: 4096,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: contextDigest }],
     });

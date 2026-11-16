@@ -77,7 +77,9 @@ Respond ONLY with a valid JSON object in this exact format (no markdown, no extr
 
     const completion = await anthropic.messages.create({
       model: 'claude-sonnet-5-5',
-      max_tokens: 1500,
+      // max_tokens includes the model's thinking (Claude 5.5 models think by default), so it is a
+      // ceiling well above the visible answer; a tight value cut answers and JSON short.
+      max_tokens: 6144,
       messages: [{ role: 'user', content: prompt }],
     });
 
