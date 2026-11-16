@@ -26,9 +26,12 @@ Deno.serve(async (req: Request) => {
     // Check if recipient was active in last 5 minutes — skip if so
     const { data: recipientProfile } = await db
       .from('profiles')
-      .select('full_name, user_id, last_active, unsubscribe_token')
+      .select('full_name, user_id, last_active, unsubscribe_token, message_notifications')
       .eq('user_id', recipientUserId)
       .maybeSingle();
+
+    // Settings → "إشعارات الرسائل". null (never set) means on.
+    if (recipientProfile?.message_notifications === false) return jsonResp({ skipped: 'message notifications off' });
 
     if (recipientProfile?.last_active) {
       const diffMs = Date.now() - new Date(recipientProfile.last_active).getTime();
@@ -39,6 +42,13 @@ Deno.serve(async (req: Request) => {
     const recipientEmail = recipientAuth?.user?.email;
     if (!recipientEmail) return jsonResp({ skipped: 'no recipient email' });
 
+    const { data: suppressed } = await db
+      .from('email_suppression_list')
+      .select('email')
+      .ilike('email', recipientEmail)
+      .limit(1);
+    if (suppressed && suppressed.length > 0) return jsonResp({ skipped: 'recipient suppressed' });
+
     // Get sender name and idea title
     const [{ data: senderProfile }, { data: idea }] = await Promise.all([
       db.from('profiles').select('full_name').eq('user_id', record.sender_id).maybeSingle(),
@@ -47,15 +57,15 @@ Deno.serve(async (req: Request) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    const msgTime = new Date(record.created_at).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    const msgTime = new Date(record.created_at).toLocaleString('ar-SA-u-nu-latn', {
+      month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: 'Asia/Riyadh',
     });
 
     const origin = 'https://bethra.co';
     const html = render(await resolveBody(db, 'new-message', NEW_MESSAGE_TEMPLATE), {
-      recipient_name: (recipientProfile?.full_name ?? '').split(' ')[0] || 'there',
-      sender_name: senderProfile?.full_name ?? 'Your contact',
-      idea_name: (idea as { title?: string } | null)?.title ?? 'your idea',
+      recipient_name: (recipientProfile?.full_name ?? '').split(' ')[0] || 'صديقنا',
+      sender_name: senderProfile?.full_name ?? 'جهة تواصلك',
+      idea_name: (idea as { title?: string } | null)?.title ?? 'فكرتك',
       message_preview: record.content.slice(0, 150) + (record.content.length > 150 ? '…' : ''),
       message_time: msgTime,
       chat_url: `${origin}/investor/connections/${record.connection_id}`,

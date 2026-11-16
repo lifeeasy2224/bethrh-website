@@ -29,7 +29,6 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';
-import { sendEmail } from '../../lib/sendEmail';
 
 interface Connection {
   id: string;
@@ -190,26 +189,8 @@ export default function ConnectionChatPage() {
 
       if (err) throw err;
 
-      // Email the other party (non-critical)
-      void (async () => {
-        if (!connection || !user) return;
-        const recipientId = connection.investor_id === user.id ? connection.founder_id : connection.investor_id;
-        const [{ data: senderProfile }, { data: recipientEmail }, { data: recipientProfile }] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('user_id', user.id).maybeSingle(),
-          supabase.rpc('get_user_email', { target_user_id: recipientId }),
-          supabase.from('public_profiles').select('full_name').eq('user_id', recipientId).maybeSingle(),
-        ]);
-        if (recipientEmail) {
-          void sendEmail(recipientEmail as string, 'new-message', {
-            recipient_name: recipientProfile?.full_name ?? 'صديقنا',
-            sender_name: senderProfile?.full_name ?? 'جهة تواصلك',
-            idea_title: idea?.title ?? 'فكرتك',
-            message_preview: trimmedInput.slice(0, 200),
-            chat_url: `${window.location.origin}/investor/connections/${connectionId}`,
-            unsubscribe_url: `${window.location.origin}/settings`,
-          });
-        }
-      })();
+      // The other party is emailed by the database (on_message_insert → send-new-message).
+      // The browser can't look up their address, and shouldn't.
 
       // Reload messages to get the real ID and timestamp
       await loadMessages();

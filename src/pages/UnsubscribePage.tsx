@@ -35,33 +35,10 @@ export default function UnsubscribePage() {
 
   async function handleCampaignUnsubscribe(em: string, cid: string) {
     try {
-      const emailLower = em.toLowerCase();
-      // Mark recipient as unsubscribed
-      await supabase
-        .from('campaign_recipients')
-        .update({ status: 'unsubscribed', unsubscribed_at: new Date().toISOString() })
-        .eq('campaign_id', cid)
-        .eq('email', emailLower);
-
-      // Add to suppression list
-      await supabase
-        .from('email_suppression_list')
-        .upsert({ email: emailLower, reason: 'unsubscribed', source: cid }, { onConflict: 'email' });
-
-      // Increment campaign unsubscribe count
-      const { data: camp } = await supabase
-        .from('marketing_campaigns')
-        .select('unsubscribe_count')
-        .eq('id', cid)
-        .single<{ unsubscribe_count: number }>();
-      if (camp) {
-        await supabase
-          .from('marketing_campaigns')
-          .update({ unsubscribe_count: (camp.unsubscribe_count ?? 0) + 1 })
-          .eq('id', cid);
-      }
-
-      setStatus('success');
+      // One server-side call: suppression list, recipient row and the campaign's
+      // unsubscribe count. Anonymous visitors can't write those tables directly.
+      const { error } = await supabase.rpc('record_campaign_unsubscribe', { p_email: em, p_campaign: cid });
+      setStatus(error ? 'error' : 'success');
     } catch {
       setStatus('error');
     }
