@@ -17,7 +17,6 @@ import BethraLogo from '../components/BethraLogo';
 import { useSEO } from '../hooks/useSEO';
 import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { sendEmail } from '../lib/sendEmail';
 import { buildIdeaPayload, createUserIdea, stashPendingIdea } from '../lib/pendingIdea';
 import { ideaLimitMessage } from '../lib/ideaLimit';
 
@@ -1079,35 +1078,8 @@ export default function ValidatePage() {
       const result: AIAnalysis = await res.json();
       setAiAnalysis(result);
 
-      // Email user their results if logged in
-      if (session?.user) {
-        void (async () => {
-          const { data: userEmail } = await supabase.rpc('get_user_email', { target_user_id: session.user.id });
-          const { data: profileData } = await supabase.from('profiles').select('full_name').eq('user_id', session.user.id).maybeSingle();
-          if (userEmail) {
-            const scoreColor = result.score >= 7 ? '#2A8A52' : result.score >= 5 ? '#D08A28' : '#C0392B';
-            const scoreBg = result.score >= 7 ? '#F0F5F1' : result.score >= 5 ? '#FAF5E9' : '#FAF0EE';
-            const strengthsHtml = (result.strengths ?? []).map((s: string) =>
-              `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;"><span style="color:#2A8A52;font-weight:700;">✓</span><span style="color:#3E382E;font-size:14px;">${s}</span></div>`
-            ).join('');
-            const suggestionsHtml = (result.suggestions ?? []).map((s: string, i: number) =>
-              `<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;"><span style="background:#DEEBE2;color:#0F3D24;font-weight:700;font-size:12px;padding:2px 6px;border-radius:4px;">${i + 1}</span><span style="color:#3E382E;font-size:14px;">${s}</span></div>`
-            ).join('');
-            void sendEmail(userEmail as string, 'validation-complete', {
-              name: profileData?.full_name ?? 'رائد الأعمال',
-              idea_title: finalAnswers[1] ?? 'فكرتك',
-              score: String(result.score),
-              verdict: result.verdict,
-              score_color: scoreColor,
-              score_bg: scoreBg,
-              strengths_html: strengthsHtml,
-              suggestions_html: suggestionsHtml,
-              validate_url: `${window.location.origin}/validate`,
-              unsubscribe_url: `${window.location.origin}/settings`,
-            });
-          }
-        })();
-      }
+      // The results email is sent by the database when the AI first read is logged
+      // (on_validation_entry_insert → send-validation-complete).
       if (session?.user) {
         const ideaId = localStorage.getItem('bethra_selected_idea_id');
         if (ideaId) {

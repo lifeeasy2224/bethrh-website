@@ -36,7 +36,6 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { useAuth } from '../../contexts/AuthContext';
 import { SECTORS, supabase } from '../../supabase';
 import InvestorSidebar from '../../components/InvestorSidebar';
-import { sendEmail } from '../../lib/sendEmail';
 import { SCORE_CAPS, formatJourneyPoints } from '../../lib/iqScore';
 
 // Teaser fields (marketplace_teasers) are always present. The rest only come
@@ -263,25 +262,8 @@ export default function IdeaDetailPage() {
       if (requestError) throw requestError;
 
       const requestId = insertedRequest.id;
-      const connectionsUrl = `${window.location.origin}/connections?request=${requestId}`;
 
-      // Email founder (non-critical, fire and forget)
-      const founderUserId = idea.user_id;
-      if (founderUserId) void (async () => {
-        const [{ data: founderProfile }, { data: founderEmail }] = await Promise.all([
-          supabase.from('public_profiles').select('full_name').eq('user_id', founderUserId).maybeSingle(),
-          supabase.rpc('get_user_email', { target_user_id: founderUserId }),
-        ]);
-        if (founderEmail) {
-          void sendEmail(founderEmail as string, 'investor-interested', {
-            founder_name: founderProfile?.full_name ?? 'Founder',
-            idea_title: idea.title,
-            message: requestMessage.trim() || 'بدون رسالة.',
-            connections_url: connectionsUrl,
-            unsubscribe_url: `${window.location.origin}/unsubscribe`,
-          });
-        }
-      })();
+      // The founder is emailed by the database (on_connection_request_insert → send-investor-interested).
 
       // Notify founder via the trusted send-notification function
       // (recipient + content are derived server-side from the request).
