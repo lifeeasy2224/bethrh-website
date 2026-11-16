@@ -103,6 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailRedirectTo: `${window.location.origin}/onboarding`,
       },
     });
+    // With "confirm email" on, signing up an address that already has an account does
+    // NOT error (to avoid revealing which emails are registered). It returns a fake
+    // user with no identities and sends no email, so the person waits for a message
+    // that never comes. Detect it and say so.
+    if (!error && data.user && (data.user.identities?.length ?? 0) === 0) {
+      return { error: new Error('already registered'), needsConfirmation: false };
+    }
     // When email confirmation is required, signUp succeeds but returns no session.
     return { error: error as Error | null, needsConfirmation: !error && !data.session };
   }

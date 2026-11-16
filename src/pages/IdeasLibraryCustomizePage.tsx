@@ -1,3 +1,4 @@
+import { ideaLimitMessage } from '../lib/ideaLimit';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -118,7 +119,10 @@ export default function IdeasLibraryCustomizePage() {
         .select('id')
         .maybeSingle();
 
-      if (ideaError) throw ideaError;
+      if (ideaError) {
+        setError(ideaLimitMessage(ideaError) ?? 'حدث خطأ ما. حاول مرة أخرى.');
+        return;
+      }
 
       // Record the grab
       const { error: grabError } = await supabase

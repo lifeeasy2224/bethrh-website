@@ -197,7 +197,7 @@ export default function ConnectionChatPage() {
         const [{ data: senderProfile }, { data: recipientEmail }, { data: recipientProfile }] = await Promise.all([
           supabase.from('profiles').select('full_name').eq('user_id', user.id).maybeSingle(),
           supabase.rpc('get_user_email', { target_user_id: recipientId }),
-          supabase.from('profiles').select('full_name').eq('user_id', recipientId).maybeSingle(),
+          supabase.from('public_profiles').select('full_name').eq('user_id', recipientId).maybeSingle(),
         ]);
         if (recipientEmail) {
           void sendEmail(recipientEmail as string, 'new-message', {

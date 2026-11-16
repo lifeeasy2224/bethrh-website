@@ -68,13 +68,9 @@ export default function UnsubscribePage() {
   }
 
   async function unsubscribe(t: string) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .update({ email_digest_enabled: false, inspiration_enabled: false })
-      .eq('unsubscribe_token', t)
-      .select('id')
-      .maybeSingle();
-
+    // Anonymous visitors can't update profiles under RLS; the RPC checks the token
+    // server-side and only touches the two email preferences.
+    const { data, error } = await supabase.rpc('unsubscribe_by_token', { p_token: t });
     if (error) { setStatus('error'); return; }
     if (!data) { setStatus('invalid'); return; }
     setStatus('success');
@@ -82,11 +78,8 @@ export default function UnsubscribePage() {
 
   async function resubscribe() {
     if (!token) return; // Campaign unsubscribes can't re-subscribe via this flow
-    const { error } = await supabase
-      .from('profiles')
-      .update({ email_digest_enabled: true, inspiration_enabled: true })
-      .eq('unsubscribe_token', token);
-    if (!error) setStatus('resubscribed');
+    const { data, error } = await supabase.rpc('resubscribe_by_token', { p_token: token });
+    if (!error && data) setStatus('resubscribed');
   }
 
   return (
