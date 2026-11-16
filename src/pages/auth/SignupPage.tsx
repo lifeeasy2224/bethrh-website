@@ -18,7 +18,6 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import BethraLogo from '../../components/BethraLogo';
-import { sendEmail } from '../../lib/sendEmail';
 import { supabase } from '../../supabase';
 
 type Role = 'founder' | 'investor';
@@ -62,15 +61,10 @@ export default function SignupPage() {
     setError('');
     const { error: err, needsConfirmation } = await signUp(email.trim(), password, fullName.trim(), role);
     if (err) {
-      setError(err.message.includes('already registered') ? 'يوجد حساب مسجّل بهذا البريد الإلكتروني بالفعل.' : err.message);
+      setError(err.message.includes('already registered') ? 'يوجد حساب مسجّل بهذا البريد الإلكتروني بالفعل. سجّل الدخول، أو استعد كلمة المرور إن نسيتها.' : err.message);
       setLoading(false);
     } else {
-      void sendEmail(email.trim(), 'welcome-email', {
-        name: fullName.trim(),
-        role: role === 'founder' ? 'Founder' : 'Investor',
-        dashboard_url: `${window.location.origin}/${role}/dashboard`,
-        unsubscribe_url: `${window.location.origin}/settings`,
-      });
+      // The welcome email is sent by the database (on_profile_insert_welcome → send-welcome-email).
       if (needsConfirmation) {
         // Email confirmation required — user isn't logged in yet. Show a
         // "check your email" screen instead of bouncing them to login.

@@ -19,6 +19,7 @@ import { supabase } from '../supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { sendEmail } from '../lib/sendEmail';
 import { buildIdeaPayload, createUserIdea, stashPendingIdea } from '../lib/pendingIdea';
+import { ideaLimitMessage } from '../lib/ideaLimit';
 
 const NAVY = '#0F3D24';
 const CARD_BG = '#1B6B3E';
@@ -1032,9 +1033,9 @@ export default function ValidatePage() {
       try {
         await createUserIdea(user.id, payload, aiAnalysis);
         navigate('/journey/canvas');
-      } catch {
+      } catch (err) {
         setSaving(false);
-        setSaveError('فشل حفظ الفكرة. حاول مرة أخرى.');
+        setSaveError(ideaLimitMessage(err) ?? 'فشل حفظ الفكرة. حاول مرة أخرى.');
       }
       return;
     }

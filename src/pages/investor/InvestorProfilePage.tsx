@@ -177,7 +177,7 @@ export default function InvestorProfilePage() {
         const { error: nameError } = await supabase
           .from('profiles')
           .update({ full_name: formData.full_name })
-          .eq('id', user.id);
+          .eq('user_id', user.id);
 
         if (nameError) throw nameError;
       }

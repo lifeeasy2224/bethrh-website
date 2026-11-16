@@ -269,7 +269,7 @@ export default function IdeaDetailPage() {
       const founderUserId = idea.user_id;
       if (founderUserId) void (async () => {
         const [{ data: founderProfile }, { data: founderEmail }] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('user_id', founderUserId).maybeSingle(),
+          supabase.from('public_profiles').select('full_name').eq('user_id', founderUserId).maybeSingle(),
           supabase.rpc('get_user_email', { target_user_id: founderUserId }),
         ]);
         if (founderEmail) {

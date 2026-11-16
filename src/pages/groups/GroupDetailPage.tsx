@@ -141,7 +141,7 @@ export default function GroupDetailPage() {
     const userIds = [...new Set([...memberRows, ...checkinRows].map(r => r.user_id))];
     const nameByUser = new Map<string, string>();
     if (userIds.length) {
-      const { data: profs } = await supabase.from('profiles').select('user_id, full_name').in('user_id', userIds);
+      const { data: profs } = await supabase.from('public_profiles').select('user_id, full_name').in('user_id', userIds);
       (profs ?? []).forEach((p: { user_id: string; full_name: string | null }) => {
         if (p.full_name) nameByUser.set(p.user_id, p.full_name);
       });
@@ -214,7 +214,7 @@ export default function GroupDetailPage() {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
     setSearching(true);
     const { data } = await supabase
-      .from('profiles')
+      .from('public_profiles')
       .select('id, user_id, full_name, role')
       .ilike('full_name', `%${searchQuery.trim()}%`)
       .eq('role', 'founder')

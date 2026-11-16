@@ -142,9 +142,9 @@ export default function FounderConnectionsPage() {
           .map(async (request) => {
             const [investorRes, profileRes, ideaRes] = await Promise.all([
               supabase
-                .from('profiles')
+                .from('public_profiles')
                 .select('full_name, avatar_url')
-                .eq('id', request.investor_id)
+                .eq('user_id', request.investor_id)
                 .maybeSingle(),
               supabase
                 .from('investor_profiles')
@@ -173,9 +173,9 @@ export default function FounderConnectionsPage() {
         (connectionsRes.data || []).map(async (connection) => {
           const [investorRes, profileRes, ideaRes] = await Promise.all([
             supabase
-              .from('profiles')
+              .from('public_profiles')
               .select('full_name, avatar_url')
-              .eq('id', connection.investor_id)
+              .eq('user_id', connection.investor_id)
               .maybeSingle(),
             supabase
               .from('investor_profiles')

@@ -1,3 +1,4 @@
+import { ideaLimitMessage } from '../../lib/ideaLimit';
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
@@ -30,7 +31,7 @@ import { supabase, SECTORS, getStageInfo, type UserIdea } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 
-const PLAN_MAX_IDEAS: Record<string, number> = { free: 1, pro: 999, growth: 999, builder: 3, launch: 5, family: 3 };
+const PLAN_MAX_IDEAS: Record<string, number> = { free: 1, pro: 999, growth: 999, accelerator: 999, builder: 3, launch: 5, family: 3 };
 
 interface IdeaForm {
   title: string;
@@ -123,7 +124,7 @@ export default function IdeaPage() {
         problem: form.problem.trim(), solution: form.solution.trim(),
         target_customer: form.target_customer.trim(), stage: 'seed',
       }).select().maybeSingle();
-      if (error || !data) { setToast({ msg: 'تعذّرت إضافة الفكرة.', sev: 'error' }); setSaving(false); return; }
+      if (error || !data) { setToast({ msg: ideaLimitMessage(error) ?? 'تعذّرت إضافة الفكرة.', sev: 'error' }); setSaving(false); return; }
       setSelectedIdeaId(data.id);
       setToast({ msg: 'زُرعت الفكرة! هيا ننمّيها.', sev: 'success' });
     }
