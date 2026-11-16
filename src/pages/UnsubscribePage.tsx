@@ -20,6 +20,7 @@ export default function UnsubscribePage() {
   const token = params.get('token');
   const email = params.get('email');
   const campaignId = params.get('campaign');
+  const sig = params.get('sig');
   const [status, setStatus] = useState<Status>('loading');
 
   useEffect(() => {
@@ -35,10 +36,20 @@ export default function UnsubscribePage() {
 
   async function handleCampaignUnsubscribe(em: string, cid: string) {
     try {
-      // One server-side call: suppression list, recipient row and the campaign's
-      // unsubscribe count. Anonymous visitors can't write those tables directly.
-      const { error } = await supabase.rpc('record_campaign_unsubscribe', { p_email: em, p_campaign: cid });
-      setStatus(error ? 'error' : 'success');
+      // The endpoint checks the link's signature (or, for emails sent before links were
+      // signed, that this address really received this campaign) and then records the
+      // unsubscribe. Anonymous visitors can't write those tables themselves.
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/unsubscribe-campaign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email: em, campaign: cid, sig: sig ?? undefined }),
+      });
+      if (res.ok) setStatus('success');
+      else setStatus(res.status === 400 ? 'invalid' : 'error');
     } catch {
       setStatus('error');
     }

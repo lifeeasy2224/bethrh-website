@@ -1,4 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { signUnsub } from '../_shared/unsub-token.ts';
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -331,7 +332,9 @@ Deno.serve(async (req: Request) => {
 
     const firstName = recipient.full_name?.split(" ")[0] ?? "";
     const appUrl = "https://bethra.co";
-    const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(recipient.email)}&campaign=${campaign.id}`;
+    const unsubSig = await signUnsub(recipient.email, campaign.id);
+    if (!unsubSig) console.warn('send-campaign: no signing secret, unsubscribe link is unsigned');
+    const unsubscribeUrl = `${appUrl}/unsubscribe?email=${encodeURIComponent(recipient.email)}&campaign=${campaign.id}${unsubSig ? `&sig=${unsubSig}` : ''}`;
 
     const vars: Record<string, string> = {
       first_name: firstName,

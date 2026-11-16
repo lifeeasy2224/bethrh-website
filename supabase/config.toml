@@ -118,3 +118,6 @@ verify_jwt = false  # internal only: checks the service-role key or Vault bearer
 
 [functions.send-survey-email]
 verify_jwt = false  # internal only: checks the service-role key or Vault bearer itself
+
+[functions.unsubscribe-campaign]
+verify_jwt = false  # public unsubscribe endpoint; authorises by signed link or real recipient row
