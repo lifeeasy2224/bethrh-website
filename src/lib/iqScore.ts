@@ -1,152 +1,113 @@
-// Single source of truth for the Bethra Score (0–100).
+// مؤشر الجاهزية (Readiness Score, 0–100) is computed and stored by the database
+// (migration 20261115210000_readiness_score_v2_and_marketplace_gate.sql). The browser
+// never writes it: this file only asks the server to refresh it and reads the result.
 //
-// iq_score is a *cache* on user_ideas. recomputeIqScore() refreshes and persists
-// it at every moment that changes an input — validation add/delete/edit,
-// journey-task toggle, canvas save, re-validate, opening the pitch page, and
-// dashboard load — so the cache can't go stale where it matters.
-//
-// Five components, caps sum to 100 (ported from IdeaIQ's Phase 2 Option A):
-//   Customer validation   35   weighted by evidence STRENGTH × sentiment (not raw count)
-//   Business model         20   canvas blocks filled
-//   Financial projections  15   revenue + costs + break-even entered
-//   90-Day Journey         15   tasks completed / 48
-//   AI-Coach assessment    15   cached, set by the assess-idea edge function (Phase 2);
-//                               0 until an idea's first assessment — same as an
-//                               unassessed idea in IdeaIQ itself, not a degraded state
-// The AI stress-test result from /validate is a distinct quality signal and is
-// NEVER mixed into iq_score (that collision previously made the number jump on
-// validation, then drop) — Bethra doesn't even persist it onto user_ideas today,
-// so there is nothing to accidentally conflate.
+// Parts (caps sum to 100):
+//   Customer evidence  50   founder-logged tracker entries, AI first reads excluded.
+//                           Two halves of 25: what people said (interviews,
+//                           observations, notes) and what people did (sign-ups,
+//                           pre-orders), each weighted by sentiment (empty = neutral).
+//   Business model     20   canvas blocks filled
+//   Financials         15   revenue + costs + break-even entered
+//   90-Day Journey     15   1.25 per week whose main task is done AND has written findings
+// The AI Coach's assessment is an opinion shown next to the score. It is worth 0.
 import { supabase } from '../supabase';
 
-// The 9 Business Model Canvas blocks that count toward the score.
+// The 9 Business Model Canvas blocks that count toward the score / publish gate.
 export const CANVAS_BLOCK_KEYS = [
   'key_partners', 'key_activities', 'value_proposition', 'customer_relationships',
   'customer_segments', 'key_resources', 'channels', 'cost_structure', 'revenue_streams',
 ] as const;
 
-export const TOTAL_JOURNEY_TASKS = 48; // 12 weeks × (1 main + 3 subs) — matches NinetyDayPage's WEEKS
+// Part caps (sum = 100). Customer evidence comes first everywhere it is shown.
+export const SCORE_CAPS = { evidence: 50, model: 20, financials: 15, journey: 15 } as const;
 
-// Component caps (sum = 100).
-export const SCORE_CAPS = { validation: 35, model: 20, financials: 15, journey: 15, coach: 15 } as const;
-
-// Customer-validation weighting: real evidence strength, not a raw count.
-// A paid pre-order is worth far more than "a friend said it sounds cool."
-const VALIDATION_TYPE_PTS: Record<string, number> = {
-  preorder: 10, signup: 6, interview: 3, observation: 2, other: 1,
-};
-const SENTIMENT_MULT: Record<string, number> = { positive: 1, neutral: 0.7, negative: 0.4 };
-
-export interface ScoreBreakdown {
-  validation: number; model: number; financials: number; journey: number; coach: number; total: number;
-}
-
-export interface IqScoreInputs {
-  // Real customer-contact signals ONLY — the caller must exclude stress_test rows.
-  validationEntries: Array<{ type: string | null; sentiment: string | null; amount?: number | null }>;
-  canvasBlocksFilled: number;                                    // 0–9
-  financials: { revenue: number; costs: number; breakEvenMonth: number };
-  journeyTasksDone: number;
-  coachAssessment: number;                                       // 0–15 (Phase 1: always 0)
-}
-
-export function computeIqBreakdown(p: IqScoreInputs): ScoreBreakdown {
-  const rawValidation = p.validationEntries.reduce((sum, e) => {
-    const typePts = VALIDATION_TYPE_PTS[(e.type ?? '').toLowerCase()] ?? 0;
-    const mult = SENTIMENT_MULT[(e.sentiment ?? 'positive').toLowerCase()] ?? 1;
-    const amount = Number(e.amount ?? 0);
-    // Log scale: $0=1x, $10=1.2x, $100=1.4x, $1000=1.6x — caps at 1.6x so amount
-    // matters but doesn't dominate the type/sentiment signal.
-    const amountBoost = 1 + Math.min(Math.log10(Math.max(amount, 1)), 3) * 0.2;
-    return sum + typePts * mult * amountBoost;
-  }, 0);
-  const validation = Math.min(Math.round(rawValidation), SCORE_CAPS.validation);
-  const model = Math.min(Math.round((p.canvasBlocksFilled / CANVAS_BLOCK_KEYS.length) * SCORE_CAPS.model), SCORE_CAPS.model);
-  const financials = Math.min(
-    (p.financials.revenue > 0 ? 5 : 0) + (p.financials.costs > 0 ? 5 : 0) + (p.financials.breakEvenMonth > 0 ? 5 : 0),
-    SCORE_CAPS.financials,
-  );
-  const journey = Math.min(Math.round((p.journeyTasksDone / TOTAL_JOURNEY_TASKS) * SCORE_CAPS.journey), SCORE_CAPS.journey);
-  const coach = Math.max(0, Math.min(Math.round(p.coachAssessment), SCORE_CAPS.coach));
-  const total = Math.min(validation + model + financials + journey + coach, 100);
-  return { validation, model, financials, journey, coach, total };
-}
-
-// Backwards-compatible: callers that only want the number.
-export function computeIqScore(p: IqScoreInputs): number {
-  return computeIqBreakdown(p).total;
-}
-
-// Fetch the live inputs for an idea, recompute the score, and persist it to
-// user_ideas.iq_score (only writing when it changed). Returns the fresh score +
-// breakdown, or null if it couldn't be computed. Best-effort: callers may ignore
-// failures — a stale cache is no worse than before.
-// TAKEOFF_THRESHOLD: the score at which an idea is "ready to take off" (matches
-// the marketplace-publish threshold used elsewhere in the app).
+// Score needed (together with the evidence minimum) for the take-off moment and
+// for a marketplace listing.
 export const TAKEOFF_THRESHOLD = 80;
 
-export async function recomputeIqScore(ideaId: string): Promise<{ score: number; breakdown: ScoreBreakdown; takeoffReady: boolean } | null> {
+// A week's main task counts toward the score only with this much written down.
+export const JOURNEY_NOTES_MIN_CHARS = 30;
+
+// Shown wherever the evidence minimum appears. "مؤقتة" is part of the rule's name:
+// the thresholds may change as we learn what real evidence looks like.
+export const EVIDENCE_MIN_RULE =
+  'الحد الأدنى للأدلة (قاعدة مؤقتة): 5 أدلة عملاء على الأقل، بينها تسجيل اهتمام أو طلب مسبق واحد على الأقل.';
+
+export interface ScoreBreakdown {
+  evidence: number;
+  model: number;
+  financials: number;
+  journey: number; // decimal, e.g. 2.5
+  total: number;
+  evidenceMinMet: boolean;
+}
+
+export const ZERO_BREAKDOWN: ScoreBreakdown = {
+  evidence: 0, model: 0, financials: 0, journey: 0, total: 0, evidenceMinMet: false,
+};
+
+export interface ScoreResult {
+  score: number;
+  breakdown: ScoreBreakdown;
+  takeoffReady: boolean;
+}
+
+/** One decimal for the journey part, e.g. "2.5". */
+export function formatJourneyPoints(n: number): string {
+  return (Math.round(Number(n) * 10) / 10).toFixed(1);
+}
+
+interface RefreshRow {
+  score?: number | string | null;
+  evidence?: number | string | null;
+  model?: number | string | null;
+  financials?: number | string | null;
+  journey?: number | string | null;
+  evidence_min_met?: boolean | null;
+  takeoff_ready?: boolean | null;
+}
+
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+/**
+ * Ask the server to recompute this idea's score and return it with its parts.
+ * Owner-only on the server. Returns null if the idea can't be read at all.
+ *
+ * The database also recomputes on every evidence / canvas / journey write, so this
+ * is mostly a read; calling it after a save just guarantees the UI shows the
+ * post-save value.
+ *
+ * If the RPC is not available (the frontend can be live before the migration is
+ * applied), fall back to the stored total so the score still shows.
+ */
+export async function recomputeIqScore(ideaId: string): Promise<ScoreResult | null> {
   if (!ideaId) return null;
 
-  const [valRes, canvasRes, tasksRes, ideaRes] = await Promise.all([
-    supabase.from('validation_entries').select('type, sentiment, amount').eq('user_idea_id', ideaId),
-    supabase.from('canvas_data').select('*').eq('user_idea_id', ideaId).maybeSingle(),
-    supabase.from('journey_tasks').select('id', { count: 'exact', head: true }).eq('user_idea_id', ideaId).eq('is_completed', true),
-    supabase.from('user_ideas').select('iq_score, iq_breakdown, coach_assessment, takeoff_ready_at, takeoff_celebrated_at').eq('id', ideaId).maybeSingle(),
-  ]);
+  const { data, error } = await supabase.rpc('refresh_idea_score', { p_idea: ideaId });
+  const row = (data ?? null) as RefreshRow | null;
 
-  const canvas = canvasRes.data as Record<string, unknown> | null;
-  const canvasBlocksFilled = canvas
-    ? CANVAS_BLOCK_KEYS.filter(k => String(canvas[k] ?? '').length >= 20).length
-    : 0;
-
-  const entries = (valRes.data as Array<{ type: string | null; sentiment: string | null; amount: number | null }> | null) ?? [];
-  const validationEntries = entries.filter(e => (e.type ?? '').toLowerCase() !== 'stress_test');
-
-  const breakdown = computeIqBreakdown({
-    validationEntries,
-    canvasBlocksFilled,
-    financials: {
-      revenue: Number((canvas?.monthly_revenue as number | null) ?? 0),
-      costs: Number((canvas?.monthly_costs as number | null) ?? 0),
-      breakEvenMonth: Number((canvas?.break_even_month as number | null) ?? 0),
-    },
-    journeyTasksDone: tasksRes.count ?? 0,
-    // Read-only cache: this function never computes the AI-Coach component
-    // itself — assessIdea() (Phase 2) sets it server-side; 0 if never assessed.
-    coachAssessment: Number(ideaRes.data?.coach_assessment ?? 0),
-  });
-
-  const oldScore = ideaRes.data?.iq_score ?? null;
-  const oldBreakdown = JSON.stringify(ideaRes.data?.iq_breakdown ?? null);
-  const newBreakdown = JSON.stringify(breakdown);
-  const readyAt = ideaRes.data?.takeoff_ready_at ?? null;
-  const celebratedAt = ideaRes.data?.takeoff_celebrated_at ?? null;
-
-  // Genuine first crossing: was below the threshold, is now at/above it. Ideas
-  // that were already >= threshold never qualify (no retroactive firing).
-  const crossed = (oldScore ?? 0) < TAKEOFF_THRESHOLD && breakdown.total >= TAKEOFF_THRESHOLD;
-
-  const patch: Record<string, unknown> = {};
-  if (oldScore !== breakdown.total || oldBreakdown !== newBreakdown) {
-    // Persist the breakdown alongside the total. Investors can't read a founder's
-    // raw canvas_data (RLS is owner-only, no marketplace exception), so this
-    // cached breakdown — written under the founder's own full-access session —
-    // is how IdeaDetailPage shows real components without fabricating them.
-    patch.iq_score = breakdown.total;
-    patch.iq_breakdown = breakdown;
-  }
-  // Stamp the pending take-off exactly once, only on the first crossing.
-  let readyNow = readyAt;
-  if (crossed && !readyAt && !celebratedAt) {
-    readyNow = new Date().toISOString();
-    patch.takeoff_ready_at = readyNow;
-  }
-  if (Object.keys(patch).length > 0) {
-    await supabase.from('user_ideas').update(patch).eq('id', ideaId);
+  if (!error && row) {
+    const breakdown: ScoreBreakdown = {
+      evidence: num(row.evidence),
+      model: num(row.model),
+      financials: num(row.financials),
+      journey: num(row.journey),
+      total: num(row.score),
+      evidenceMinMet: !!row.evidence_min_met,
+    };
+    return { score: breakdown.total, breakdown, takeoffReady: !!row.takeoff_ready };
   }
 
-  // There's a take-off moment to show iff it's flagged ready and not yet celebrated.
-  const takeoffReady = !!readyNow && !celebratedAt;
-  return { score: breakdown.total, breakdown, takeoffReady };
+  const { data: idea } = await supabase
+    .from('user_ideas')
+    .select('iq_score')
+    .eq('id', ideaId)
+    .maybeSingle();
+  if (!idea) return null;
+  const total = num(idea.iq_score);
+  return { score: total, breakdown: { ...ZERO_BREAKDOWN, total }, takeoffReady: false };
 }

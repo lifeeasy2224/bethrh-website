@@ -111,7 +111,6 @@ export default function IdeasLibraryCustomizePage() {
           business_name: businessName || '',
           city: city || '',
           stage: 'seed',
-          iq_score: 10,
           differentiator: '',
           advantage: '',
           in_marketplace: false,

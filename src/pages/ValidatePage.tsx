@@ -1112,7 +1112,7 @@ export default function ValidatePage() {
         if (ideaId) {
           await supabase.from('validation_entries').insert({
             user_idea_id: ideaId,
-            type: 'other',
+            type: 'stress_test', // the AI first read: never customer evidence (excluded from the score)
             notes: `اختبار الفكرة — درجة الذكاء الاصطناعي: ${result.score}/10. ${result.verdict}`,
             amount: 0,
             sentiment: result.score >= 7 ? 'positive' : result.score >= 5 ? 'neutral' : 'negative',

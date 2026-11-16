@@ -19,7 +19,7 @@ import { supabase } from '../../supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIdea } from '../../contexts/IdeaContext';
 import { useReview } from '../../contexts/ReviewContext';
-import { recomputeIqScore } from '../../lib/iqScore';
+import { recomputeIqScore, JOURNEY_NOTES_MIN_CHARS } from '../../lib/iqScore';
 
 interface Week {
   num: number;
@@ -117,8 +117,9 @@ export default function NinetyDayPage() {
     if (existing.data?.id) {
       await supabase.from('journey_tasks').update({ notes: text || null }).eq('id', existing.data.id);
     } else {
-      await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: 'main', notes: text || null });
+      await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: 'main', notes: text || null, is_completed: false });
     }
+    void recomputeIqScore(selectedIdeaId); // written findings count toward مؤشر الجاهزية
   }
 
   const totalTasks = WEEKS.reduce((sum, w) => sum + 1 + w.subs.length, 0);
@@ -283,19 +284,32 @@ export default function NinetyDayPage() {
                   ))}
                 </Stack>
 
-                {/* Notes */}
-                <TextField
-                  value={notes[week.num] ?? ''}
-                  onChange={e => setNotes(prev => ({ ...prev, [week.num]: e.target.value }))}
-                  onBlur={() => !isLocked && saveNotes(week.num, notes[week.num] ?? '')}
-                  disabled={isLocked}
-                  placeholder="ملاحظاتك حول هذا الأسبوع…"
-                  size="small"
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  sx={{ mt: 1.5 }}
-                />
+                {/* Notes — a week counts toward مؤشر الجاهزية only once its main task is
+                    ticked AND at least JOURNEY_NOTES_MIN_CHARS characters are written here. */}
+                {(() => {
+                  const noteLen = (notes[week.num] ?? '').trim().length;
+                  const counts = !!wt['main'] && noteLen >= JOURNEY_NOTES_MIN_CHARS;
+                  return (
+                    <TextField
+                      value={notes[week.num] ?? ''}
+                      onChange={e => setNotes(prev => ({ ...prev, [week.num]: e.target.value }))}
+                      onBlur={() => !isLocked && saveNotes(week.num, notes[week.num] ?? '')}
+                      disabled={isLocked}
+                      label="ماذا تعلّمت هذا الأسبوع؟"
+                      placeholder="ملاحظاتك حول هذا الأسبوع…"
+                      size="small"
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      slotProps={{ inputLabel: { shrink: true } }}
+                      helperText={counts
+                        ? '✓ يُحتسب هذا الأسبوع في مؤشر الجاهزية.'
+                        : `لكي يُحتسب هذا الأسبوع في مؤشر الجاهزية: أنجز المهمة الرئيسية واكتب ${JOURNEY_NOTES_MIN_CHARS} حرفاً على الأقل عمّا تعلّمته (${noteLen}/${JOURNEY_NOTES_MIN_CHARS}). لا تكتب بيانات الناس الشخصية.`}
+                      FormHelperTextProps={{ sx: { color: counts ? 'success.main' : 'text.secondary' } }}
+                      sx={{ mt: 1.5 }}
+                    />
+                  );
+                })()}
 
                 {/* Coach tip */}
                 <Box sx={{ mt: 1.5, p: 1.25, bgcolor: '#F0F5F1', borderRadius: 1.5 }}>
