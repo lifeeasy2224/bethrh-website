@@ -134,7 +134,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: 'Suppression List', path: '/admin/marketing/suppression' },
       { label: 'Testimonials', path: '/admin/marketing/testimonials' },
       { label: 'Success Stories', path: '/admin/marketing/success-stories' },
-      { label: 'Automations', path: '/admin/marketing/automations' },
     ],
   },
   { id: 'promo-codes', label: 'Promo Codes', icon: LocalOfferOutlinedIcon, path: '/admin/promo-codes' },

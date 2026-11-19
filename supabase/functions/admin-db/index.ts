@@ -32,7 +32,6 @@ const ALLOWED_TABLES = new Set<string>([
   "crm_contacts",
   "email_suppression_list",
   "enriched_users",
-  "marketing_automations",
   "marketing_campaigns",
   "marketing_segments",
   "marketing_templates",

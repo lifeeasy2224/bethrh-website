@@ -15,7 +15,6 @@ import { SendOutlinedIcon } from '../../components/rtlIcons';
 import MarkEmailReadOutlinedIcon from '@mui/icons-material/MarkEmailReadOutlined';
 import AdsClickOutlinedIcon from '@mui/icons-material/AdsClickOutlined';
 import BlockIcon from '@mui/icons-material/Block';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import { useNavigate } from 'react-router-dom';
@@ -117,7 +116,6 @@ export default function AdminMarketingDashboard() {
             { label: 'Avg Open Rate', value: `${avgOpenRate.toFixed(1)}%`, icon: <MarkEmailReadOutlinedIcon sx={{ fontSize: 20 }} />, color: '#2A8A52', bg: '#F0F5F1' },
             { label: 'Avg Click Rate', value: `${avgClickRate.toFixed(1)}%`, icon: <AdsClickOutlinedIcon sx={{ fontSize: 20 }} />, color: '#D08A28', bg: '#F5EAD3' },
             { label: 'Suppressed', value: suppCount.toLocaleString(), icon: <BlockIcon sx={{ fontSize: 20 }} />, color: '#C0392B', bg: '#FAF0EE' },
-            { label: 'Active Automations', value: '0', icon: <TrendingUpIcon sx={{ fontSize: 20 }} />, color: '#8A8070', bg: '#F7F3EC' },
           ].map(s => (
             <Card key={s.label} elevation={0} sx={{ border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2, minWidth: 130, flex: '1 1 auto' }}>
               <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
