@@ -50,9 +50,6 @@ verify_jwt = true
 [functions.pitch-draft]
 verify_jwt = true
 
-[functions.process-automations]
-verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth)
-
 [functions.process-scheduled-campaigns]
 verify_jwt = false  # called by pg_cron with the Vault bearer
 

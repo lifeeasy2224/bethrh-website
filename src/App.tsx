@@ -76,8 +76,6 @@ const AdminMarketingDashboard = lazy(() => import('./pages/admin/AdminMarketingD
 const AdminCampaignReport = lazy(() => import('./pages/admin/AdminCampaignReport'));
 const AdminRevenuePage = lazy(() => import('./pages/admin/AdminRevenuePage'));
 const AdminSubscriptionsPage = lazy(() => import('./pages/admin/AdminSubscriptionsPage'));
-const AdminAutomationsPage = lazy(() => import('./pages/admin/AdminAutomationsPage'));
-const AdminAutomationForm = lazy(() => import('./pages/admin/AdminAutomationForm'));
 const AdminTestimonialsPage = lazy(() => import('./pages/admin/AdminTestimonialsPage'));
 const AdminResourcesPage = lazy(() => import('./pages/admin/AdminResourcesPage'));
 const AdminSuccessStoriesPage = lazy(() => import('./pages/admin/AdminSuccessStoriesPage'));
@@ -735,30 +733,6 @@ export function AppRoutes() {
                 element={
                   <AdminProtectedRoute>
                     <AdminSuccessStoriesPage />
-                  </AdminProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/marketing/automations/new"
-                element={
-                  <AdminProtectedRoute>
-                    <AdminAutomationForm />
-                  </AdminProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/marketing/automations/:id/edit"
-                element={
-                  <AdminProtectedRoute>
-                    <AdminAutomationForm />
-                  </AdminProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/marketing/automations"
-                element={
-                  <AdminProtectedRoute>
-                    <AdminAutomationsPage />
                   </AdminProtectedRoute>
                 }
               />
