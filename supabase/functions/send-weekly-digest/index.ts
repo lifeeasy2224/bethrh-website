@@ -130,7 +130,7 @@ Deno.serve(async (req: Request) => {
         }
 
         const ideasSection = topIdeas.length
-          ? topIdeas.map(i => ideaCardHtml(i.title, i.sector, i.match ?? 'New', i.check_size ?? 'N/A')).join('')
+          ? topIdeas.map(i => ideaCardHtml(i.title, i.sector, i.match ?? 'جديد', i.check_size ?? '')).join('')
           : '<p style="color:#9CA3AF;font-size:14px;text-align:center;padding:16px 0;">لا أفكار جديدة هذا الأسبوع — تابعنا الاثنين القادم.</p>';
 
         const html = render(await resolveBody(db, 'weekly-digest', WEEKLY_DIGEST_TEMPLATE), {
