@@ -27,7 +27,7 @@ Deno.serve(async (req: Request) => {
     const [{ data: authUser }, { data: profile }] = await Promise.all([
       db.auth.admin.getUserById(user_id),
       db.from('profiles')
-        .select('full_name, inspiration_week_number, unsubscribe_token')
+        .select('id, full_name, inspiration_week_number, unsubscribe_token')
         .eq('user_id', user_id)
         .maybeSingle(),
     ]);
