@@ -79,7 +79,6 @@ interface AIAnalysis {
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
-  market_size: string;
 }
 
 function computeScore(answers: Answers): { score: number; tier: Tier } {
@@ -110,32 +109,35 @@ function computeScore(answers: Answers): { score: number; tier: Tier } {
   return { score: pts, tier };
 }
 
+// Fallback results when the AI read is unavailable. The score only counts how the five quiz
+// answers were chosen, so every tier says the same honest thing: a first impression, to be
+// tested with real customers.
 const TIER_CONFIG = {
   high: {
-    label: '🚀 جاهزة للانطلاق',
+    label: 'انطباع أولي واعد',
     color: GOLD,
     feedback: [
-      '✅ فكرتك تملك إمكانات سوقية قوية',
-      '✅ لديك مسار واضح للوصول إلى العملاء',
-      '✅ أنت جاهز لخطة إيرادات كاملة — هيا نبنيها',
+      'إجاباتك تدل على بداية جيدة، لكنها انطباع أولي وليست تحققاً',
+      'الخطوة التالية: تحدّث مع ٥ عملاء محتملين حقيقيين هذا الأسبوع واسمع منهم',
+      'سجّل ما تسمعه في متتبّع التحقق — هذا ما يرفع مؤشر الجاهزية فعلاً',
     ],
   },
   mid: {
-    label: '🔧 تحتاج صقلاً',
+    label: 'انطباع أولي يحتاج اختباراً',
     color: '#FFFFFF',
     feedback: [
-      '💡 فكرتك واعدة لكنها تحتاج استهدافاً أدق',
-      '💡 فكّر في تضييق جمهورك إلى فئة واحدة محددة',
-      '💡 خطة الإيرادات ستساعدك على أسرع مسار نحو أول دولار',
+      'هذه الدرجة انطباع أولي من إجاباتك فقط، وليست حكماً على فكرتك',
+      'جرّب أن تحدّد فئة واحدة من العملاء وتسألهم عن المشكلة نفسها',
+      'سجّل ما تسمعه في متتبّع التحقق لتعرف أين تقف فعلاً',
     ],
   },
   low: {
-    label: '🔄 فكّر في تغيير الاتجاه',
+    label: 'انطباع أولي — اختبره مع عملاء حقيقيين',
     color: '#B5AE9F',
     feedback: [
-      '🔄 قد تحتاج فكرتك زاوية مختلفة',
-      '🔄 جرّب التحدث مع ٥ عملاء محتملين هذا الأسبوع',
-      '🔄 تصفّح مكتبة الأفكار لمفاهيم متحقَّق منها يمكنك حجزها',
+      'هذه الدرجة انطباع أولي من إجاباتك فقط، وقد تتغير تماماً بعد أن تسمع من عملاء',
+      'تحدّث مع ٥ عملاء محتملين هذا الأسبوع قبل أن تحكم على الفكرة أو تغيّرها',
+      'تصفّح مكتبة الأفكار إن أردت مقارنة فكرتك بنقاط انطلاق أخرى',
     ],
   },
 };
@@ -353,7 +355,6 @@ function AIResultsView({
 }) {
   const [copied, setCopied] = useState(false);
   const color = scoreColor(analysis.score);
-  const scoreInt = Math.round(analysis.score);
   // Incoherent/garbage results must not enter the save funnel. Default coherent
   // when the flag is absent (old cached responses) — only explicit false gates.
   const isCoherent = analysis.coherent !== false;
@@ -399,7 +400,7 @@ function AIResultsView({
         </Box>
         <Box sx={{ mt: 2.5, px: 2.5, py: 0.75, bgcolor: `${color}18`, border: `1.5px solid ${color}55`, borderRadius: 99 }}>
           <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.875rem', color, letterSpacing: '0.01em' }}>
-            {scoreInt >= 7 ? '🚀 إمكانات قوية' : scoreInt >= 5 ? '🔧 تحتاج صقلاً' : '🔄 فكّر في تغيير الاتجاه'}
+            قراءة أولى بالذكاء الاصطناعي
           </Typography>
         </Box>
       </Box>
@@ -407,7 +408,7 @@ function AIResultsView({
       {/* Verdict */}
       <Box sx={{ bgcolor: CARD_BG, borderRadius: 2.5, p: 2.5, mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: GOLD, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1 }}>
-          حكم الذكاء الاصطناعي
+          أكبر خطر تختبره أولاً
         </Typography>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 600, fontSize: '0.9375rem', color: 'white', lineHeight: 1.6 }}>
           {analysis.verdict}
@@ -469,15 +470,6 @@ function AIResultsView({
         </Box>
       </Box>
       )}
-
-      {/* Market size */}
-      <Box sx={{ bgcolor: `${GOLD}10`, borderRadius: 2.5, p: 2, mb: 3, border: `1px solid ${GOLD}30`, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography sx={{ fontSize: '1.5rem', flexShrink: 0 }}>📊</Typography>
-        <Box>
-          <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: GOLD, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 0.25 }}>تقدير حجم السوق</Typography>
-          <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 500, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>{analysis.market_size}</Typography>
-        </Box>
-      </Box>
 
       {/* Paid upsell: Detailed Report */}
       {!isPaid && (
@@ -1068,6 +1060,12 @@ export default function ValidatePage() {
         body: JSON.stringify({
           idea: finalAnswers[1] ?? '',
           target_customer: finalAnswers[2] ?? '',
+          // Named for what the quiz actually asks. The old names (problem_solved,
+          // revenue_model, competitors) made the AI judge answers it was never given.
+          acquisition_channel: finalAnswers[3] ?? '',
+          can_get_paid_in_30_days: finalAnswers[4] ?? '',
+          biggest_blocker: finalAnswers[5] ?? '',
+          // Legacy names, kept until idea-stress-test (which reads the new ones) is deployed.
           problem_solved: finalAnswers[3] ?? '',
           revenue_model: finalAnswers[4] ?? '',
           competitors: finalAnswers[5] ?? '',
