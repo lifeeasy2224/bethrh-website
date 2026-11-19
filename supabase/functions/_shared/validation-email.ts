@@ -33,7 +33,7 @@ export const VALIDATION_FIRST_READ_TEMPLATE = `<!DOCTYPE html>
       </td></tr>
       <tr><td style="padding:36px 40px;text-align:right;">
         <h2 style="margin:0 0 10px;font-size:21px;font-weight:700;color:#0F3D24;text-align:right;">أهلاً {{founder_name}}، قراءتك الأولى جاهزة</h2>
-        <p style="color:#8A8070;font-size:15px;line-height:1.9;margin:0 0 18px;text-align:right;">هذه قراءة أولى بالذكاء الاصطناعي لفكرتك <strong>«{{idea_name}}»</strong>. هي رأي آلي يساعدك على تحديد ما تختبره أولاً، وليست تحققاً ولا دليلاً من عملاء حقيقيين.</p>
+        <p style="color:#8A8070;font-size:15px;line-height:1.9;margin:0 0 18px;text-align:right;">هذه قراءة أولى لفكرتك <strong>«{{idea_name}}»</strong> — رأيٌ من الذكاء الاصطناعي يساعدك على تحديد ما تختبره أولاً، وليست تحققاً ولا دليلاً من عملاء حقيقيين.</p>
         <div style="background:{{score_bg}};border-radius:10px;padding:24px;text-align:center;margin:0 0 24px;">
           <div style="font-size:52px;font-weight:900;color:{{score_color}};">{{score}}/10</div>
           <div style="font-weight:700;color:#8A8070;font-size:12px;margin-top:12px;">أكبر خطر عليك اختباره أولاً مع عملاء حقيقيين</div>

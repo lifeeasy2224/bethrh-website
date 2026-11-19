@@ -24,6 +24,11 @@ function scoreColors(score: number): { color: string; bg: string } {
   return { color: '#C0392B', bg: '#FAF0EE' };
 }
 
+async function sha256Hex(text: string): Promise<string> {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Emails a signed-in caller their own first read. The recipient comes from the caller's
 // JWT, never from the request body, so this cannot be used to mail someone else.
 // Best effort: a failure here must never fail the analysis itself.
@@ -50,6 +55,18 @@ async function emailResultsToCaller(req: Request, idea: string, result: Analysis
       .from('email_suppression_list').select('email').ilike('email', user.email).limit(1);
     if (suppressed && suppressed.length > 0) return;
 
+    // At most one email per idea per day. "Same idea" = same text (case and spacing ignored),
+    // remembered per user in ai_usage under the fn name 'first-read-email'. The marker is
+    // written only after a successful send, so a failed send can be retried.
+    const dedupeSubject = `first-read:${user.id}:${(await sha256Hex(idea.trim().toLowerCase().replace(/\s+/g, ' '))).slice(0, 32)}`;
+    const { count: sentToday } = await db
+      .from('ai_usage')
+      .select('id', { count: 'exact', head: true })
+      .eq('fn', 'first-read-email')
+      .eq('subject', dedupeSubject)
+      .gte('created_at', new Date(Date.now() - 24 * 3600 * 1000).toISOString());
+    if ((sentToday ?? 0) > 0) return;
+
     const title = idea.trim().slice(0, 80) || 'فكرتك';
     const { color, bg } = scoreColors(result.score);
     const pick = (arr: string[] | undefined, i: number) => escapeHtml(arr?.[i] ?? '');
@@ -67,7 +84,8 @@ async function emailResultsToCaller(req: Request, idea: string, result: Analysis
       next_url: `${origin}/journey/validation`,
       unsubscribe_url: `${origin}/unsubscribe?token=${profile?.unsubscribe_token ?? ''}`,
     });
-    await sendViaResend(user.email, `قراءتك الأولى بالذكاء الاصطناعي: ${result.score}/10 — ${title}`, html);
+    const sent = await sendViaResend(user.email, `قراءتك الأولى بالذكاء الاصطناعي: ${result.score}/10 — ${title}`, html);
+    if (sent) await db.from('ai_usage').insert({ subject: dedupeSubject, fn: 'first-read-email' });
   } catch (e) {
     console.error('emailResultsToCaller failed:', e);
   }
