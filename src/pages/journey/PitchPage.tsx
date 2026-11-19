@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -146,18 +146,23 @@ export default function PitchPage() {
   const canvasPct = Math.round(filledBlocks / 9 * 100);
   const hasFinancials = !!(canvas?.monthly_revenue && canvas?.monthly_costs);
 
+  // Generating the pitch needs these. (Generating is open from مؤشر الجاهزية ٥٠.)
   const requirements = [
-    { label: 'مؤشر الجاهزية ≥ ٨٠', met: score >= 80, value: `${score}/100`, link: null },
+    { label: 'مؤشر الجاهزية ≥ ٥٠', met: score >= 50, value: `${score}/100`, link: null as string | null },
     { label: 'اكتمال المخطط ٧٠٪ على الأقل', met: canvasPct >= 70, value: `٪${canvasPct}`, link: '/journey/canvas' },
     { label: '٥ أدلة عملاء على الأقل', met: validationCount >= 5, value: String(validationCount), link: '/journey/validation' },
-    { label: 'بين الأدلة تسجيل اهتمام أو طلب مسبق واحد على الأقل (قاعدة مؤقتة)', met: evidenceMinMet, value: evidenceMinMet ? 'تم' : 'ناقص', link: '/journey/validation' },
     { label: 'التوقعات المالية معبأة', met: hasFinancials, value: hasFinancials ? 'تم' : 'ناقصة', link: '/journey/canvas' },
+  ];
+  // Listing in the marketplace needs the above plus these two. The database re-checks all of
+  // it (score ≥ ٨٠, the evidence minimum, canvas and financials) when the idea is listed.
+  const publishRequirements = [
+    { label: 'مؤشر الجاهزية ≥ ٨٠', met: score >= 80, value: `${score}/100`, link: null as string | null },
+    { label: 'بين الأدلة تسجيل اهتمام أو طلب مسبق واحد على الأقل (قاعدة مؤقتة)', met: evidenceMinMet, value: evidenceMinMet ? 'تم' : 'ناقص', link: '/journey/validation' },
   ];
 
   const allMet = requirements.every(r => r.met);
-  // The checklist is the same gate the database applies on listing (مؤشر الجاهزية ≥ ٨٠, the
-  // evidence minimum, canvas and financials), so generating and listing need the same things.
-  const canPublish = allMet && !pitchData?.is_published && publishedCount < publishLimit;
+  const publishMet = publishRequirements.every(r => r.met);
+  const canPublish = allMet && publishMet && !pitchData?.is_published && publishedCount < publishLimit;
 
   async function handleGenerate() {
     if (!user || !selectedIdeaId || !allMet) return;
@@ -410,11 +415,11 @@ export default function PitchPage() {
         </Card>
       )}
 
-      {/* Requirements checklist */}
-      {!allMet && (
+      {/* Requirements checklist: what generating needs, then what listing adds */}
+      {(!allMet || (!publishMet && !pitchData?.is_published)) && (
         <Card sx={{ mb: 3, border: '1px solid', borderColor: 'warning.light' }}>
           <CardContent sx={{ p: 2.5 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>أكمل هذه المتطلبات لتوليد عرضك:</Typography>
+            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>المتطلبات:</Typography>
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ '& th': { fontWeight: 700, fontSize: '0.75rem' } }}>
@@ -425,23 +430,33 @@ export default function PitchPage() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {requirements.map(r => (
-                  <TableRow key={r.label}>
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>{r.label}</TableCell>
-                    <TableCell>
-                      {r.met
-                        ? <CheckCircleIcon sx={{ color: 'success.main', fontSize: 18 }} />
-                        : <CancelIcon sx={{ color: 'error.light', fontSize: 18 }} />}
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.8125rem' }}>{r.value}</TableCell>
-                    <TableCell>
-                      {!r.met && r.link && (
-                        <Button size="small" component={Link} to={r.link} endIcon={<ArrowForwardIcon sx={{ fontSize: '12px !important' }} />} sx={{ fontSize: '0.75rem' }}>
-                          أكمل
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                {[
+                  { group: 'لتوليد العرض', rows: requirements },
+                  { group: 'للنشر في السوق (بالإضافة إلى ما سبق)', rows: publishRequirements },
+                ].map(g => (
+                  <Fragment key={g.group}>
+                    <TableRow>
+                      <TableCell colSpan={4} sx={{ bgcolor: 'grey.50', fontWeight: 700, fontSize: '0.75rem' }}>{g.group}</TableCell>
+                    </TableRow>
+                    {g.rows.map(r => (
+                      <TableRow key={r.label}>
+                        <TableCell sx={{ fontSize: '0.8125rem' }}>{r.label}</TableCell>
+                        <TableCell>
+                          {r.met
+                            ? <CheckCircleIcon sx={{ color: 'success.main', fontSize: 18 }} />
+                            : <CancelIcon sx={{ color: 'error.light', fontSize: 18 }} />}
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8125rem' }}>{r.value}</TableCell>
+                        <TableCell>
+                          {!r.met && r.link && (
+                            <Button size="small" component={Link} to={r.link} endIcon={<ArrowForwardIcon sx={{ fontSize: '12px !important' }} />} sx={{ fontSize: '0.75rem' }}>
+                              أكمل
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>
@@ -451,7 +466,7 @@ export default function PitchPage() {
 
       {allMet && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          اكتملت كل المتطلبات! {pitchData?.last_generated_at && `آخر توليد: ${new Date(pitchData.last_generated_at).toLocaleDateString('ar')}.`}
+          اكتملت متطلبات توليد العرض. {pitchData?.last_generated_at && `آخر توليد: ${new Date(pitchData.last_generated_at).toLocaleDateString('ar')}.`}
         </Alert>
       )}
 
