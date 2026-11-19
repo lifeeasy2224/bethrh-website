@@ -1,6 +1,6 @@
 import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { corsHeaders, render, resolveBody, sendViaResend, getServiceClient, jsonResp } from '../_shared/email-helper.ts';
-import { INVESTOR_MATCH_TEMPLATE } from '../_shared/templates.ts';
+import { INVESTOR_MATCH_TEMPLATE, escapeHtml } from '../_shared/investor-match-template.ts';
 import { checkCronAuth } from '../_shared/cron-auth.ts';
 
 const SECTOR_EMOJI: Record<string, string> = {
@@ -166,10 +166,6 @@ Deno.serve(async (req: Request) => {
       ? CANVAS_KEYS.filter(k => (canvasRow as Record<string, string>)[k]?.length >= 20).length
       : 0;
 
-    const roi = canvasRow?.monthly_revenue && canvasRow?.monthly_costs
-      ? `${Math.round(((canvasRow.monthly_revenue - canvasRow.monthly_costs) / Math.max(canvasRow.monthly_costs, 1)) * 100)}%`
-      : 'لم يُحدَّد';
-
     const origin = 'https://bethra.co';
     let sent = 0;
 
@@ -204,10 +200,9 @@ Deno.serve(async (req: Request) => {
         match_score: `${matchScore} — ${matchLabel(matchScore)}`,
         sector: record.sector,
         sector_emoji: SECTOR_EMOJI[record.sector] ?? '💡',
-        idea_name: record.title,
-        idea_description: (record.problem ?? '').slice(0, 160),
+        idea_name: escapeHtml(record.title),
+        idea_description: escapeHtml((record.problem ?? '').slice(0, 160)),
         investment_range: investor.check_size ?? 'غير محدد',
-        roi,
         breakeven: canvasRow?.break_even_month ? `الشهر ${canvasRow.break_even_month}` : 'لم يُحدَّد',
         match_reasons: reasons.join(' · '),
         idea_url: `${origin}/marketplace/${record.id}`,
