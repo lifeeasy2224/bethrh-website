@@ -51,7 +51,12 @@ ANTI-FABRICATION — never invent data; be honest, not a cheerleader:
 - Never cite a number unless you can name the real source. Never attribute an invented figure to a real institution.
 - If you don't know a real figure, say so plainly and tell the founder how to find it themselves (e.g. which report, survey, or channel to check).
 - Be explicitly honest, not a cheerleader — your job is truth, not encouragement. When the market signal is weak, absent, or negative, say so directly. You may tell a founder an idea looks unviable when the real evidence points that way.
-- Use Arab-world context relevant to the founder's own country, not Western benchmarks and not a single-country default.`;
+- Use Arab-world context relevant to the founder's own country, not Western benchmarks and not a single-country default.
+
+AI FIRST READ IS NOT VALIDATION:
+- The context may include an "AI first read" (قراءة أولى بالذكاء الاصطناعي) of the idea, and an automated coach opinion. Both are AI opinions, NOT customer evidence.
+- Never call them validation and never treat them as proof that people want the product. Only the founder's own Validation Tracker entries (interviews, observations, sign-ups, pre-orders) are customer evidence.
+- If the founder leans on the AI first read or a score as if it proved demand, say plainly that it does not, and point to the next real customer test.`;
 
 function firstName(fullName?: string | null): string {
   if (!fullName) return '';
@@ -118,6 +123,9 @@ Deno.serve(async (req: Request) => {
     let pitchRow: Record<string, unknown> | null = null;
     type ValRow = { type: string; notes: string | null; sentiment: string | null; amount: number | null; created_at: string };
     let valRows: ValRow[] = [];
+    // Real customer evidence only. The AI first read is logged as a 'stress_test' entry but is an AI opinion.
+    let realRows: ValRow[] = [];
+    let aiRead: ValRow | null = null;
     let journeyNotes: Array<{ week_number: number; notes: string }> = [];
 
     if (idea) {
@@ -144,11 +152,13 @@ Deno.serve(async (req: Request) => {
       swotRow   = swot.data   as Record<string, unknown> | null;
       pitchRow  = pitch.data  as Record<string, unknown> | null;
       valRows   = (valEntries.data as ValRow[] | null) ?? [];
+      realRows  = valRows.filter(v => v.type !== 'stress_test');
+      aiRead    = valRows.find(v => v.type === 'stress_test') ?? null;
 
       const rows = (journeyRows.data as Array<{ week_number: number; task_key: string; is_completed: boolean; notes: string | null }> | null) ?? [];
       const anyTaskDone = rows.some(r => r.is_completed);
       const STEPS = [
-        { key: STEP_LABEL.validation, done: valRows.length > 0 },
+        { key: STEP_LABEL.validation, done: realRows.length > 0 },
         { key: STEP_LABEL.canvas, done: !!canvasRow },
         { key: STEP_LABEL.swot, done: !!swotRow },
         { key: STEP_LABEL.pitch, done: !!pitchRow },
@@ -174,29 +184,34 @@ Deno.serve(async (req: Request) => {
       if (idea.business_name) digest.push(`اسم المشروع: ${idea.business_name}.`);
       if (idea.differentiator) digest.push(`الميزة التنافسية: ${clip(idea.differentiator, 200)}.`);
       if (idea.advantage) digest.push(`الأفضلية غير العادية: ${clip(idea.advantage, 200)}.`);
-      if (idea.iq_score != null) digest.push(`درجة IQ Score الحالية: ${idea.iq_score}/100.`);
-      if (idea.coach_assessment != null) {
-        const note = idea.coach_assessment_note ? ` — ${clip(idea.coach_assessment_note, 300)}` : '';
-        digest.push(`آخر تقييم من المدرب: ${idea.coach_assessment}/100${note}.`);
+      if (idea.iq_score != null) digest.push(`مؤشر الجاهزية الحالي: ${idea.iq_score}/100 (يعتمد على أدلة العملاء التي سجّلها المؤسس ومخططه وأرقامه ورحلته).`);
+      // Opinion only: shown without a number so it cannot read as a score out of 100.
+      if (idea.coach_assessment_note) {
+        digest.push(`رأي آلي سابق من المدرب (تقدير بالذكاء الاصطناعي، وليس دليلاً من العملاء): ${clip(idea.coach_assessment_note, 300)}`);
+      }
+      if (aiRead) {
+        digest.push(`القراءة الأولى بالذكاء الاصطناعي (رأي آلي وليس دليلاً من العملاء ولا تحققاً): ${String(aiRead.notes ?? '').trim().slice(0, 300)}`);
       }
 
-      if (valRows.length) {
+      if (realRows.length) {
         const TYPE_LABEL: Record<string, string> = {
           interview: 'مقابلة', signup: 'تسجيل', preorder: 'طلب مسبق',
-          observation: 'ملاحظة', other: 'ملاحظة عامة', stress_test: 'اختبار ضغط بالذكاء الاصطناعي',
+          observation: 'ملاحظة', other: 'ملاحظة عامة',
         };
-        const tally = valRows.reduce((acc: Record<string, number>, v) => {
+        const tally = realRows.reduce((acc: Record<string, number>, v) => {
           acc[v.type] = (acc[v.type] ?? 0) + 1; return acc;
         }, {});
         const tallyStr = Object.entries(tally).map(([t, n]) => `${n} ${TYPE_LABEL[t] ?? t}`).join('، ');
-        const lines = valRows.map(v => {
+        const lines = realRows.map(v => {
           const label = TYPE_LABEL[v.type] ?? v.type;
           const sent = v.sentiment ? `، ${v.sentiment}` : '';
           const amt = v.type === 'preorder' && Number(v.amount) > 0 ? `، ${v.amount}$` : '';
           return `[${label}${sent}${amt}] ${String(v.notes ?? '').trim().slice(0, 240)}`;
         });
-        digest.push(`سجل التحقق — ${valRows.length} إدخال (${tallyStr}). إشارات التواصل الفعلية مع العملاء، الأحدث أولاً — استشهد بمحتواها، لا تكتفِ بالعدّ:\n  - ${lines.join('\n  - ')}`);
+        digest.push(`سجل التحقق — ${realRows.length} إدخال (${tallyStr}). إشارات التواصل الفعلية مع العملاء، الأحدث أولاً — استشهد بمحتواها، لا تكتفِ بالعدّ:\n  - ${lines.join('\n  - ')}`);
       }
+
+      if (!realRows.length) digest.push('سجل التحقق: لا توجد بعد أي أدلة من عملاء حقيقيين (لا مقابلات ولا تسجيلات ولا طلبات مسبقة).');
 
       const summarize = (row: Record<string, unknown> | null, perField = 220, max = 1800) => {
         if (!row) return '';
