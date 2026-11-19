@@ -147,16 +147,17 @@ export default function PitchPage() {
   const hasFinancials = !!(canvas?.monthly_revenue && canvas?.monthly_costs);
 
   const requirements = [
-    { label: 'مؤشر الجاهزية ≥ ٥٠', met: score >= 50, value: `${score}/100`, link: null },
+    { label: 'مؤشر الجاهزية ≥ ٨٠', met: score >= 80, value: `${score}/100`, link: null },
     { label: 'اكتمال المخطط ٧٠٪ على الأقل', met: canvasPct >= 70, value: `٪${canvasPct}`, link: '/journey/canvas' },
-    { label: '٥ أنشطة تحقق على الأقل', met: validationCount >= 5, value: String(validationCount), link: '/journey/validation' },
+    { label: '٥ أدلة عملاء على الأقل', met: validationCount >= 5, value: String(validationCount), link: '/journey/validation' },
+    { label: 'بين الأدلة تسجيل اهتمام أو طلب مسبق واحد على الأقل (قاعدة مؤقتة)', met: evidenceMinMet, value: evidenceMinMet ? 'تم' : 'ناقص', link: '/journey/validation' },
     { label: 'التوقعات المالية معبأة', met: hasFinancials, value: hasFinancials ? 'تم' : 'ناقصة', link: '/journey/canvas' },
   ];
 
   const allMet = requirements.every(r => r.met);
-  // Listing needs what generating needs, plus مؤشر الجاهزية ≥ ٨٠ and the evidence
-  // minimum. The database re-checks all of it (and the canvas / financials) on listing.
-  const canPublish = allMet && score >= 80 && evidenceMinMet && !pitchData?.is_published && publishedCount < publishLimit;
+  // The checklist is the same gate the database applies on listing (مؤشر الجاهزية ≥ ٨٠, the
+  // evidence minimum, canvas and financials), so generating and listing need the same things.
+  const canPublish = allMet && !pitchData?.is_published && publishedCount < publishLimit;
 
   async function handleGenerate() {
     if (!user || !selectedIdeaId || !allMet) return;
@@ -552,7 +553,7 @@ export default function PitchPage() {
             <Typography variant="h4" fontWeight={900} gutterBottom sx={{ textTransform: 'uppercase' }}>{selectedIdea.title}</Typography>
             <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
               <Chip label={selectedIdea.sector} size="small" />
-              <Chip label={`درجة بذرة: ${score}/100`} size="small" sx={{ bgcolor: score >= 80 ? '#DEEBE2' : '#DEEBE2', fontWeight: 700 }} />
+              <Chip label={`مؤشر الجاهزية: ${score}/100`} size="small" sx={{ bgcolor: score >= 80 ? '#DEEBE2' : '#DEEBE2', fontWeight: 700 }} />
             </Stack>
 
             {elevatorPitch && (

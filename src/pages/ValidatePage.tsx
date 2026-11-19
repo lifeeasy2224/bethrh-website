@@ -79,7 +79,6 @@ interface AIAnalysis {
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
-  market_size: string;
 }
 
 function computeScore(answers: Answers): { score: number; tier: Tier } {
@@ -353,7 +352,6 @@ function AIResultsView({
 }) {
   const [copied, setCopied] = useState(false);
   const color = scoreColor(analysis.score);
-  const scoreInt = Math.round(analysis.score);
   // Incoherent/garbage results must not enter the save funnel. Default coherent
   // when the flag is absent (old cached responses) — only explicit false gates.
   const isCoherent = analysis.coherent !== false;
@@ -399,7 +397,7 @@ function AIResultsView({
         </Box>
         <Box sx={{ mt: 2.5, px: 2.5, py: 0.75, bgcolor: `${color}18`, border: `1.5px solid ${color}55`, borderRadius: 99 }}>
           <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.875rem', color, letterSpacing: '0.01em' }}>
-            {scoreInt >= 7 ? '🚀 إمكانات قوية' : scoreInt >= 5 ? '🔧 تحتاج صقلاً' : '🔄 فكّر في تغيير الاتجاه'}
+            قراءة أولى بالذكاء الاصطناعي
           </Typography>
         </Box>
       </Box>
@@ -407,7 +405,7 @@ function AIResultsView({
       {/* Verdict */}
       <Box sx={{ bgcolor: CARD_BG, borderRadius: 2.5, p: 2.5, mb: 2, border: '1px solid rgba(255,255,255,0.08)' }}>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: GOLD, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1 }}>
-          حكم الذكاء الاصطناعي
+          أكبر خطر تختبره أولاً
         </Typography>
         <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 600, fontSize: '0.9375rem', color: 'white', lineHeight: 1.6 }}>
           {analysis.verdict}
@@ -469,15 +467,6 @@ function AIResultsView({
         </Box>
       </Box>
       )}
-
-      {/* Market size */}
-      <Box sx={{ bgcolor: `${GOLD}10`, borderRadius: 2.5, p: 2, mb: 3, border: `1px solid ${GOLD}30`, display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Typography sx={{ fontSize: '1.5rem', flexShrink: 0 }}>📊</Typography>
-        <Box>
-          <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 700, fontSize: '0.7rem', color: GOLD, letterSpacing: '0.1em', textTransform: 'uppercase', mb: 0.25 }}>تقدير حجم السوق</Typography>
-          <Typography sx={{ fontFamily: '"Noto Kufi Arabic", "Nunito Sans", sans-serif', fontWeight: 500, fontSize: '0.9rem', color: 'rgba(255,255,255,0.9)' }}>{analysis.market_size}</Typography>
-        </Box>
-      </Box>
 
       {/* Paid upsell: Detailed Report */}
       {!isPaid && (
@@ -1068,6 +1057,12 @@ export default function ValidatePage() {
         body: JSON.stringify({
           idea: finalAnswers[1] ?? '',
           target_customer: finalAnswers[2] ?? '',
+          // Named for what the quiz actually asks. The old names (problem_solved,
+          // revenue_model, competitors) made the AI judge answers it was never given.
+          acquisition_channel: finalAnswers[3] ?? '',
+          can_get_paid_in_30_days: finalAnswers[4] ?? '',
+          biggest_blocker: finalAnswers[5] ?? '',
+          // Legacy names, kept until idea-stress-test (which reads the new ones) is deployed.
           problem_solved: finalAnswers[3] ?? '',
           revenue_model: finalAnswers[4] ?? '',
           competitors: finalAnswers[5] ?? '',
