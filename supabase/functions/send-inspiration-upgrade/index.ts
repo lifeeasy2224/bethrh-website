@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
       user_id,
       type: 'upgrade_prompt',
       title: 'حافظ على رسائل إلهامك الأسبوعية',
-      body: `أكملت ${weeksCompleted} أسابيع من الإلهام. رقِّ خطتك لتستمر.`,
+      body: `أكملت ${weeksCompleted} أسابيع من الإلهام. رقِّ خطتك لتستمر.`,
       is_read: false,
     });
 

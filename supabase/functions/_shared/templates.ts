@@ -76,37 +76,6 @@ export const WELCOME_TEMPLATE = WRAP(
   ${P('<small style="color:#8A8070;">لديك سؤال؟ رد على هذه الرسالة مباشرة — نقرأ كل رسالة.</small>')}`
 );
 
-// ─── 2. investor-match ────────────────────────────────────────────────────────
-export const INVESTOR_MATCH_TEMPLATE = WRAP(
-  BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#D4A653 100%)', '🤝', 'فكرة جديدة تطابق اهتماماتك!'),
-  `${H2('أهلاً {{investor_name}}، فكرة جديدة تطابق معاييرك')}
-  ${P('وجدنا تطابقاً بنسبة <strong>٪{{match_score}}</strong> مع معاييرك الاستثمارية في قطاع <strong>{{sector}}</strong>.')}
-  <div style="background:#FAF5E9;border:1px solid #E8C07A;border-radius:10px;padding:20px;margin:0 0 20px;text-align:right;">
-    <div style="margin-bottom:10px;">
-      <span style="font-size:22px;">{{sector_emoji}}</span>
-      <strong style="font-size:17px;color:#0F3D24;">{{idea_name}}</strong>
-    </div>
-    <p style="color:#8A8070;font-size:14px;margin:0 0 12px;">{{idea_description}}</p>
-    <table width="100%" cellpadding="0" cellspacing="0" dir="rtl">
-      <tr>
-        <td style="font-size:13px;color:#8A8070;">الاستثمار</td>
-        <td style="font-size:13px;color:#8A8070;">العائد (تقدير المؤسس)</td>
-        <td style="font-size:13px;color:#8A8070;">نقطة التعادل</td>
-      </tr>
-      <tr>
-        <td style="font-weight:700;color:#0F3D24;font-size:14px;">{{investment_range}}</td>
-        <td style="font-weight:700;color:#2A8A52;font-size:14px;">{{roi}}</td>
-        <td style="font-weight:700;color:#0F3D24;font-size:14px;">{{breakeven}}</td>
-      </tr>
-    </table>
-  </div>
-  <div style="background:#F7F3EC;border-radius:8px;padding:14px;margin-bottom:20px;text-align:right;">
-    <div style="font-weight:600;color:#3E382E;font-size:13px;margin-bottom:6px;">لماذا تطابقت:</div>
-    <div style="color:#8A8070;font-size:14px;">{{match_reasons}}</div>
-  </div>
-  ${BTN('{{idea_url}}', 'اعرض هذه الفكرة ←', '#A07830')}`
-);
-
 // ─── 3. investor-interested ───────────────────────────────────────────────────
 export const INVESTOR_INTERESTED_TEMPLATE = WRAP(
   BASE_HEADER('linear-gradient(135deg,#123F27 0%,#2A8A52 100%)', '💸', 'مستثمر مهتم بفكرتك!'),
@@ -140,52 +109,7 @@ export const NEW_MESSAGE_TEMPLATE = WRAP(
 );
 
 // ─── 5. weekly-digest ─────────────────────────────────────────────────────────
-export const WEEKLY_DIGEST_TEMPLATE = WRAP(
-  BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#1B6B3E 100%)', '📊', 'ملخصك الأسبوعي'),
-  `${H2('صباح الخير يا {{first_name}}!')}
-  ${P('هذا ملخصك من بذرة لأسبوع <strong>{{week_date}}</strong>.')}
-  <div style="background:#F0F5F1;border-radius:10px;padding:4px 0;margin:0 0 24px;">
-    ${STAT_ROW([
-      { label: 'درجة بذرة', value: '{{iq_score}}', color: '#1B6B3E' },
-      { label: 'سلسلة الأيام', value: '{{streak}}🔥', color: '#D4A653' },
-      { label: 'الرحلة', value: '٪{{journey_pct}}', color: '#2A8A52' },
-    ])}
-  </div>
-  <div style="margin:0 0 24px;text-align:right;">
-    <div style="font-weight:700;color:#0F3D24;font-size:15px;margin-bottom:12px;">نشاط هذا الأسبوع</div>
-    <table width="100%" cellpadding="0" cellspacing="0" dir="rtl">
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #F7F3EC;">
-          <span style="color:#8A8070;font-size:14px;">📚 أفكار جديدة نُشرت</span>
-        </td>
-        <td align="left" style="padding:8px 0;border-bottom:1px solid #F7F3EC;">
-          <strong style="color:#0F3D24;font-size:14px;">{{new_ideas_count}}</strong>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #F7F3EC;">
-          <span style="color:#8A8070;font-size:14px;">🤝 تطابقات جديدة</span>
-        </td>
-        <td align="left" style="padding:8px 0;border-bottom:1px solid #F7F3EC;">
-          <strong style="color:#0F3D24;font-size:14px;">{{matches_count}}</strong>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;">
-          <span style="color:#8A8070;font-size:14px;">🔔 تنبيهات هذا الأسبوع</span>
-        </td>
-        <td align="left" style="padding:8px 0;">
-          <strong style="color:#0F3D24;font-size:14px;">{{messages_count}}</strong>
-        </td>
-      </tr>
-    </table>
-  </div>
-  <div style="margin:0 0 24px;text-align:right;">
-    <div style="font-weight:700;color:#0F3D24;font-size:15px;margin-bottom:12px;">أفضل الأفكار لك</div>
-    {{ideas_section}}
-  </div>
-  ${BTN('{{dashboard_url}}', 'افتح لوحة التحكم ←')}`
-);
+export const WEEKLY_DIGEST_TEMPLATE = WRAP(BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#1B6B3E 100%)', '📊', 'ملخصك الأسبوعي'), `${H2('صباح الخير يا {{first_name}}!')}${P('ملخصك لأسبوع <strong>{{week_date}}</strong>.')}<div style="background:#F0F5F1;border-radius:10px;padding:4px 0;margin:0 0 24px;">${STAT_ROW([{ label: 'درجة بذرة', value: '{{iq_score}}', color: '#1B6B3E' }, { label: 'سلسلة الأيام', value: '{{streak}}🔥', color: '#D4A653' }, { label: 'الرحلة', value: '٪{{journey_pct}}', color: '#2A8A52' }])}</div><div style="margin:0 0 24px;text-align:right;"><div style="font-weight:700;color:#0F3D24;font-size:15px;margin-bottom:12px;">نشاط هذا الأسبوع</div><table width="100%" dir="rtl"><tr><td style="padding:8px 0;border-bottom:1px solid #F7F3EC;"><span style="color:#8A8070;font-size:14px;">📚 أفكار جديدة نُشرت</span></td><td align="left" style="padding:8px 0;border-bottom:1px solid #F7F3EC;"><strong style="color:#0F3D24;font-size:14px;">{{new_ideas_count}}</strong></td></tr><tr><td style="padding:8px 0;border-bottom:1px solid #F7F3EC;"><span style="color:#8A8070;font-size:14px;">🤝 تطابقات جديدة</span></td><td align="left" style="padding:8px 0;border-bottom:1px solid #F7F3EC;"><strong style="color:#0F3D24;font-size:14px;">{{matches_count}}</strong></td></tr><tr><td style="padding:8px 0;"><span style="color:#8A8070;font-size:14px;">🔔 تنبيهات هذا الأسبوع</span></td><td align="left" style="padding:8px 0;"><strong style="color:#0F3D24;font-size:14px;">{{messages_count}}</strong></td></tr></table></div><div style="margin:0 0 24px;text-align:right;"><div style="font-weight:700;color:#0F3D24;font-size:15px;margin-bottom:12px;">أفضل الأفكار لك</div>{{ideas_section}}</div>${BTN('{{dashboard_url}}', 'افتح لوحة التحكم ←')}`);
 
 // ─── 6. validation-complete ───────────────────────────────────────────────────
 export const VALIDATION_COMPLETE_TEMPLATE = WRAP(
@@ -224,29 +148,14 @@ export const INSPIRATION_UPGRADE_TEMPLATE = WRAP(
       { label: 'أسابيع نشطة', value: '{{weeks_completed}}', color: '#1B6B3E' },
     ])}
   </div>
-  ${P('رقِّ إلى خطة مدفوعة لتستمر رسائل الإلهام الأسبوعية، وتفتح كل الـ {{total_tips}} نصيحة، وتحصل على وصول كامل لأدوات بذرة.')}
-  ${BTN('https://bethra.co/pricing', 'رقِّ لتواصل التقدم ←', '#A07830')}
-  ${P('<small style="color:#8A8070;">تقدمك محفوظ — رقِّ في أي وقت وواصل من حيث توقفت.</small>')}`
+  ${P('رقِّ إلى خطة مدفوعة لتستمر رسائل الإلهام الأسبوعية، وتفتح كل الـ {{total_tips}} نصيحة، وتحصل على وصول كامل لأدوات بذرة.')}
+  ${BTN('https://bethra.co/pricing', 'رقِّ لتواصل التقدم ←', '#A07830')}
+  ${P('<small style="color:#8A8070;">تقدمك محفوظ — رقِّ في أي وقت وواصل من حيث توقفت.</small>')}`
 );
 
 // ─── 7. weekly-inspiration ────────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, { color: string; bg: string }> = {};
-export const WEEKLY_INSPIRATION_TEMPLATE = WRAP(
-  BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#2A8A52 100%)', '💡', 'إلهام الأسبوع'),
-  `<div style="margin-bottom:20px;text-align:right;">
-    <span style="background:{{category_bg}};color:{{category_color}};font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">{{category_label}}</span>
-    <span style="color:#8A8070;font-size:12px;margin-right:10px;">النصيحة {{tip_number}} من {{total_tips}} · الأسبوع {{week_number}}</span>
-  </div>
-  ${H2('{{main_title}}')}
-  ${P('أهلاً {{first_name}}،')}
-  <div style="color:#3E382E;font-size:15px;line-height:1.9;margin:0 0 24px;text-align:right;">{{main_content}}</div>
-  <div style="background:#FAF5E9;border:1px solid #E8C07A;border-radius:10px;padding:20px;margin:0 0 24px;text-align:right;">
-    <div style="font-weight:700;color:#A07830;font-size:13px;margin-bottom:8px;">✏️ مهمتك هذا الأسبوع</div>
-    <div style="color:#554E41;font-size:14px;line-height:1.8;">{{action_prompt}}</div>
-  </div>
-  ${BTN('{{dashboard_url}}', 'افتح لوحة التحكم ←', '#2A8A52')}
-  ${P('<small style="color:#8A8070;">تصلك هذه الرسالة كجزء من رحلتك الريادية مع بذرة.</small>')}`
-);
+export const WEEKLY_INSPIRATION_TEMPLATE = WRAP(BASE_HEADER('linear-gradient(135deg,#0F3D24 0%,#2A8A52 100%)', '💡', 'إلهام الأسبوع'), `<div style="margin-bottom:20px;text-align:right;"><span style="background:{{category_bg}};color:{{category_color}};font-size:11px;font-weight:700;padding:4px 12px;border-radius:100px;">{{category_label}}</span> <span style="color:#8A8070;font-size:12px;margin-right:10px;">النصيحة {{tip_number}} من {{total_tips}} · الأسبوع {{week_number}}</span></div>${H2('{{main_title}}')}${P('أهلاً {{first_name}}،')}<div style="color:#3E382E;font-size:15px;line-height:1.9;margin:0 0 24px;text-align:right;">{{main_content}}</div><div style="background:#FAF5E9;border:1px solid #E8C07A;border-radius:10px;padding:20px;margin:0 0 24px;text-align:right;"><div style="font-weight:700;color:#A07830;font-size:13px;margin-bottom:8px;">✏️ مهمتك هذا الأسبوع</div><div style="color:#554E41;font-size:14px;line-height:1.8;">{{action_prompt}}</div></div>${BTN('{{dashboard_url}}', 'افتح لوحة التحكم ←', '#2A8A52')}`);
 
 // ─── 8. survey-email ──────────────────────────────────────────────────────────
 // Lives in ./survey-template.ts (re-exported here) so send-survey-email deploys small.
