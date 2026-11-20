@@ -73,7 +73,7 @@ const needsWho = (type: string) => type !== 'stress_test';
 function checkEvidenceFields(f: EntryForm): Partial<EntryForm> {
   const e: Partial<EntryForm> = {};
   const who = f.who.trim();
-  if (needsWho(f.type) && !who) e.who = 'اكتب مع مَن تحدّثت: اسماً أو صفة أو جهة';
+  if (needsWho(f.type) && !who) e.who = 'اكتب مع مَن تحدّثت: صفة أو جهة';
   else if (who.length > WHO_MAX) e.who = `الحد الأقصى ${WHO_MAX} حرفاً`;
   const proof = f.proof_url.trim();
   if (takesProof(f.type) && proof) {
@@ -215,7 +215,7 @@ export default function ValidationPage() {
   // Fill in "who" on an entry logged before the field existed.
   async function saveWho(entryId: string) {
     const who = whoDraft.trim();
-    if (!who) { setToast('أضف اسماً أو صفة أو جهة.', 'error'); return; }
+    if (!who) { setToast('اكتب صفة أو جهة.', 'error'); return; }
     if (who.length > WHO_MAX) { setToast(`اجعلها أقل من ${WHO_MAX} حرفاً.`, 'error'); return; }
     setWhoSaving(true);
     const { error } = await supabase.from('validation_entries').update({ who }).eq('id', entryId);
@@ -296,7 +296,7 @@ export default function ValidationPage() {
               </Grid>
             )}
             <Grid size={{ xs: 12, sm: 6, md: 6 }}>
-              <TextField label="مع مَن تحدّثت؟ *" value={form.who} onChange={e => setForm(f => ({ ...f, who: e.target.value }))} error={!!errors.who} helperText={errors.who ?? 'اسم الشخص أو صفته أو جهته، مثلاً: سارة، صاحبة مقهى.'} fullWidth size="small" inputProps={{ maxLength: WHO_MAX }} />
+              <TextField label="مع مَن تحدّثت؟ *" value={form.who} onChange={e => setForm(f => ({ ...f, who: e.target.value }))} error={!!errors.who} helperText={errors.who ?? 'صفة الشخص أو جهته، مثلاً: صاحبة مقهى في عمّان.'} fullWidth size="small" inputProps={{ maxLength: WHO_MAX }} />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField label="ماذا تعلمت؟ *" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} error={!!errors.notes} helperText={errors.notes} multiline rows={2} fullWidth size="small" />
@@ -362,7 +362,7 @@ export default function ValidationPage() {
                         ) : whoEditId === entry.id ? (
                           <Stack direction="row" spacing={0.5} alignItems="center" onClick={e => e.stopPropagation()}>
                             <TextField
-                              autoFocus size="small" placeholder="اسم أو صفة أو جهة" value={whoDraft}
+                              autoFocus size="small" placeholder="صفة أو جهة" value={whoDraft}
                               onChange={e => setWhoDraft(e.target.value)}
                               onKeyDown={e => { if (e.key === 'Enter') void saveWho(entry.id); if (e.key === 'Escape') setWhoEditId(null); }}
                               inputProps={{ maxLength: WHO_MAX, 'aria-label': 'مع مَن' }}
@@ -438,7 +438,7 @@ export default function ValidationPage() {
               </Grid>
             )}
             <Grid size={{ xs: 12 }}>
-              <TextField label="مع مَن تحدّثت؟ *" value={editForm.who} onChange={e => setEditForm(f => ({ ...f, who: e.target.value }))} error={!!editErrors.who} helperText={editErrors.who ?? 'اسم الشخص أو صفته أو جهته، مثلاً: سارة، صاحبة مقهى.'} fullWidth size="small" inputProps={{ maxLength: WHO_MAX }} />
+              <TextField label="مع مَن تحدّثت؟ *" value={editForm.who} onChange={e => setEditForm(f => ({ ...f, who: e.target.value }))} error={!!editErrors.who} helperText={editErrors.who ?? 'صفة الشخص أو جهته، مثلاً: صاحبة مقهى في عمّان.'} fullWidth size="small" inputProps={{ maxLength: WHO_MAX }} />
             </Grid>
             <Grid size={{ xs: 12 }}>
               <TextField label="ماذا تعلمت؟ *" value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} error={!!editErrors.notes} helperText={editErrors.notes} multiline rows={3} fullWidth size="small" />
