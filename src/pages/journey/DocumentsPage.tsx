@@ -64,10 +64,19 @@ const SWOT_QUADS: Array<{ key: 'strengths' | 'weaknesses' | 'opportunities' | 't
 ];
 
 const VALIDATION_TYPE_LABELS: Record<string, string> = {
-  interview: 'مقابلة', preorder: 'طلب مسبق', signup: 'تسجيل اهتمام', observation: 'ملاحظة', other: 'غير ذلك',
+  interview: 'مقابلة', preorder: 'طلب مسبق', signup: 'تسجيل اهتمام', observation: 'ملاحظة',
 };
 const SENTIMENT_LABELS: Record<string, string> = { positive: 'إيجابي', neutral: 'محايد', negative: 'سلبي' };
-const VALID_TYPES = new Set(['interview', 'preorder', 'signup', 'observation', 'other']);
+// The Validation Tracker offers these four types (plus the automatic 'stress_test'). The extractor
+// can return other labels (e.g. 'survey', 'other'); anything not recognised is filed as an
+// observation, so one odd label never fails the whole batch insert.
+const VALID_TYPES = new Set(['interview', 'preorder', 'signup', 'observation']);
+function normalizeEvidenceType(raw: string | null | undefined): string {
+  const t = (raw ?? '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+  if (t === 'signups') return 'signup';
+  if (t === 'preorders') return 'preorder';
+  return VALID_TYPES.has(t) ? t : 'observation';
+}
 const VALID_SENTIMENTS = new Set(['positive', 'neutral', 'negative']);
 
 export default function DocumentsPage() {
@@ -274,7 +283,7 @@ function ReviewSections({ extraction, ideaId, userId, onToast }: {
   }));
   const [valRows, setValRows] = useState<ValRow[]>(() =>
     (extraction.validation ?? []).map(v => ({
-      type: v.type ?? 'other', notes: v.notes ?? '', amount: v.amount ?? 0, sentiment: v.sentiment ?? 'neutral', keep: true,
+      type: normalizeEvidenceType(v.type), notes: v.notes ?? '', amount: v.amount ?? 0, sentiment: v.sentiment ?? 'neutral', keep: true,
     }))
   );
   const fin = extraction.financials ?? {};
@@ -390,7 +399,7 @@ function ReviewSections({ extraction, ideaId, userId, onToast }: {
       .filter(v => v.keep && (v.notes.trim() || v.amount > 0))
       .map(v => ({
         user_idea_id: ideaId,
-        type: VALID_TYPES.has(v.type) ? v.type : 'other',
+        type: normalizeEvidenceType(v.type),
         notes: v.notes.trim(),
         amount: v.amount > 0 ? v.amount : 0,
         sentiment: VALID_SENTIMENTS.has(v.sentiment) ? v.sentiment : 'neutral',

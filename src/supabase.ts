@@ -145,11 +145,16 @@ export type MarketplaceTeaser = Pick<
 export interface ValidationEntry {
   id: string;
   user_idea_id: string;
-  type: 'interview' | 'signup' | 'preorder' | 'observation' | 'other' | 'stress_test';
+  type: 'interview' | 'signup' | 'preorder' | 'observation' | 'stress_test';
   notes: string;
   amount: number;
   sentiment?: 'positive' | 'neutral' | 'negative' | null; // empty is scored as neutral
   created_at: string;
+  // Evidence fields (nullable). `who` is who the evidence came from; entries logged
+  // before these columns existed have none.
+  who?: string | null;
+  proof_url?: string | null;
+  next_step?: string | null;
 }
 
 export interface CanvasData {

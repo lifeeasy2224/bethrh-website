@@ -105,6 +105,7 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [exportLoading, setExportLoading] = useState(false);
   const [toast, setToast] = useState('');
+  const [toastError, setToastError] = useState(false);
 
   // Filters — initialized from URL query params
   const [search, setSearch] = useState('');
@@ -191,8 +192,10 @@ export default function AdminUsersPage() {
       a.download = `users-${new Date().toISOString().split('T')[0]}.csv`;
       a.click();
       URL.revokeObjectURL(url);
+      setToastError(false);
       setToast('Export downloaded successfully');
     } catch {
+      setToastError(true);
       setToast('Export failed');
     } finally {
       setExportLoading(false);
@@ -436,7 +439,7 @@ export default function AdminUsersPage() {
         onClose={() => setToast('')}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert severity="success" onClose={() => setToast('')} sx={{ width: '100%' }}>
+        <Alert severity={toastError ? 'error' : 'success'} onClose={() => setToast('')} sx={{ width: '100%' }}>
           {toast}
         </Alert>
       </Snackbar>
