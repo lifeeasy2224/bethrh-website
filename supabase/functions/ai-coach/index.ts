@@ -127,10 +127,12 @@ Deno.serve(async (req: Request) => {
     let realRows: ValRow[] = [];
     let aiRead: ValRow | null = null;
     let journeyNotes: Array<{ week_number: number; notes: string }> = [];
+    type GateRow = { gate: number; decision: string; reason: string | null; created_at: string };
+    let gateRows: GateRow[] = [];
 
     if (idea) {
       const ideaId = idea.id as string;
-      const [valEntries, canvas, swot, pitch, journeyRows] = await Promise.all([
+      const [valEntries, canvas, swot, pitch, journeyRows, gateDecisions] = await Promise.all([
         db.from('validation_entries').select('type, notes, sentiment, amount, created_at')
           .eq('user_idea_id', ideaId).order('created_at', { ascending: false }).limit(15),
         db.from('canvas_data').select('key_partners, key_activities, value_proposition, customer_relationships, customer_segments, key_resources, channels, cost_structure, revenue_streams, monthly_revenue, monthly_costs, break_even_month')
@@ -140,6 +142,8 @@ Deno.serve(async (req: Request) => {
         db.from('pitch_data').select('elevator_pitch, pitch_problem, pitch_solution, target_market, revenue_model, break_even_summary, investment_amount, use_of_funds')
           .eq('user_idea_id', ideaId).maybeSingle(),
         db.from('journey_tasks').select('week_number, task_key, is_completed, notes').eq('user_idea_id', ideaId),
+        // The founder's own continue / pivot / stop calls at the week-4 and week-8 gates (newest first).
+        db.from('journey_decisions').select('gate, decision, reason, created_at').eq('user_idea_id', ideaId).order('created_at', { ascending: false }),
       ]);
 
       if (valEntries.error) console.error('ai-coach: validation_entries fetch failed', valEntries.error.message);
@@ -147,11 +151,13 @@ Deno.serve(async (req: Request) => {
       if (swot.error) console.error('ai-coach: swot_analyses fetch failed', swot.error.message);
       if (pitch.error) console.error('ai-coach: pitch_data fetch failed', pitch.error.message);
       if (journeyRows.error) console.error('ai-coach: journey_tasks fetch failed', journeyRows.error.message);
+      if (gateDecisions.error) console.error('ai-coach: journey_decisions fetch failed', gateDecisions.error.message);
 
       canvasRow = canvas.data as Record<string, unknown> | null;
       swotRow   = swot.data   as Record<string, unknown> | null;
       pitchRow  = pitch.data  as Record<string, unknown> | null;
       valRows   = (valEntries.data as ValRow[] | null) ?? [];
+      gateRows  = (gateDecisions.data as GateRow[] | null) ?? [];
       realRows  = valRows.filter(v => v.type !== 'stress_test');
       aiRead    = valRows.find(v => v.type === 'stress_test') ?? null;
 
@@ -243,6 +249,18 @@ Deno.serve(async (req: Request) => {
         const lines = journeyNotes.map(n => `الأسبوع ${n.week_number}: ${n.notes.slice(0, 300)}`);
         digest.push(`ملاحظات الرائد — ما سجّله المؤسس بنفسه أثناء تنفيذ خطة الـ ٩٠ يوماً، أسبوعاً بأسبوع:\n  - ${lines.join('\n  - ')}`);
       }
+
+      // بوابات القرار: قرار المؤسس نفسه (استمرار / تغيير اتجاه / إيقاف) في الأسبوع ٤ والأسبوع ٨،
+      // وآخر قرار لكل بوابة. السبب بكلماته هو، فاستشهد بمضمونه، وإن عارضته أدلة لاحقة فقل ذلك بلطف.
+      const GATE_DECISION_AR: Record<string, string> = { continue: 'استمرار', pivot: 'تغيير الاتجاه', stop: 'إيقاف' };
+      const gateLines: string[] = [];
+      for (const g of [4, 8]) {
+        const latest = gateRows.find(r => Number(r.gate) === g);
+        if (!latest) continue;
+        const when = String(latest.created_at ?? '').slice(0, 10);
+        gateLines.push(`بوابة الأسبوع ${g} — ${GATE_DECISION_AR[latest.decision] ?? latest.decision} (بتاريخ ${when}): "${clip(latest.reason, 300)}"`);
+      }
+      if (gateLines.length) digest.push(`بوابات القرار (قرارات المؤسس نفسه، آخر قرار لكل بوابة):\n  - ${gateLines.join('\n  - ')}`);
 
       digest.push(`الرحلة: ${currentWeek ? `في الأسبوع ${currentWeek} من ١٢ في خطة الـ ٩٠ يوماً` : 'لم تبدأ خطة الـ ٩٠ يوماً بعد'}. المراحل المكتملة: ${completedSteps.length ? completedSteps.join('، ') : 'لا شيء بعد'}. التالي: ${nextMilestone}.`);
     }
