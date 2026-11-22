@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
@@ -10,6 +10,8 @@ import Button from '@mui/material/Button';
 import LinearProgress from '@mui/material/LinearProgress';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Chip from '@mui/material/Chip';
 import Alert from '@mui/material/Alert';
 import Snackbar from '@mui/material/Snackbar';
@@ -50,7 +52,75 @@ const PHASE_COLORS = ['#1B6B3E', '#1B6B3E', '#D08A28'];
 
 type TaskMap = Record<string, Record<string, boolean>>;
 
+// ── بوابات القرار ─────────────────────────────────────────────────────────────
+// بعد الأسبوع ٤ والأسبوع ٨ يتخذ المؤسس قراراً مكتوباً: استمرار أو تغيير اتجاه أو إيقاف.
+// لا يُفتح أي أسبوع بعد البوابة حتى يوجد قرار لها (الخادم يفرض قواعد التسجيل في
+// record_journey_decision، وهذه الصفحة تفرض الفتح).
+// الأسابيع التي بدأ المؤسس العمل فيها أو أنجزها تبقى متاحة دائماً، حتى قبل اتخاذ القرار.
+type GateNum = 4 | 8;
+type GateChoice = 'continue' | 'pivot' | 'stop';
+
+interface GateSnapshot {
+  interviews: number;
+  observations: number;
+  signups: number;
+  preorders: number;
+  preorder_amount: number;
+  score: number;
+  evidence_min_met: boolean;
+}
+
+interface GateDecisionRow {
+  id: string;
+  user_idea_id: string;
+  gate: GateNum;
+  decision: GateChoice;
+  reason: string;
+  snapshot: GateSnapshot;
+  created_at: string;
+}
+
+const GATES: Record<GateNum, { title: string; hint: string }> = {
+  4: { title: 'قرار الأسبوع ٤', hint: '٥ محادثات فأكثر وتسجيل اهتمام أو طلب مسبق واحد على الأقل مؤشر جيد للاستمرار.' },
+  8: { title: 'قرار الأسبوع ٨', hint: '٣ عملاء فأكثر يدفعون أو يلتزمون مؤشر جيد للاستمرار.' },
+};
+const GATE_CHOICES: Array<{ value: GateChoice; label: string }> = [
+  { value: 'continue', label: 'استمرار' },
+  { value: 'pivot', label: 'تغيير الاتجاه' },
+  { value: 'stop', label: 'إيقاف' },
+];
+const CHOICE_LABEL: Record<GateChoice, string> = { continue: 'استمرار', pivot: 'تغيير الاتجاه', stop: 'إيقاف' };
+const CHOICE_COLOR: Record<GateChoice, { bg: string; color: string }> = {
+  continue: { bg: '#DEEBE2', color: '#1B6B3E' },
+  pivot: { bg: '#F5EAD3', color: '#A07830' },
+  stop: { bg: '#E8E4DC', color: '#554E41' },
+};
+const REASON_MIN = 20;
+const REASON_MAX = 500;
+const WHO_MIN = 3;
+
+// القاعدة نفسها المستخدمة في مؤشر الجاهزية: ليس قراءة أولى بالذكاء الاصطناعي، وله «مع مَن».
+function countEvidence(rows: Array<{ type: string; amount: number | null; who: string | null }>) {
+  const counted = rows.filter(r => String(r.type ?? '').toLowerCase() !== 'stress_test' && (r.who ?? '').trim().length >= WHO_MIN);
+  const n = (t: string) => counted.filter(r => String(r.type).toLowerCase() === t).length;
+  return {
+    interviews: n('interview'),
+    observations: n('observation'),
+    signups: n('signup'),
+    preorders: n('preorder'),
+    preorder_amount: counted.filter(r => String(r.type).toLowerCase() === 'preorder').reduce((sum, r) => sum + Number(r.amount ?? 0), 0),
+  };
+}
+
+type LiveEvidence = ReturnType<typeof countEvidence> & { score: number; evidence_min_met: boolean };
+
 export default function NinetyDayPage() {
+  // مفتاح الفكرة يعيد ضبط حالة البوابات عند تبديل الفكرة.
+  const { selectedIdeaId } = useIdea();
+  return <NinetyDayJourney key={selectedIdeaId ?? 'none'} />;
+}
+
+function NinetyDayJourney() {
   const { user, profile } = useAuth();
   const { selectedIdea, selectedIdeaId } = useIdea();
   const { triggerReview } = useReview();
@@ -59,6 +129,15 @@ export default function NinetyDayPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [recommendedWeeks, setRecommendedWeeks] = useState<number[]>([]);
   const [rationale, setRationale] = useState<string>('');
+  // بوابات القرار. حتى تُحمَّل القرارات تبقى الأسابيع المحجوبة بالبوابات مقفلة.
+  const [decisions, setDecisions] = useState<GateDecisionRow[]>([]);
+  const [decisionsLoaded, setDecisionsLoaded] = useState(false);
+  const [liveEvidence, setLiveEvidence] = useState<LiveEvidence | null>(null);
+  const [formOpen, setFormOpen] = useState<Record<number, boolean>>({});
+  const [formChoice, setFormChoice] = useState<Record<number, GateChoice | null>>({});
+  const [formReason, setFormReason] = useState<Record<number, string>>({});
+  const [formError, setFormError] = useState<Record<number, string | null>>({});
+  const [gateSaving, setGateSaving] = useState<number | null>(null);
 
   const plan = profile?.plan ?? 'free';
   const canAccess = plan !== 'free';
@@ -92,7 +171,50 @@ export default function NinetyDayPage() {
     }
   }
 
-  useEffect(() => { if (user && selectedIdeaId) loadTasks(); }, [selectedIdeaId, user]);
+  async function loadGateData() {
+    if (!selectedIdeaId) return;
+    const [decRes, entRes, ideaRes] = await Promise.all([
+      supabase.from('journey_decisions').select('*').eq('user_idea_id', selectedIdeaId).order('created_at', { ascending: false }),
+      supabase.from('validation_entries').select('type, amount, who').eq('user_idea_id', selectedIdeaId),
+      supabase.from('user_ideas').select('iq_score, evidence_min_met').eq('id', selectedIdeaId).maybeSingle(),
+    ]);
+    setDecisions((decRes.data ?? []) as GateDecisionRow[]);
+    // فشل القراءة يُبقي البوابات مقفلة بدل التخمين.
+    setDecisionsLoaded(!decRes.error);
+    setLiveEvidence({
+      ...countEvidence((entRes.data ?? []) as Array<{ type: string; amount: number | null; who: string | null }>),
+      score: Number(ideaRes.data?.iq_score ?? 0),
+      evidence_min_met: !!ideaRes.data?.evidence_min_met,
+    });
+  }
+
+  useEffect(() => { if (user && selectedIdeaId) { loadTasks(); void loadGateData(); } }, [selectedIdeaId, user]);
+
+  // آخر قرار لكل بوابة هو المعتمد (القرارات تصل الأحدث أولاً).
+  function latestDecision(gate: GateNum): GateDecisionRow | null {
+    return decisions.find(d => Number(d.gate) === gate) ?? null;
+  }
+
+  async function recordDecision(gate: GateNum) {
+    if (!selectedIdeaId) return;
+    const choice = formChoice[gate];
+    const reason = (formReason[gate] ?? '').trim();
+    if (!choice) { setFormError(p => ({ ...p, [gate]: 'اختر: استمرار أو تغيير الاتجاه أو إيقاف.' })); return; }
+    if (reason.length < REASON_MIN) { setFormError(p => ({ ...p, [gate]: `اكتب ${REASON_MIN} حرفاً على الأقل عن السبب.` })); return; }
+    if (reason.length > REASON_MAX) { setFormError(p => ({ ...p, [gate]: `اجعلها أقل من ${REASON_MAX} حرفاً.` })); return; }
+    setGateSaving(gate);
+    setFormError(p => ({ ...p, [gate]: null }));
+    const { error } = await supabase.rpc('record_journey_decision', {
+      p_idea: selectedIdeaId, p_gate: gate, p_decision: choice, p_reason: reason,
+    });
+    setGateSaving(null);
+    if (error) { setFormError(p => ({ ...p, [gate]: error.message })); return; }
+    setFormOpen(p => ({ ...p, [gate]: false }));
+    setFormReason(p => ({ ...p, [gate]: '' }));
+    setFormChoice(p => ({ ...p, [gate]: null }));
+    setToast('تم حفظ القرار.');
+    await loadGateData();
+  }
 
   async function toggleTask(weekNum: number, taskKey: string, current: boolean) {
     if (!user || !selectedIdeaId) return;
@@ -107,7 +229,8 @@ export default function NinetyDayPage() {
     } else {
       await supabase.from('journey_tasks').insert({ user_idea_id: selectedIdeaId, week_number: weekNum, task_key: taskKey, is_completed: newVal, completed_at: now });
     }
-    void recomputeIqScore(selectedIdeaId); // completing a task moves the score now
+    // completing a task moves the score now; refresh the gate card's numbers after it
+    void recomputeIqScore(selectedIdeaId).then(() => loadGateData());
   }
 
   async function saveNotes(weekNum: number, text: string) {
@@ -151,13 +274,33 @@ export default function NinetyDayPage() {
     return recommendedWeeks.includes(w.num);
   }
 
+  // أسبوع بدأ المؤسس العمل فيه (مهمة منجزة أو ملاحظات مكتوبة): يبقى متاحاً دائماً،
+  // فالبوابات لا تحجب عملاً سابقاً. هذا ما يحفظ عمل من أنهى الأسبوع ٤ أو ٨ قبل إضافتها.
+  function weekHasProgress(w: Week): boolean {
+    const wt = tasks[w.num] ?? {};
+    return Object.values(wt).some(Boolean) || !!(notes[w.num] ?? '').trim();
+  }
+
+  // سبب قفل الأسبوع بسبب بوابة (null إن لم تمنعه بوابة). البوابات صارمة: لا يُفتح شيء
+  // بعد الأسبوع ٤ قبل قرار البوابة ٤، ولا بعد الأسبوع ٨ قبل قرار البوابة ٨. تُفحص قبل
+  // الفتح التكيّفي.
+  function gateBlocking(w: Week): GateNum | null {
+    if (weekHasProgress(w)) return null;
+    if (w.num > 4 && (!decisionsLoaded || !latestDecision(4))) return 4;
+    if (w.num > 8 && (!decisionsLoaded || !latestDecision(8))) return 8;
+    return null;
+  }
+
   function isWeekUnlocked(w: Week): boolean {
+    if (w.num === 1) return true;
+    if (weekHasProgress(w)) return true;
+    if (gateBlocking(w)) return false;
     return isSequentiallyUnlocked(w) || isAdaptivelyUnlocked(w);
   }
 
   // Weeks the adaptive layer actually changed — i.e. recommended by journey-plan
   // but not already open via the sequential rule. Empty means it changed nothing.
-  const adaptiveExtraWeeks = WEEKS.filter(w => isAdaptivelyUnlocked(w) && !isSequentiallyUnlocked(w)).map(w => w.num);
+  const adaptiveExtraWeeks = WEEKS.filter(w => isAdaptivelyUnlocked(w) && !isSequentiallyUnlocked(w) && !gateBlocking(w)).map(w => w.num);
 
   function getWeekStatus(w: Week): 'complete' | 'in_progress' | 'locked' | 'upcoming' {
     if (!isWeekUnlocked(w)) return 'locked';
@@ -174,6 +317,118 @@ export default function NinetyDayPage() {
     const phaseDone = phaseWeeks.reduce((sum, w) => sum + (getWeekStatus(w) === 'complete' ? 1 : 0), 0);
     return Math.round(phaseDone / phaseWeeks.length * 100);
   });
+
+  function renderGate(gate: GateNum) {
+    const weekDone = !!(tasks[gate] ?? {})['main'];
+    if (!weekDone) return null;
+    const meta = GATES[gate];
+    const latest = latestDecision(gate);
+    const showForm = !latest || !!formOpen[gate];
+    const choice = formChoice[gate] ?? null;
+    const reasonText = formReason[gate] ?? '';
+    const reasonLen = reasonText.trim().length;
+    const err = formError[gate] ?? null;
+    // إرشاد تغيير الاتجاه / الإيقاف يتبع القرار المسجّل (أو الاختيار الجاري).
+    const guidance: GateChoice | null = showForm ? choice : (latest?.decision ?? null);
+    const ev = liveEvidence;
+    // مؤسسون أنهوا أسابيع بعد هذه البوابة قبل إضافتها: عملهم متاح، وقرارهم يفتح ما بعده.
+    const alreadyPast = !latest && WEEKS.some(w => w.num > gate && weekHasProgress(w));
+    const evidenceRow = (e: { interviews: number; observations: number; signups: number; preorders: number; preorder_amount: number; score: number; evidence_min_met: boolean }) => (
+      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+        <Chip size="small" label={`${e.interviews} مقابلات`} />
+        <Chip size="small" label={`${e.observations} ملاحظات`} />
+        <Chip size="small" label={`${e.signups} تسجيلات اهتمام`} />
+        <Chip size="small" label={`${e.preorders} طلبات مسبقة ($${e.preorder_amount})`} />
+        <Chip size="small" color="primary" variant="outlined" label={`مؤشر الجاهزية ${e.score}`} />
+        <Chip size="small" variant="outlined" label={e.evidence_min_met ? 'الحد الأدنى للأدلة متحقق' : 'الحد الأدنى للأدلة غير متحقق بعد'} />
+      </Stack>
+    );
+
+    return (
+      <Card sx={{ border: '2px solid', borderColor: '#D4A65388', bgcolor: '#FAF5E9', boxShadow: 'none' }}>
+        <CardContent sx={{ p: 2.5 }}>
+          <Typography variant="caption" fontWeight={800} color="secondary.main">بوابة القرار</Typography>
+          <Typography variant="subtitle1" fontWeight={800} sx={{ mb: 0.5 }}>{meta.title}: نستمر أم نغيّر الاتجاه أم نتوقف؟</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+            تُفتح الأسابيع من {gate + 1} فصاعداً بعد أن تتخذ قرارك. {meta.hint}
+          </Typography>
+          {alreadyPast && (
+            <Alert severity="info" sx={{ mb: 1.5 }}>
+              أنجزتَ أسابيع بعد هذه البوابة قبل إضافتها، وتبقى متاحة لك كما هي. قرارك هنا يفتح الأسابيع الجديدة.
+            </Alert>
+          )}
+
+          <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: 'block', mb: 0.75 }}>
+            ما يُحتسب الآن (الأنشطة التي بلا «مع مَن» لا تُحتسب)
+          </Typography>
+          {ev ? evidenceRow(ev) : <Typography variant="caption" color="text.secondary">جارٍ تحميل أدلتك…</Typography>}
+
+          {latest && (
+            <Box sx={{ mt: 2, p: 1.5, bgcolor: '#fff', borderRadius: 1.5, border: '1px solid', borderColor: 'divider' }}>
+              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: 'wrap', rowGap: 0.5 }}>
+                <Chip size="small" label={CHOICE_LABEL[latest.decision]} sx={{ fontWeight: 800, bgcolor: CHOICE_COLOR[latest.decision].bg, color: CHOICE_COLOR[latest.decision].color }} />
+                <Typography variant="caption" color="text.secondary">
+                  اتُّخذ القرار {new Date(latest.created_at).toLocaleDateString('ar', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </Typography>
+                <Box sx={{ flex: 1 }} />
+                {!showForm && (
+                  <Button size="small" onClick={() => { setFormOpen(p => ({ ...p, [gate]: true })); setFormChoice(p => ({ ...p, [gate]: null })); setFormError(p => ({ ...p, [gate]: null })); }}>
+                    قرّر من جديد
+                  </Button>
+                )}
+              </Stack>
+              <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{latest.reason}</Typography>
+              {latest.snapshot && (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                  وقتها: {latest.snapshot.interviews} مقابلات، {latest.snapshot.observations} ملاحظات، {latest.snapshot.signups} تسجيلات اهتمام، {latest.snapshot.preorders} طلبات مسبقة (${latest.snapshot.preorder_amount})، ومؤشر الجاهزية {latest.snapshot.score}.
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {showForm && (
+            <Box sx={{ mt: 2 }}>
+              <ToggleButtonGroup
+                exclusive size="small" color="primary" value={choice}
+                onChange={(_, v: GateChoice | null) => setFormChoice(p => ({ ...p, [gate]: v }))}
+                aria-label={meta.title}
+              >
+                {GATE_CHOICES.map(c => <ToggleButton key={c.value} value={c.value} sx={{ px: 2.5, fontWeight: 700 }}>{c.label}</ToggleButton>)}
+              </ToggleButtonGroup>
+              <TextField
+                fullWidth multiline minRows={2} size="small" sx={{ mt: 1.5, bgcolor: '#fff' }}
+                label={`لماذا؟ (${REASON_MIN} حرفاً على الأقل)`}
+                value={reasonText}
+                onChange={e => setFormReason(p => ({ ...p, [gate]: e.target.value }))}
+                inputProps={{ maxLength: REASON_MAX, autoComplete: 'off' }}
+                helperText={`${reasonLen}/${REASON_MAX}${reasonLen < REASON_MIN ? ` · بقي ${REASON_MIN - reasonLen}` : ''}`}
+              />
+              {err && <Alert severity="error" sx={{ mt: 1.5 }}>{err}</Alert>}
+              <Stack direction="row" spacing={1} sx={{ mt: 1.5 }}>
+                <Button variant="contained" disabled={gateSaving === gate} onClick={() => void recordDecision(gate)}>
+                  {gateSaving === gate ? 'جارٍ الحفظ…' : latest ? 'احفظ قراراً جديداً' : 'احفظ القرار'}
+                </Button>
+                {latest && <Button color="inherit" onClick={() => setFormOpen(p => ({ ...p, [gate]: false }))}>إلغاء</Button>}
+              </Stack>
+            </Box>
+          )}
+
+          {guidance === 'pivot' && (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              تغيير الاتجاه خطوة ذكية وليس فشلاً. أعد تشكيل الفكرة حول ما قاله لك العملاء فعلاً.{' '}
+              <Link to="/journey">عدّل فكرتك</Link>. ويمكنك اتخاذ قرار جديد هنا لاحقاً.
+            </Alert>
+          )}
+          {guidance === 'stop' && (
+            <Alert severity="success" sx={{ mt: 2 }}>
+              معرفة متى تتوقف مهارة حقيقية، وقد عرفتها بتكلفة قليلة. ما تعلّمته ينتقل إلى فكرتك التالية.{' '}
+              <Link to="/journey?new=true">أضف فكرة جديدة</Link>.
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!selectedIdea) {
     return (
@@ -244,9 +499,11 @@ export default function NinetyDayPage() {
             ? '#D4A653'
             : { complete: '#2A8A52', in_progress: '#1B6B3E', locked: '#E8E4DC', upcoming: '#E8E4DC' }[status];
           const badge = { complete: '✅ مكتمل', in_progress: '🔄 قيد التنفيذ', locked: '🔒 مقفل', upcoming: '⬜ قادم' }[status];
+          const blockedBy = gateBlocking(week);
 
           return (
-            <Card key={week.num} sx={{ borderLeft: `4px solid ${borderColor}`, opacity: isLocked ? 0.6 : 1 }}>
+            <Fragment key={week.num}>
+            <Card sx={{ borderLeft: `4px solid ${borderColor}`, opacity: isLocked ? 0.6 : 1 }}>
               <CardContent sx={{ p: 2.5 }}>
                 <Stack direction="row" alignItems="flex-start" justifyContent="space-between" sx={{ mb: 1.5 }}>
                   <Box>
@@ -258,6 +515,11 @@ export default function NinetyDayPage() {
                       )}
                     </Stack>
                     <Typography variant="subtitle1" fontWeight={700} sx={{ mt: 0.75 }}>{week.title}</Typography>
+                    {blockedBy && (
+                      <Typography variant="caption" color="text.secondary">
+                        {decisionsLoaded ? `اتخذ قرار الأسبوع ${blockedBy} لتفتح هذا الأسبوع.` : 'نتحقق من قراراتك…'}
+                      </Typography>
+                    )}
                   </Box>
                 </Stack>
 
@@ -322,6 +584,8 @@ export default function NinetyDayPage() {
                 </Box>
               </CardContent>
             </Card>
+            {(week.num === 4 || week.num === 8) && renderGate(week.num as GateNum)}
+            </Fragment>
           );
         })}
       </Stack>
