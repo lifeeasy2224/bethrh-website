@@ -237,7 +237,7 @@ export default function ContactPage() {
                     </Typography>
                     <Button
                       component="a"
-                      href="/help"
+                      href="/help/"
                       variant="outlined"
                       size="small"
                       sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.5)', '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' } }}

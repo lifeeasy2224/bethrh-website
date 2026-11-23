@@ -57,7 +57,7 @@ export default function CookieBanner() {
             نستخدم ملفات تعريف ارتباط أساسية فقط لإبقائك مسجّلاً وآمناً.{' '}
             <Typography
               component={Link}
-              to="/cookies"
+              to="/cookies/"
               variant="body2"
               sx={{ color: 'primary.light', textDecoration: 'underline', '&:hover': { color: 'white' } }}
             >

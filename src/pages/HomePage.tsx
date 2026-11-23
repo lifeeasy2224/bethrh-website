@@ -820,7 +820,7 @@ export default function HomePage() {
               />
             ))}
           </Stack>
-          <Button component={Link} to="/ideas-library" variant="contained" size="large" endIcon={<ArrowForwardIcon />}>
+          <Button component={Link} to="/ideas-library/" variant="contained" size="large" endIcon={<ArrowForwardIcon />}>
             استكشف مكتبة الأفكار
           </Button>
         </Container>
