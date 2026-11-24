@@ -29,10 +29,13 @@ Deno.serve(async (req: Request) => {
     const founderEmail = founderAuth?.user?.email;
     if (!founderEmail) return jsonResp({ skipped: 'no founder email' });
 
+    // Product notification, not marketing: only addresses that bounced or filed a spam
+    // complaint are skipped. A marketing unsubscribe ('unsubscribed') must not block it.
     const { data: suppressed } = await db
       .from('email_suppression_list')
       .select('email')
       .ilike('email', founderEmail)
+      .in('reason', ['bounced', 'complaint'])
       .limit(1);
     if (suppressed && suppressed.length > 0) return jsonResp({ skipped: 'founder suppressed' });
 

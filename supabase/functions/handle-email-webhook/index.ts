@@ -86,6 +86,18 @@ Deno.serve(async (req: Request) => {
       return new Response("OK", { status: 200, headers: corsHeaders });
     }
 
+    // Founder welcome series (marketing, send-founder-series): a bounce or spam complaint
+    // suppresses the address so the next step is never sent. Other events need no bookkeeping.
+    if (readTag(event.data?.tags, "series") ?? readTag(event.tags, "series")) {
+      if (email && (event.type === "email.bounced" || event.type === "email.complained")) {
+        await supabase.from("email_suppression_list").upsert(
+          { email, reason: event.type === "email.bounced" ? "bounced" : "complaint", source: "series:founder_welcome" },
+          { onConflict: "email" },
+        );
+      }
+      return new Response("OK", { status: 200, headers: corsHeaders });
+    }
+
     const campaignId = readTag(event.data?.tags, "campaign_id") ?? readTag(event.tags, "campaign_id");
 
     // Not a tracked campaign email — acknowledge.

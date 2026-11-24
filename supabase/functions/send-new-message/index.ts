@@ -42,10 +42,13 @@ Deno.serve(async (req: Request) => {
     const recipientEmail = recipientAuth?.user?.email;
     if (!recipientEmail) return jsonResp({ skipped: 'no recipient email' });
 
+    // Product notification, not marketing: only addresses that bounced or filed a spam
+    // complaint are skipped. A marketing unsubscribe ('unsubscribed') must not block it.
     const { data: suppressed } = await db
       .from('email_suppression_list')
       .select('email')
       .ilike('email', recipientEmail)
+      .in('reason', ['bounced', 'complaint'])
       .limit(1);
     if (suppressed && suppressed.length > 0) return jsonResp({ skipped: 'recipient suppressed' });
 
