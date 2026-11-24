@@ -13,7 +13,7 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import { supabase } from '../supabase';
 
-type Status = 'loading' | 'success' | 'resubscribed' | 'invalid' | 'error';
+type Status = 'confirm' | 'loading' | 'success' | 'resubscribed' | 'invalid' | 'error';
 
 export default function UnsubscribePage() {
   const [params] = useSearchParams();
@@ -22,17 +22,25 @@ export default function UnsubscribePage() {
   const campaignId = params.get('campaign');
   const sig = params.get('sig');
   const [status, setStatus] = useState<Status>('loading');
+  const [resubscribing, setResubscribing] = useState(false);
+  const [resubscribeFailed, setResubscribeFailed] = useState(false);
 
+  // The unsubscribe action must never fire on a bare page load: mail-security scanners
+  // headlessly render links to sandbox them, and an unsubscribe now stops ALL marketing
+  // and suppresses the address, so a scanner must not be able to trigger it. We show a
+  // confirmation screen and only act on an explicit click.
+  //   Campaign-level link: ?email=...&campaign=...   Profile-level link: ?token=...
   useEffect(() => {
-    // Campaign-level unsubscribe: ?email=...&campaign=...
-    if (email && campaignId) {
-      void handleCampaignUnsubscribe(email, campaignId);
-      return;
-    }
-    // Profile-level unsubscribe: ?token=...
-    if (!token) { setStatus('invalid'); return; }
-    void unsubscribe(token);
+    if ((email && campaignId) || token) { setStatus('confirm'); return; }
+    setStatus('invalid');
   }, [token, email, campaignId]);
+
+  function handleConfirm() {
+    setStatus('loading');
+    if (email && campaignId) { void handleCampaignUnsubscribe(email, campaignId); return; }
+    if (token) { void unsubscribe(token); return; }
+    setStatus('invalid');
+  }
 
   async function handleCampaignUnsubscribe(em: string, cid: string) {
     try {
@@ -57,17 +65,30 @@ export default function UnsubscribePage() {
 
   async function unsubscribe(t: string) {
     // Anonymous visitors can't update profiles under RLS; the RPC checks the token
-    // server-side and only touches the two email preferences.
+    // server-side. It turns off the digest and inspiration emails AND all marketing,
+    // stops any welcome series and suppresses the address. Account emails (password
+    // reset, security) are never affected.
     const { data, error } = await supabase.rpc('unsubscribe_by_token', { p_token: t });
     if (error) { setStatus('error'); return; }
     if (!data) { setStatus('invalid'); return; }
     setStatus('success');
   }
 
+  // Restores the weekly digest and inspiration emails only (never marketing). A failed
+  // call used to do nothing at all, so the button looked dead; now it says so.
   async function resubscribe() {
-    if (!token) return; // Campaign unsubscribes can't re-subscribe via this flow
-    const { data, error } = await supabase.rpc('resubscribe_by_token', { p_token: token });
-    if (!error && data) setStatus('resubscribed');
+    if (!token || resubscribing) return; // Campaign unsubscribes can't re-subscribe via this flow
+    setResubscribing(true);
+    setResubscribeFailed(false);
+    try {
+      const { data, error } = await supabase.rpc('resubscribe_by_token', { p_token: token });
+      if (error || !data) { setResubscribeFailed(true); return; }
+      setStatus('resubscribed');
+    } catch {
+      setResubscribeFailed(true);
+    } finally {
+      setResubscribing(false);
+    }
   }
 
   return (
@@ -81,6 +102,24 @@ export default function UnsubscribePage() {
 
         <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+            {status === 'confirm' && (
+              <Stack alignItems="center" spacing={2.5} textAlign="center">
+                <Box sx={{ width: 64, height: 64, borderRadius: '50%', bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <MailOutlineIcon sx={{ fontSize: 36, color: 'text.secondary' }} />
+                </Box>
+                <Typography variant="h5" fontWeight={700}>إلغاء الاشتراك في رسائل بذرة؟</Typography>
+                <Typography color="text.secondary" sx={{ maxWidth: 400 }}>
+                  {email && campaignId
+                    ? `سنوقف الرسائل التسويقية عن ${email}.`
+                    : 'سنوقف رسائل بذرة التسويقية ورسائل الملخص والإلهام الأسبوعية.'}
+                  {' '}تبقى رسائل الحساب والأمان، مثل استعادة كلمة المرور، تصلك كالمعتاد. اضغط الزر أدناه للتأكيد.
+                </Typography>
+                <Button variant="contained" fullWidth onClick={handleConfirm}>
+                  تأكيد إلغاء الاشتراك
+                </Button>
+              </Stack>
+            )}
+
             {status === 'loading' && (
               <Stack alignItems="center" spacing={2} py={4}>
                 <CircularProgress />
@@ -95,16 +134,25 @@ export default function UnsubscribePage() {
                 </Box>
                 <Typography variant="h5" fontWeight={700}>تم إلغاء اشتراكك</Typography>
                 <Typography color="text.secondary" sx={{ maxWidth: 380 }}>
-                  لن تصلك رسائل الملخص أو الإلهام الأسبوعية من بذرة بعد الآن. يمكنك إعادة الاشتراك في أي وقت من الإعدادات.
+                  {campaignId
+                    ? 'لن تصلك رسائل بذرة التسويقية بعد الآن.'
+                    : 'لن تصلك رسائل بذرة التسويقية ولا رسائل الملخص والإلهام الأسبوعية بعد الآن.'}
                 </Typography>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} width="100%">
-                  <Button variant="outlined" fullWidth onClick={resubscribe}>
-                    أعد الاشتراك
-                  </Button>
+                  {token && !campaignId && (
+                    <Button variant="outlined" fullWidth onClick={resubscribe} disabled={resubscribing}>
+                      {resubscribing ? 'جارٍ إعادة التفعيل…' : 'أعد تفعيل الملخص والإلهام'}
+                    </Button>
+                  )}
                   <Button variant="contained" fullWidth component={Link} to="/login">
                     اذهب للتطبيق
                   </Button>
                 </Stack>
+                {resubscribeFailed && (
+                  <Typography color="error" variant="body2" role="alert">
+                    تعذّرت إعادة التفعيل. حاول مرة أخرى، أو فعّل الرسائل من الإعدادات.
+                  </Typography>
+                )}
               </Stack>
             )}
 
@@ -115,7 +163,7 @@ export default function UnsubscribePage() {
                 </Box>
                 <Typography variant="h5" fontWeight={700}>عدت من جديد!</Typography>
                 <Typography color="text.secondary">
-                  أُعيد تفعيل رسائل الملخص والإلهام الأسبوعية.
+                  أُعيد تفعيل رسائل الملخص والإلهام الأسبوعية. الرسائل التسويقية تبقى متوقفة.
                 </Typography>
                 <Button variant="contained" component={Link} to="/login" fullWidth>
                   اذهب للتطبيق
