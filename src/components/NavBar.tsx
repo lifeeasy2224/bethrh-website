@@ -27,9 +27,9 @@ const GOLD = '#D4A653';
 
 const PUBLIC_NAV = [
   { label: 'تحقق من فكرتك', to: '/validate', badge: 'مجاناً' },
-  { label: 'مكتبة الأفكار', to: '/ideas-library' },
+  { label: 'مكتبة الأفكار', to: '/ideas-library/' },
   { label: 'كيف تعمل بذرة', to: '/#how-it-works' },
-  { label: 'الأسعار', to: '/pricing' },
+  { label: 'الأسعار', to: '/pricing/' },
 ];
 
 const FOR_FOUNDERS = [
@@ -390,9 +390,9 @@ export default function NavBar() {
               </Button>
 
               {[
-                { label: 'مكتبة الأفكار', to: '/ideas-library' },
+                { label: 'مكتبة الأفكار', to: '/ideas-library/' },
                 { label: 'كيف تعمل بذرة', to: '/#how-it-works' },
-                { label: 'الأسعار', to: '/pricing' },
+                { label: 'الأسعار', to: '/pricing/' },
               ].map(item => (
                 <Button
                   key={item.label}

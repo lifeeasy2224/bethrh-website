@@ -39,13 +39,13 @@ const SOCIALS = [
 
 const FOOTER_LINKS = [
   { label: 'المزايا', to: '/#features' },
-  { label: 'مكتبة الأفكار', to: '/ideas-library' },
-  { label: 'الأسعار', to: '/pricing' },
+  { label: 'مكتبة الأفكار', to: '/ideas-library/' },
+  { label: 'الأسعار', to: '/pricing/' },
   { label: 'عن المؤسس', to: '/#founder' },
-  { label: 'سياسة الخصوصية', to: '/privacy' },
-  { label: 'الشروط والأحكام', to: '/terms' },
-  { label: 'مركز المساعدة', to: '/help' },
-  { label: 'تواصل معنا', to: '/contact' },
+  { label: 'سياسة الخصوصية', to: '/privacy/' },
+  { label: 'الشروط والأحكام', to: '/terms/' },
+  { label: 'مركز المساعدة', to: '/help/' },
+  { label: 'تواصل معنا', to: '/contact/' },
 ];
 
 export default function Footer() {

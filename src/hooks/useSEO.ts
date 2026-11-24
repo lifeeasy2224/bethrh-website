@@ -9,6 +9,25 @@ interface SEOProps {
 
 const BASE_URL = 'https://bethra.co';
 
+// Public pages are prerendered as folders (e.g. /pricing/index.html), so the
+// host serves them at the trailing-slash URL and redirects the bare path there.
+// Canonical and og:url must use the slash form or Google sees a redirect.
+// Keep in sync with PUBLIC_ROUTES in scripts/prerender.mjs.
+const PRERENDERED_PATHS = new Set([
+  '/pricing',
+  '/ideas-library',
+  '/help',
+  '/contact',
+  '/privacy',
+  '/terms',
+  '/cookies',
+  '/ip-protection',
+]);
+
+function canonicalUrl(path: string) {
+  return `${BASE_URL}${PRERENDERED_PATHS.has(path) ? `${path}/` : path}`;
+}
+
 function setMeta(name: string, content: string, attr: 'name' | 'property' = 'name') {
   let el = document.querySelector(`meta[${attr}="${name}"]`) as HTMLMetaElement | null;
   if (!el) {
@@ -42,8 +61,8 @@ export function useSEO({ title, description, canonicalPath, jsonLd }: SEOProps) 
     setMeta('twitter:description', description);
 
     if (canonicalPath !== undefined) {
-      setLink('canonical', `${BASE_URL}${canonicalPath}`);
-      setMeta('og:url', `${BASE_URL}${canonicalPath}`, 'property');
+      setLink('canonical', canonicalUrl(canonicalPath));
+      setMeta('og:url', canonicalUrl(canonicalPath), 'property');
     }
 
     // JSON-LD structured data

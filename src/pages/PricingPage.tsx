@@ -110,7 +110,7 @@ const PLANS: Plan[] = [
     badge: null,
     highlighted: false,
     cta: 'تواصل معنا',
-    ctaTo: '/contact',
+    ctaTo: '/contact/',
     features: [
       'كل ما في نمو',
       'رمز شراكة خاص لمشاركيكم',
@@ -460,7 +460,7 @@ export default function PricingPage() {
           <Box sx={{ textAlign: 'center', mt: 6 }}>
             <Button
               component={Link}
-              to="/contact"
+              to="/contact/"
               variant="contained"
               size="large"
               sx={{
