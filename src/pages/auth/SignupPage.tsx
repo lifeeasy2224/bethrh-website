@@ -10,6 +10,8 @@ import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Alert from '@mui/material/Alert';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -19,6 +21,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import BethraLogo from '../../components/BethraLogo';
 import { supabase } from '../../supabase';
+import { MARKETING_CONSENT_TEXT } from '../../lib/marketingConsent';
 
 type Role = 'founder' | 'investor';
 type Step = 'role' | 'form' | 'confirm';
@@ -31,6 +34,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
+  // Founders only, unchecked by default, never required: the account is created either way.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const navigate = useNavigate();
@@ -59,7 +64,7 @@ export default function SignupPage() {
     if (!role || !passwordValid) return;
     setLoading(true);
     setError('');
-    const { error: err, needsConfirmation } = await signUp(email.trim(), password, fullName.trim(), role);
+    const { error: err, needsConfirmation } = await signUp(email.trim(), password, fullName.trim(), role, role === 'founder' && marketingOptIn);
     if (err) {
       setError(err.message.includes('already registered') ? 'يوجد حساب مسجّل بهذا البريد الإلكتروني بالفعل. سجّل الدخول، أو استعد كلمة المرور إن نسيتها.' : err.message);
       setLoading(false);
@@ -255,6 +260,14 @@ export default function SignupPage() {
                           </Stack>
                         ))}
                       </Stack>
+                    )}
+
+                    {role === 'founder' && (
+                      <FormControlLabel
+                        control={<Checkbox checked={marketingOptIn} onChange={e => setMarketingOptIn(e.target.checked)} />}
+                        label={<Typography variant="body2" color="text.secondary">{MARKETING_CONSENT_TEXT}</Typography>}
+                        sx={{ alignItems: 'flex-start', m: 0, '& .MuiCheckbox-root': { pt: 0.5, paddingInlineStart: 0 } }}
+                      />
                     )}
 
                     <Button

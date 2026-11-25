@@ -62,6 +62,9 @@ verify_jwt = true
 [functions.send-email]
 verify_jwt = true
 
+[functions.send-founder-series]
+verify_jwt = false  # called by pg_cron with the Vault bearer (checkCronAuth); cron job is created inactive
+
 [functions.send-inspiration-upgrade]
 verify_jwt = true
 
@@ -118,3 +121,6 @@ verify_jwt = false  # internal only: checks the service-role key or Vault bearer
 
 [functions.unsubscribe-campaign]
 verify_jwt = false  # public unsubscribe endpoint; authorises by signed link or real recipient row
+
+[functions.unsubscribe-one-click]
+verify_jwt = false  # public RFC 8058 one-click endpoint hit by mail clients; authorises by the unguessable profile token

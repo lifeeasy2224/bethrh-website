@@ -51,8 +51,11 @@ async function emailResultsToCaller(req: Request, idea: string, result: Analysis
     // Settings → "نتائج التحقق". null (never set) means on.
     if (profile?.validation_notifications === false) return;
 
+    // A results email the person asked for, not marketing: only addresses that bounced or
+    // filed a spam complaint are skipped. A marketing unsubscribe must not block it.
     const { data: suppressed } = await db
-      .from('email_suppression_list').select('email').ilike('email', user.email).limit(1);
+      .from('email_suppression_list').select('email').ilike('email', user.email)
+      .in('reason', ['bounced', 'complaint']).limit(1);
     if (suppressed && suppressed.length > 0) return;
 
     // At most one email per idea per day. "Same idea" = same text (case and spacing ignored),

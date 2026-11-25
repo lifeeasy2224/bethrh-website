@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { supabase, type Profile } from '../supabase';
+import { MARKETING_CONSENT_VERSION } from '../lib/marketingConsent';
 
 interface AuthContextType {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, role: 'founder' | 'investor') => Promise<{ error: Error | null; needsConfirmation: boolean }>;
+  signUp: (email: string, password: string, fullName: string, role: 'founder' | 'investor', marketingOptIn?: boolean) => Promise<{ error: Error | null; needsConfirmation: boolean }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -93,12 +94,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  async function signUp(email: string, password: string, fullName: string, role: 'founder' | 'investor') {
+  async function signUp(email: string, password: string, fullName: string, role: 'founder' | 'investor', marketingOptIn?: boolean) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, role },
+        // marketing_opt_in is only a claim: handle_new_user records it server-side, and only
+        // for founders. It is sent only when the (unchecked-by-default) box is ticked.
+        data: {
+          full_name: fullName, role,
+          ...(marketingOptIn && role === 'founder'
+            ? { marketing_opt_in: true, marketing_consent_text_version: MARKETING_CONSENT_VERSION }
+            : {}),
+        },
         // Land the confirmation link on onboarding, not the marketing homepage.
         emailRedirectTo: `${window.location.origin}/onboarding`,
       },
